@@ -1,18 +1,16 @@
 <!--
 Sync Impact Report:
-Version: 0.1.0 → 1.0.0 (initial ratification)
-Modified Principles: N/A (initial version)
+Version: 1.0.0 → 1.1.0 (added Principle VIII)
+Modified Principles: N/A
 Added Sections:
-  - All core principles (I-VII)
-  - Development Standards section
-  - Quality Gates section
-  - Governance section
-Removed Sections: N/A (initial version)
+  - Principle VIII: Incremental Delivery & Thin Slices
+Removed Sections: N/A
 Templates Status:
-  ✅ plan-template.md - Reviewed, "Constitution Check" section aligns with principles I-VII
+  ✅ plan-template.md - Reviewed, "Constitution Check" section aligns with principles I-VIII
   ✅ spec-template.md - Reviewed, requirements structure aligns with API-First principle
   ✅ tasks-template.md - Reviewed, test-first workflow aligns with principle III
-Follow-up TODOs: None
+  ⚠️  tasks-template.md - Will need update to emphasize thin slice approach per Principle VIII
+Follow-up TODOs: Update tasks template to emphasize P1/MVP-first approach
 -->
 
 # SpecBot Constitution
@@ -95,6 +93,36 @@ Breaking changes REQUIRE:
 
 **Rationale**: Predictable versioning allows consumers to understand impact of updates. Breaking changes are sometimes necessary but must be explicit and planned.
 
+### VIII. Incremental Delivery & Thin Slices (NON-NEGOTIABLE)
+
+Features MUST be implemented as thin vertical slices that deliver end-to-end value. Each slice:
+- Implements ONE complete user story or workflow (P1/MVP first)
+- Is independently testable, demonstrable, and deployable
+- Delivers working functionality from UI to storage/backend
+- Can be committed and deployed without depending on future slices
+
+**Implementation Workflow**:
+1. **Plan**: Identify the thinnest valuable slice (usually P1/MVP user story)
+2. **Implement**: Build complete vertical slice (tests → UI → logic → storage)
+3. **Test**: Verify slice works end-to-end
+4. **Demo**: Show working functionality to stakeholders
+5. **Commit**: Commit completed slice to version control
+6. **Repeat**: Move to next slice (P2, P3, etc.)
+
+**What Qualifies as a Thin Slice**:
+- ✅ "User can send message and see loopback response" (P1 story)
+- ✅ "User can view conversation history" (P2 story - adds to P1)
+- ❌ "Implement all UI components" (horizontal layer, not deliverable)
+- ❌ "Build entire feature with all stories" (too thick, can't demo incrementally)
+
+**Prohibited Practices**:
+- Implementing multiple user stories before testing/committing
+- Building horizontal layers (all UI, then all logic, then all storage)
+- "I'll commit when the whole feature is done" approach
+- Deferring integration testing until end
+
+**Rationale**: Thin slices enable rapid feedback, reduce integration risk, provide early value, and make progress visible. Working software after each slice proves the system works and builds confidence. This approach prevents "90% done" syndrome where integration happens late and reveals major issues.
+
 ## Development Standards
 
 ### Code Quality
@@ -118,17 +146,19 @@ Breaking changes REQUIRE:
 ## Quality Gates
 
 All pull requests MUST pass:
-1. **Constitution Compliance**: Code review verifies adherence to principles I-VII
+1. **Constitution Compliance**: Code review verifies adherence to principles I-VIII
 2. **Test Gate**: All tests pass (unit, integration, contract)
 3. **Test-First Verification**: Tests existed and failed before implementation
 4. **Code Quality**: Linting, formatting, type checking pass
 5. **Documentation**: Contracts, APIs, and complex logic documented
+6. **Thin Slice Verification**: PR implements complete vertical slice (one user story)
 
 New features MUST include:
 - Contract definition (if adding/modifying API)
 - Contract and integration tests
 - Update to relevant documentation
 - Evidence that tests were written first and initially failed
+- Demonstration that slice is independently testable and deployable
 
 ## Governance
 
@@ -157,4 +187,4 @@ This constitution is a **living document** that evolves with the project.
 - Templates (plan, spec, tasks) updated when constitution changes
 - Team retrospectives can propose amendments
 
-**Version**: 1.0.0 | **Ratified**: 2025-12-23 | **Last Amended**: 2025-12-23
+**Version**: 1.1.0 | **Ratified**: 2025-12-23 | **Last Amended**: 2025-12-23

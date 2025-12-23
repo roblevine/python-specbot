@@ -3,15 +3,47 @@
 **Feature**: Chat Interface
 **Date**: 2025-12-23
 **Prerequisites**: Node.js 18+ installed
+**Development Environment**: Use devcontainer (`.devcontainer/` already configured in repo)
 
 ## Table of Contents
 
-1. [Initial Setup](#initial-setup)
-2. [Project Structure](#project-structure)
-3. [Development Workflow](#development-workflow)
-4. [Testing](#testing)
-5. [Building for Production](#building-for-production)
-6. [Troubleshooting](#troubleshooting)
+1. [Development Environment Setup](#development-environment-setup)
+2. [Initial Setup](#initial-setup)
+3. [Project Structure](#project-structure)
+4. [Development Workflow](#development-workflow)
+5. [Testing](#testing)
+6. [Building for Production](#building-for-production)
+7. [Troubleshooting](#troubleshooting)
+
+---
+
+## Development Environment Setup
+
+### Using Devcontainer (Recommended)
+
+This project uses a devcontainer for consistent development environment.
+
+**Prerequisites**:
+- VS Code with "Dev Containers" extension installed
+- Docker installed and running
+
+**Steps**:
+1. Open this repository in VS Code
+2. Press `F1` and select "Dev Containers: Reopen in Container"
+3. Wait for container to build (first time only, ~2-5 minutes)
+4. Once inside container, you have Node.js 18+ and all tools ready
+
+**Benefits**:
+- Consistent environment across all developers
+- No local Node.js installation conflicts
+- All tools pre-configured
+
+**Alternative (Local Development)**:
+If you prefer local development, ensure Node.js 18+ is installed:
+```bash
+node --version  # Should be >= 18.0.0
+npm --version   # Should be >= 9.0.0
+```
 
 ---
 
