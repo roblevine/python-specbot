@@ -4,6 +4,11 @@
 	"name": "Python 3",
 	"image": "mcr.microsoft.com/devcontainers/python:3.13",
 
+	"features": {
+		"ghcr.io/devcontainers/features/node:1": {
+		"version": "latest"
+		}
+  	},
 	"customizations": {
 		"vscode": {
 			"settings": {},
@@ -22,7 +27,6 @@
 	
     "postCreateCommand": "sh .devcontainer/installation.sh",
 	"runArgs": ["--name", "python-specbot_devcontainer"],
-	"appPort": "2203:22",
 	
 	"remoteUser": "vscode"
 }
