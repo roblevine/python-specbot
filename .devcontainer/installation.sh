@@ -4,7 +4,7 @@ echo "* starting installation script"
 echo "** update and install apt packages"
 sudo apt update
 sudo apt upgrade -y
-sudo apt install -y vim iputils-ping dos2unix telnet
+sudo apt install -y vim iputils-ping dos2unix telnet openssh-server
 
 # Create symlink for libcrypt on ARM machines
 if [ "$(uname -m)" = "aarch64" ]; then
@@ -12,6 +12,9 @@ if [ "$(uname -m)" = "aarch64" ]; then
     sudo mkdir -p /usr/lib/aarch64-linux-gnu
     sudo ln -sf /usr/lib/aarch64-linux-gnu/libcrypt.so.1 /usr/lib/aarch64-linux-gnu/libcrypt-c6b9afc0.so.1
 fi
+
+echo "** calling out to script to configure SSH server"
+. .devcontainer/install_ssh_server.sh
 
 echo "** install uv"
 pipx install uv

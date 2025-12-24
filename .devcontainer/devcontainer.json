@@ -6,9 +6,10 @@
 
 	"features": {
 		"ghcr.io/devcontainers/features/node:1": {
-		"version": "latest"
+			"version": "latest"
 		}
-  	},
+	},
+
 	"customizations": {
 		"vscode": {
 			"settings": {},
@@ -24,9 +25,22 @@
 			]
 		}
 	},
-	
-    "postCreateCommand": "sh .devcontainer/installation.sh",
-	"runArgs": ["--name", "python-specbot_devcontainer"],
-	
+
+	// Load SSH keys from .env_devcontainer file
+	"runArgs": [
+		"--name", "python-specbot_devcontainer",
+		"--env-file", "${localWorkspaceFolder}/.devcontainer/.env_devcontainer"
+	],
+
+	"appPort": ["2203:22"],
+	"portsAttributes": {
+		"22": {
+			"label": "SSH",
+			"onAutoForward": "silent"
+		}
+	},
+
+	"postCreateCommand": "sh .devcontainer/installation.sh",
+	"postStartCommand": "sudo service ssh start",
 	"remoteUser": "vscode"
 }
