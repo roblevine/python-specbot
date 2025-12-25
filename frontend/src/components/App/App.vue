@@ -1,24 +1,16 @@
 <template>
   <div class="app">
-    <StatusBar
-      :status="status"
-      :status-type="statusType"
-    />
+    <StatusBar :status="status" :status-type="statusType" />
     <div class="app-main">
       <HistoryBar
         :conversations="conversations"
         :active-conversation-id="activeConversationId"
         @select-conversation="handleSelectConversation"
+        @new-conversation="handleNewConversation"
       />
       <div class="chat-container">
-        <ChatArea
-          :messages="currentMessages"
-          :is-processing="isProcessing"
-        />
-        <InputArea
-          :disabled="isProcessing"
-          @send-message="handleSendMessage"
-        />
+        <ChatArea :messages="currentMessages" :is-processing="isProcessing" />
+        <InputArea :disabled="isProcessing" @send-message="handleSendMessage" />
       </div>
     </div>
   </div>
@@ -45,8 +37,13 @@ export default {
   },
   setup() {
     // Get composables
-    const { conversations, activeConversationId, loadFromStorage, saveToStorage } =
-      useConversations()
+    const {
+      conversations,
+      activeConversationId,
+      createConversation,
+      loadFromStorage,
+      saveToStorage,
+    } = useConversations()
 
     const { currentMessages, sendUserMessage } = useMessages()
 
@@ -82,6 +79,19 @@ export default {
       // P2 will implement switching between conversations
     }
 
+    // Handle creating a new conversation
+    function handleNewConversation() {
+      try {
+        logger.info('Creating new conversation from button click')
+        createConversation()
+        saveToStorage()
+        logger.info('New conversation created successfully')
+      } catch (error) {
+        logger.error('Failed to create new conversation', error)
+        setError('Failed to create new conversation')
+      }
+    }
+
     return {
       conversations,
       activeConversationId,
@@ -91,6 +101,7 @@ export default {
       statusType,
       handleSendMessage,
       handleSelectConversation,
+      handleNewConversation,
     }
   },
 }

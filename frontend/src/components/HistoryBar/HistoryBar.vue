@@ -2,6 +2,13 @@
   <div class="history-bar">
     <div class="history-header">
       <h2>Conversations</h2>
+      <button
+        class="new-conversation-btn"
+        aria-label="Start new conversation"
+        @click="handleNewConversation"
+      >
+        New Conversation
+      </button>
     </div>
     <div class="conversations-list">
       <div
@@ -18,12 +25,7 @@
           {{ getPreview(conversation) }}
         </div>
       </div>
-      <div
-        v-if="conversations.length === 0"
-        class="empty-history"
-      >
-        No conversations yet
-      </div>
+      <div v-if="conversations.length === 0" class="empty-history">No conversations yet</div>
     </div>
   </div>
 </template>
@@ -41,8 +43,10 @@ export default {
       default: null,
     },
   },
-  emits: ['select-conversation'],
-  setup() {
+  emits: ['select-conversation', 'new-conversation'],
+  setup(props, { emit }) {
+    let isCreating = false
+
     function getPreview(conversation) {
       if (conversation.messages.length === 0) {
         return 'No messages'
@@ -51,8 +55,20 @@ export default {
       return lastMessage.text.slice(0, 50) + (lastMessage.text.length > 50 ? '...' : '')
     }
 
+    function handleNewConversation() {
+      if (isCreating) return
+      isCreating = true
+
+      emit('new-conversation')
+
+      setTimeout(() => {
+        isCreating = false
+      }, 300)
+    }
+
     return {
       getPreview,
+      handleNewConversation,
     }
   },
 }
@@ -70,12 +86,39 @@ export default {
 .history-header {
   padding: var(--spacing-md);
   border-bottom: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-sm);
 }
 
 .history-header h2 {
   font-size: var(--font-size-lg);
   font-weight: 600;
   color: var(--color-text);
+  margin: 0;
+}
+
+.new-conversation-btn {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.new-conversation-btn:hover {
+  background-color: var(--color-primary-hover);
+}
+
+.new-conversation-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .conversations-list {
