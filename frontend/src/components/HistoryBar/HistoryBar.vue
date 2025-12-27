@@ -2,6 +2,8 @@
   <div class="history-bar">
     <div class="history-header">
       <h2>Conversations</h2>
+    </div>
+    <div class="button-container">
       <button
         class="new-conversation-btn"
         aria-label="Start new conversation"
@@ -85,11 +87,8 @@ export default {
 
 .history-header {
   padding: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
   border-bottom: 1px solid var(--color-border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--spacing-sm);
 }
 
 .history-header h2 {
@@ -99,7 +98,13 @@ export default {
   margin: 0;
 }
 
+.button-container {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+}
+
 .new-conversation-btn {
+  width: 100%;
   padding: var(--spacing-sm) var(--spacing-md);
   background-color: var(--color-primary);
   color: white;
@@ -109,7 +114,6 @@ export default {
   font-size: var(--font-size-sm);
   font-weight: 500;
   transition: background-color 0.2s;
-  white-space: nowrap;
 }
 
 .new-conversation-btn:hover {
