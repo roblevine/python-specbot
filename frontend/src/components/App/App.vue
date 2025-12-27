@@ -10,14 +10,14 @@
       />
       <div class="chat-container">
         <ChatArea :messages="currentMessages" :is-processing="isProcessing" />
-        <InputArea :disabled="isProcessing" @send-message="handleSendMessage" />
+        <InputArea ref="inputAreaRef" :disabled="isProcessing" @send-message="handleSendMessage" />
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import StatusBar from '../StatusBar/StatusBar.vue'
 import HistoryBar from '../HistoryBar/HistoryBar.vue'
 import ChatArea from '../ChatArea/ChatArea.vue'
@@ -36,6 +36,9 @@ export default {
     InputArea,
   },
   setup() {
+    // Template refs
+    const inputAreaRef = ref(null)
+
     // Get composables
     const {
       conversations,
@@ -85,6 +88,12 @@ export default {
         logger.info('Creating new conversation from button click')
         createConversation()
         saveToStorage()
+
+        // Clear the input field when starting a new conversation
+        if (inputAreaRef.value?.clearInput) {
+          inputAreaRef.value.clearInput()
+        }
+
         logger.info('New conversation created successfully')
       } catch (error) {
         logger.error('Failed to create new conversation', error)
@@ -93,6 +102,7 @@ export default {
     }
 
     return {
+      inputAreaRef,
       conversations,
       activeConversationId,
       currentMessages,

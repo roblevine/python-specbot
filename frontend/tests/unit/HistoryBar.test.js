@@ -25,9 +25,9 @@ describe('HistoryBar - New Conversation Button', () => {
       expect(button.text()).toContain('New Conversation')
     })
 
-    it('button is visible in the history header', () => {
-      const header = wrapper.find('.history-header')
-      const button = header.find('.new-conversation-btn')
+    it('button is visible in the button container', () => {
+      const buttonContainer = wrapper.find('.button-container')
+      const button = buttonContainer.find('.new-conversation-btn')
       expect(button.exists()).toBe(true)
     })
   })

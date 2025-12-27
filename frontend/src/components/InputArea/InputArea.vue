@@ -52,12 +52,17 @@ export default {
       // Textarea default behavior will insert newline
     }
 
+    function clearInput() {
+      inputText.value = ''
+    }
+
     return {
       inputText,
       canSend,
       handleSend,
       handleEnter,
       handleShiftEnter,
+      clearInput,
     }
   },
 }

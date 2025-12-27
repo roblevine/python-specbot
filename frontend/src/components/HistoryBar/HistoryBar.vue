@@ -33,6 +33,8 @@
 </template>
 
 <script>
+import { ref } from 'vue'
+
 export default {
   name: 'HistoryBar',
   props: {
@@ -47,7 +49,8 @@ export default {
   },
   emits: ['select-conversation', 'new-conversation'],
   setup(props, { emit }) {
-    let isCreating = false
+    const isCreating = ref(false)
+    const DEBOUNCE_MS = 300
 
     function getPreview(conversation) {
       if (conversation.messages.length === 0) {
@@ -58,14 +61,16 @@ export default {
     }
 
     function handleNewConversation() {
-      if (isCreating) return
-      isCreating = true
+      if (isCreating.value) {
+        return
+      }
 
+      isCreating.value = true
       emit('new-conversation')
 
       setTimeout(() => {
-        isCreating = false
-      }, 300)
+        isCreating.value = false
+      }, DEBOUNCE_MS)
     }
 
     return {
