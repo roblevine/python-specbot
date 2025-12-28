@@ -19,17 +19,31 @@ The initial MVP implementation provides a complete chat interface with message l
   - Chat area (center) - Shows messages with user/system distinction
   - Input area (bottom) - Text input with Send button
 
+### ✅ Feature 003 - Backend API Loopback (Complete)
+
+**Feature:** 003-backend-api-loopback (Branch: `003-backend-api-loopback`)
+
+Backend API server that replaces client-side loopback with server-side processing:
+
+- **Backend API**: FastAPI server providing message loopback endpoint
+- **API Integration**: Frontend communicates with backend via HTTP POST
+- **Server Response**: Backend echoes messages with "api says: " prefix
+- **Error Handling**: Graceful handling of connection errors, timeouts, and validation failures
+- **Structured Logging**: Request/response logging for debugging
+- **OpenAPI Documentation**: Auto-generated API docs at `/docs`
+
 **Technologies:**
-- **Frontend**: Vue.js 3 (Composition API)
-- **Build Tool**: Vite 5
-- **Testing**: Vitest (unit/integration), Playwright (E2E)
-- **Storage**: Browser LocalStorage API
-- **Code Quality**: ESLint, Prettier
+- **Frontend**: Vue.js 3 (Composition API), Vite 5
+- **Backend**: Python 3.13, FastAPI 0.115.0, uvicorn 0.32.0
+- **Data Validation**: Pydantic 2.10.0
+- **Testing**: pytest 8.3.0, Vitest, Playwright
+- **API Contract**: OpenAPI 3.1 specification
+- **Storage**: Browser LocalStorage API (frontend)
 
 **Test Coverage:**
-- 72 unit & integration tests ✅
-- 4 E2E tests (Playwright) ✅
-- Total: 76 tests passing
+- Frontend: 72 unit & integration tests ✅
+- Backend: Unit, integration, and contract tests ✅
+- E2E: 4 end-to-end tests ✅
 
 **Production Bundle:** 75.78 KB JavaScript (29.30 KB gzipped)
 
@@ -37,55 +51,85 @@ The initial MVP implementation provides a complete chat interface with message l
 
 ### Prerequisites
 
-- Node.js v18 or higher
-- npm v8 or higher
+- **Frontend**: Node.js v18+, npm v8+
+- **Backend**: Python 3.13+, pip
 
 ### Installation
 
+**Frontend:**
 ```bash
 cd frontend
 npm install
 ```
 
+**Backend:**
+```bash
+cd backend
+pip install -r requirements.txt
+```
+
 ### Development
 
-Start the development server with hot module replacement:
+**Option 1: Run Both Servers** (Recommended)
+
+Terminal 1 - Backend API:
+```bash
+cd backend
+python main.py
+```
+Backend starts at `http://localhost:8000`
+API docs at `http://localhost:8000/docs`
+
+Terminal 2 - Frontend:
+```bash
+cd frontend
+npm run dev
+```
+Frontend starts at `http://localhost:5173`
+
+**Option 2: Frontend Only** (Limited - no backend integration)
 
 ```bash
 cd frontend
 npm run dev
 ```
-
-The application will be available at `http://localhost:5173`
+The application will be available at `http://localhost:5173` but API calls will fail.
 
 ### Testing
 
-#### Run All Unit & Integration Tests
+**Frontend Tests:**
 
 ```bash
 cd frontend
+
+# Run all unit & integration tests
 npm test
-```
 
-#### Run Tests in Watch Mode
-
-```bash
-cd frontend
+# Run tests in watch mode
 npm run test:watch
-```
 
-#### Run End-to-End Tests
-
-```bash
-cd frontend
+# Run E2E tests
 npm run test:e2e
+
+# Run E2E tests with UI
+npm run test:e2e:ui
 ```
 
-#### Run E2E Tests with UI
+**Backend Tests:**
 
 ```bash
-cd frontend
-npm run test:e2e:ui
+cd backend
+
+# Run all tests
+pytest
+
+# Run with coverage report
+pytest --cov=src --cov-report=html
+
+# Run specific test types
+pytest -m unit          # Unit tests only
+pytest -m integration   # Integration tests only
+pytest -m contract      # Contract tests only
 ```
 
 ### Code Quality
@@ -130,6 +174,7 @@ python-specbot/
 │   ├── src/
 │   │   ├── components/       # Vue components (App, ChatArea, InputArea, etc.)
 │   │   ├── state/           # State management composables
+│   │   ├── services/        # API client for backend communication
 │   │   ├── storage/         # LocalStorage adapter & schema
 │   │   └── utils/           # Utility functions (validation, logging, etc.)
 │   ├── tests/
@@ -138,25 +183,61 @@ python-specbot/
 │   │   └── e2e/             # End-to-end tests (Playwright)
 │   ├── public/              # Static assets
 │   └── package.json
+├── backend/                   # Python FastAPI backend server
+│   ├── src/
+│   │   ├── api/routes/      # API endpoint handlers
+│   │   ├── services/        # Business logic (message processing)
+│   │   ├── middleware/      # CORS, logging middleware
+│   │   ├── utils/           # Logging, validation utilities
+│   │   └── schemas.py       # Pydantic data models
+│   ├── tests/
+│   │   ├── contract/        # OpenAPI schema validation tests
+│   │   ├── integration/     # Full request-response tests
+│   │   └── unit/            # Service and utility tests
+│   ├── main.py              # FastAPI application entry point
+│   ├── requirements.txt     # Python dependencies
+│   └── pytest.ini           # Test configuration
 ├── specs/                    # Feature specifications
-│   └── 001-chat-interface/  # Chat interface spec & design docs
+│   ├── 001-chat-interface/  # Chat interface spec & design docs
+│   │   ├── spec.md          # Feature specification
+│   │   ├── plan.md          # Implementation plan
+│   │   ├── tasks.md         # Task breakdown
+│   │   └── ...
+│   └── 003-backend-api-loopback/  # Backend API spec & design docs
 │       ├── spec.md          # Feature specification
 │       ├── plan.md          # Implementation plan
-│       ├── tasks.md         # Task breakdown (76 tasks completed)
+│       ├── tasks.md         # Task breakdown (76 tasks)
 │       ├── data-model.md    # Data schemas
-│       ├── research.md      # Technical decisions
-│       └── contracts/       # Component & storage interfaces
+│       ├── contracts/       # OpenAPI 3.1 specification
+│       └── ...
+├── architecture.md           # Living architecture documentation
 └── README.md                # This file
 ```
 
 ## Architecture
 
-The frontend follows a modular architecture:
+SpecBot uses a **full-stack modular architecture**:
 
+**Frontend (Vue.js):**
 - **Components**: Vue Single File Components organized by feature
 - **State Management**: Vue Composition API with composables (no Vuex/Pinia needed)
+- **API Client**: Fetch-based client with error handling and timeout support
 - **Storage Layer**: Abstracted LocalStorage with versioned schema (v1.0.0)
 - **Utilities**: Shared validation, logging, and ID generation functions
+
+**Backend (FastAPI):**
+- **API Routes**: RESTful endpoints with automatic OpenAPI documentation
+- **Service Layer**: Business logic (message processing, validation)
+- **Middleware**: CORS, request/response logging, error handling
+- **Data Validation**: Pydantic schemas for type-safe request/response
+
+**Communication:**
+- Frontend → Backend: HTTP POST to `/api/v1/messages`
+- Backend → Frontend: JSON responses with structured error handling
+- Timeout: 10 seconds on frontend requests
+- CORS: Configured for localhost development
+
+See `architecture.md` for detailed diagrams, data flow, and ADRs.
 
 ## Development Workflow
 

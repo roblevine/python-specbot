@@ -30,13 +30,13 @@ This is a web application with separate backend and frontend:
 
 **Duration Estimate**: ~15-30 minutes
 
-- [ ] T001 Create backend directory structure (backend/src/api/routes, backend/src/services, backend/src/middleware, backend/src/utils, backend/tests/contract, backend/tests/integration, backend/tests/unit)
-- [ ] T002 Create backend/requirements.txt with FastAPI 0.115.0, uvicorn[standard] 0.32.0, pydantic 2.10.0, pytest 8.3.0, httpx 0.28.0, pytest-asyncio 0.24.0, pytest-cov 4.1.0, openapi-core 0.18.2, pyyaml 6.0.1, python-dotenv 1.0.0
-- [ ] T003 [P] Create backend/.env.example file with API_HOST, API_PORT, FRONTEND_URL, LOG_LEVEL
-- [ ] T004 [P] Create backend/.gitignore with venv/, .env, __pycache__/, *.pyc, .pytest_cache/, htmlcov/, .coverage
-- [ ] T005 Create backend/venv and install dependencies (python -m venv venv && pip install -r requirements.txt)
-- [ ] T006 [P] Create backend/pytest.ini with test configuration (testpaths, markers for unit/integration/contract)
-- [ ] T007 [P] Create backend/README.md with setup instructions and quickstart commands
+- [x] T001 Create backend directory structure (backend/src/api/routes, backend/src/services, backend/src/middleware, backend/src/utils, backend/tests/contract, backend/tests/integration, backend/tests/unit)
+- [x] T002 Create backend/requirements.txt with FastAPI 0.115.0, uvicorn[standard] 0.32.0, pydantic 2.10.0, pytest 8.3.0, httpx 0.28.0, pytest-asyncio 0.24.0, pytest-cov 4.1.0, openapi-core 0.18.2, pyyaml 6.0.1, python-dotenv 1.0.0
+- [x] T003 [P] Create backend/.env.example file with API_HOST, API_PORT, FRONTEND_URL, LOG_LEVEL
+- [x] T004 [P] Create backend/.gitignore with venv/, .env, __pycache__/, *.pyc, .pytest_cache/, htmlcov/, .coverage
+- [x] T005 Create backend/venv and install dependencies (python -m venv venv && pip install -r requirements.txt)
+- [x] T006 [P] Create backend/pytest.ini with test configuration (testpaths, markers for unit/integration/contract)
+- [x] T007 [P] Create backend/README.md with setup instructions and quickstart commands
 
 **Checkpoint**: Backend project structure ready, dependencies installed
 
@@ -50,19 +50,19 @@ This is a web application with separate backend and frontend:
 
 **Duration Estimate**: ~45-60 minutes
 
-- [ ] T008 Create backend/main.py with FastAPI app initialization, CORS middleware, and uvicorn runner
-- [ ] T009 [P] Create backend/src/__init__.py (empty package marker)
-- [ ] T010 [P] Create backend/src/api/__init__.py (empty package marker)
-- [ ] T011 [P] Create backend/src/api/routes/__init__.py (empty package marker)
-- [ ] T012 [P] Create backend/src/services/__init__.py (empty package marker)
-- [ ] T013 [P] Create backend/src/middleware/__init__.py (empty package marker)
-- [ ] T014 [P] Create backend/src/utils/__init__.py (empty package marker)
-- [ ] T015 Create backend/src/utils/logger.py with structured logging setup (DEBUG, INFO, ERROR levels)
-- [ ] T016 [P] Create backend/src/middleware/logging_middleware.py with request/response logging
-- [ ] T017 Create backend/tests/conftest.py with shared pytest fixtures (openapi_spec, client)
-- [ ] T018 Add health check endpoint (GET /health) in backend/main.py for monitoring
-- [ ] T019 Configure CORS middleware in backend/main.py to allow http://localhost:5173, http://127.0.0.1:5173, http://0.0.0.0:5173
-- [ ] T020 Verify backend starts successfully and health check returns 200 OK
+- [x] T008 Create backend/main.py with FastAPI app initialization, CORS middleware, and uvicorn runner
+- [x] T009 [P] Create backend/src/__init__.py (empty package marker)
+- [x] T010 [P] Create backend/src/api/__init__.py (empty package marker)
+- [x] T011 [P] Create backend/src/api/routes/__init__.py (empty package marker)
+- [x] T012 [P] Create backend/src/services/__init__.py (empty package marker)
+- [x] T013 [P] Create backend/src/middleware/__init__.py (empty package marker)
+- [x] T014 [P] Create backend/src/utils/__init__.py (empty package marker)
+- [x] T015 Create backend/src/utils/logger.py with structured logging setup (DEBUG, INFO, ERROR levels)
+- [x] T016 [P] Create backend/src/middleware/logging_middleware.py with request/response logging
+- [x] T017 Create backend/tests/conftest.py with shared pytest fixtures (openapi_spec, client)
+- [x] T018 Add health check endpoint (GET /health) in backend/main.py for monitoring
+- [x] T019 Configure CORS middleware in backend/main.py to allow http://localhost:5173, http://127.0.0.1:5173, http://0.0.0.0:5173
+- [x] T020 Verify backend starts successfully and health check returns 200 OK
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -86,39 +86,39 @@ This is a web application with separate backend and frontend:
 
 > **CRITICAL**: Write these tests FIRST, ensure they FAIL before implementation
 
-- [ ] T021 [P] [US1] Create backend/tests/contract/test_message_api_contract.py with test_loopback_request_matches_contract (validate MessageRequest against OpenAPI schema)
-- [ ] T022 [P] [US1] Add test_loopback_response_matches_contract to backend/tests/contract/test_message_api_contract.py (validate MessageResponse against OpenAPI schema)
-- [ ] T023 [P] [US1] Create backend/tests/integration/test_message_loopback_flow.py with test_send_message_receives_loopback_response (POST /api/v1/messages → verify 200 and "api says: " prefix)
-- [ ] T024 [P] [US1] Add test_loopback_preserves_special_characters to backend/tests/integration/test_message_loopback_flow.py (test emoji, newlines, special chars)
-- [ ] T025 [P] [US1] Add test_loopback_response_time_under_2_seconds to backend/tests/integration/test_message_loopback_flow.py (verify FR-006 performance requirement)
-- [ ] T026 [P] [US1] Add test_multiple_messages_in_sequence to backend/tests/integration/test_message_loopback_flow.py (verify FR-005 message order)
-- [ ] T027 [P] [US1] Create backend/tests/unit/test_message_service.py with test_loopback_message_adds_api_prefix (unit test for service logic)
-- [ ] T028 [P] [US1] Add test_loopback_preserves_content to backend/tests/unit/test_message_service.py (verify no truncation/modification)
-- [ ] T029 Run pytest backend/tests/ -v and confirm ALL tests FAIL (expected RED phase)
+- [x] T021 [P] [US1] Create backend/tests/contract/test_message_api_contract.py with test_loopback_request_matches_contract (validate MessageRequest against OpenAPI schema)
+- [x] T022 [P] [US1] Add test_loopback_response_matches_contract to backend/tests/contract/test_message_api_contract.py (validate MessageResponse against OpenAPI schema)
+- [x] T023 [P] [US1] Create backend/tests/integration/test_message_loopback_flow.py with test_send_message_receives_loopback_response (POST /api/v1/messages → verify 200 and "api says: " prefix)
+- [x] T024 [P] [US1] Add test_loopback_preserves_special_characters to backend/tests/integration/test_message_loopback_flow.py (test emoji, newlines, special chars)
+- [x] T025 [P] [US1] Add test_loopback_response_time_under_2_seconds to backend/tests/integration/test_message_loopback_flow.py (verify FR-006 performance requirement)
+- [x] T026 [P] [US1] Add test_multiple_messages_in_sequence to backend/tests/integration/test_message_loopback_flow.py (verify FR-005 message order)
+- [x] T027 [P] [US1] Create backend/tests/unit/test_message_service.py with test_loopback_message_adds_api_prefix (unit test for service logic)
+- [x] T028 [P] [US1] Add test_loopback_preserves_content to backend/tests/unit/test_message_service.py (verify no truncation/modification)
+- [x] T029 Run pytest backend/tests/ -v and confirm ALL tests FAIL (expected RED phase)
 
 ### Implementation for User Story 1 (Make tests GREEN)
 
-- [ ] T030 [P] [US1] Create backend/src/schemas.py with MessageRequest Pydantic model (message: str, conversationId: Optional[str], timestamp: Optional[str])
-- [ ] T031 [P] [US1] Add MessageResponse Pydantic model to backend/src/schemas.py (status: "success", message: str, timestamp: str)
-- [ ] T032 [P] [US1] Add ErrorResponse Pydantic model to backend/src/schemas.py (status: "error", error: str, detail: Optional[Dict], timestamp: str)
-- [ ] T033 [US1] Create backend/src/services/message_service.py with create_loopback_message(user_message: str) -> str function
-- [ ] T034 [US1] Add message validation to backend/src/services/message_service.py (empty check, length check <10,000 chars)
-- [ ] T035 [US1] Create backend/src/api/routes/messages.py with POST /api/v1/messages endpoint using MessageRequest/MessageResponse schemas
-- [ ] T036 [US1] Add error handling to backend/src/api/routes/messages.py (400 for empty/too long, 422 for schema validation, 500 for server errors)
-- [ ] T037 [US1] Add request/response logging to backend/src/api/routes/messages.py using logger from utils (per FR-014)
-- [ ] T038 [US1] Register messages router in backend/main.py
-- [ ] T039 Run pytest backend/tests/ -v and confirm ALL User Story 1 tests PASS (GREEN phase)
+- [x] T030 [P] [US1] Create backend/src/schemas.py with MessageRequest Pydantic model (message: str, conversationId: Optional[str], timestamp: Optional[str])
+- [x] T031 [P] [US1] Add MessageResponse Pydantic model to backend/src/schemas.py (status: "success", message: str, timestamp: str)
+- [x] T032 [P] [US1] Add ErrorResponse Pydantic model to backend/src/schemas.py (status: "error", error: str, detail: Optional[Dict], timestamp: str)
+- [x] T033 [US1] Create backend/src/services/message_service.py with create_loopback_message(user_message: str) -> str function
+- [x] T034 [US1] Add message validation to backend/src/services/message_service.py (empty check, length check <10,000 chars)
+- [x] T035 [US1] Create backend/src/api/routes/messages.py with POST /api/v1/messages endpoint using MessageRequest/MessageResponse schemas
+- [x] T036 [US1] Add error handling to backend/src/api/routes/messages.py (400 for empty/too long, 422 for schema validation, 500 for server errors)
+- [x] T037 [US1] Add request/response logging to backend/src/api/routes/messages.py using logger from utils (per FR-014)
+- [x] T038 [US1] Register messages router in backend/main.py
+- [x] T039 Run pytest backend/tests/ -v and confirm ALL User Story 1 tests PASS (GREEN phase)
 
 ### Frontend Integration for User Story 1
 
-- [ ] T040 [US1] Create frontend/src/services/apiClient.js with sendMessage(messageText) function using fetch to POST localhost:8000/api/v1/messages
-- [ ] T041 [US1] Add error handling to frontend/src/services/apiClient.js (network errors, timeouts, HTTP errors)
-- [ ] T042 [US1] Add 10-second timeout to frontend/src/services/apiClient.js (per FR-009)
-- [ ] T043 [US1] Update frontend/src/state/useMessages.js to import and call apiClient.sendMessage() instead of local loopback
-- [ ] T044 [US1] Update frontend/src/state/useMessages.js to handle API response format (status, message, timestamp)
-- [ ] T045 [US1] Add loading indicator support to frontend/src/state/useAppState.js (per FR-013)
-- [ ] T046 [US1] Update frontend tests to mock apiClient for unit tests (frontend/tests/unit/)
-- [ ] T047 [US1] Update frontend E2E tests to run against real backend (frontend/tests/e2e/send-message.test.js)
+- [x] T040 [US1] Create frontend/src/services/apiClient.js with sendMessage(messageText) function using fetch to POST localhost:8000/api/v1/messages
+- [x] T041 [US1] Add error handling to frontend/src/services/apiClient.js (network errors, timeouts, HTTP errors)
+- [x] T042 [US1] Add 10-second timeout to frontend/src/services/apiClient.js (per FR-009)
+- [x] T043 [US1] Update frontend/src/state/useMessages.js to import and call apiClient.sendMessage() instead of local loopback
+- [x] T044 [US1] Update frontend/src/state/useMessages.js to handle API response format (status, message, timestamp)
+- [x] T045 [US1] Add loading indicator support to frontend/src/state/useAppState.js (per FR-013)
+- [x] T046 [US1] Update frontend tests to mock apiClient for unit tests (frontend/tests/unit/)
+- [x] T047 [US1] Update frontend E2E tests to run against real backend (frontend/tests/e2e/send-message.test.js)
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently. Users can send messages to backend and receive "api says: " responses.
 
@@ -142,24 +142,24 @@ This is a web application with separate backend and frontend:
 
 > **CRITICAL**: Write these tests FIRST, ensure they FAIL before implementation
 
-- [ ] T048 [P] [US2] Add test_backend_unavailable_shows_error to frontend/tests/integration/ (mock network error → verify error message)
-- [ ] T049 [P] [US2] Add test_timeout_shows_error to frontend/tests/integration/ (mock delay >10s → verify timeout error)
-- [ ] T050 [P] [US2] Add test_server_error_500_shows_error to frontend/tests/integration/ (mock 500 response → verify error message)
-- [ ] T051 [P] [US2] Add test_message_preserved_on_error to frontend/tests/integration/ (error occurs → input field retains message)
-- [ ] T052 [P] [US2] Add test_empty_message_rejected_by_backend to backend/tests/integration/test_error_handling.py (POST empty message → verify 400 error)
-- [ ] T053 [P] [US2] Add test_too_long_message_rejected to backend/tests/integration/test_error_handling.py (POST >10,000 chars → verify 400 error)
-- [ ] T054 [P] [US2] Add test_malformed_json_rejected to backend/tests/integration/test_error_handling.py (POST invalid JSON → verify 422 error)
-- [ ] T055 Run pytest -v and confirm User Story 2 tests FAIL (expected RED phase)
+- [x] T048 [P] [US2] Add test_backend_unavailable_shows_error to frontend/tests/integration/ (mock network error → verify error message)
+- [x] T049 [P] [US2] Add test_timeout_shows_error to frontend/tests/integration/ (mock delay >10s → verify timeout error)
+- [x] T050 [P] [US2] Add test_server_error_500_shows_error to frontend/tests/integration/ (mock 500 response → verify error message)
+- [x] T051 [P] [US2] Add test_message_preserved_on_error to frontend/tests/integration/ (error occurs → input field retains message)
+- [x] T052 [P] [US2] Add test_empty_message_rejected_by_backend to backend/tests/integration/test_error_handling.py (POST empty message → verify 400 error)
+- [x] T053 [P] [US2] Add test_too_long_message_rejected to backend/tests/integration/test_error_handling.py (POST >10,000 chars → verify 400 error)
+- [x] T054 [P] [US2] Add test_malformed_json_rejected to backend/tests/integration/test_error_handling.py (POST invalid JSON → verify 422 error)
+- [x] T055 Run pytest -v and confirm User Story 2 tests FAIL (expected RED phase)
 
 ### Implementation for User Story 2
 
-- [ ] T056 [US2] Enhance frontend/src/services/apiClient.js with detailed error parsing (network, timeout, HTTP status codes)
-- [ ] T057 [US2] Add error message mapping in frontend/src/services/apiClient.js (connection → "Cannot connect to server", timeout → "Request timed out", 500 → "Server error occurred")
-- [ ] T058 [US2] Update frontend/src/state/useMessages.js to preserve message text in input on error (don't clear on failure)
-- [ ] T059 [US2] Update frontend/src/state/useMessages.js to set appropriate error status for different failure types
-- [ ] T060 [US2] Update frontend/src/components/StatusBar.vue to display different error messages based on error type
-- [ ] T061 [US2] Add retry button/logic to frontend when errors occur (optional enhancement)
-- [ ] T062 Run pytest backend/tests/ frontend/tests/ and confirm User Story 2 tests PASS (GREEN phase)
+- [x] T056 [US2] Enhance frontend/src/services/apiClient.js with detailed error parsing (network, timeout, HTTP status codes)
+- [x] T057 [US2] Add error message mapping in frontend/src/services/apiClient.js (connection → "Cannot connect to server", timeout → "Request timed out", 500 → "Server error occurred")
+- [x] T058 [US2] Update frontend/src/state/useMessages.js to preserve message text in input on error (don't clear on failure)
+- [x] T059 [US2] Update frontend/src/state/useMessages.js to set appropriate error status for different failure types
+- [x] T060 [US2] Update frontend/src/components/StatusBar.vue to display different error messages based on error type
+- [x] T061 [US2] Add retry button/logic to frontend when errors occur (optional enhancement)
+- [x] T062 Run pytest backend/tests/ frontend/tests/ and confirm User Story 2 tests PASS (GREEN phase)
 
 **Checkpoint**: At this point, User Story 2 should be fully functional. Users receive clear error feedback when backend issues occur.
 
@@ -171,20 +171,20 @@ This is a web application with separate backend and frontend:
 
 **Duration Estimate**: ~1-2 hours
 
-- [ ] T063 [P] Run backend linting and formatting (if configured: black, flake8, isort)
-- [ ] T064 [P] Run frontend linting and formatting (npm run lint && npm run format)
-- [ ] T065 [P] Generate test coverage report (pytest --cov=backend/src --cov-report=html)
-- [ ] T066 [P] Verify all Success Criteria from spec.md are met (SC-001 through SC-007)
-- [ ] T067 Update /workspaces/python-specbot/architecture.md with Backend API Server section in Current Architecture
-- [ ] T068 Add ADR (Architectural Decision Record) to architecture.md documenting FastAPI choice vs Flask
-- [ ] T069 Update architecture.md Technology Stack table with Python 3.13, FastAPI, uvicorn, pytest
-- [ ] T070 Add backend data flow diagram to architecture.md (Frontend → POST /api/v1/messages → Backend → Response)
-- [ ] T071 Update /workspaces/python-specbot/README.md with backend setup instructions and quickstart
-- [ ] T072 [P] Create backend/CHANGELOG.md documenting feature 003 implementation
-- [ ] T073 Run full test suite (backend + frontend) and verify 100% pass rate
-- [ ] T074 Manual smoke test: Start backend, start frontend, send message "Hello world", verify "api says: Hello world" appears
-- [ ] T075 Manual smoke test: Stop backend, send message, verify error message appears
-- [ ] T076 Manual smoke test: Send message with emoji 🚀, verify emoji preserved in response
+- [x] T063 [P] Run backend linting and formatting (if configured: black, flake8, isort)
+- [x] T064 [P] Run frontend linting and formatting (npm run lint && npm run format)
+- [x] T065 [P] Generate test coverage report (pytest --cov=backend/src --cov-report=html)
+- [x] T066 [P] Verify all Success Criteria from spec.md are met (SC-001 through SC-007)
+- [x] T067 Update /workspaces/python-specbot/architecture.md with Backend API Server section in Current Architecture
+- [x] T068 Add ADR (Architectural Decision Record) to architecture.md documenting FastAPI choice vs Flask
+- [x] T069 Update architecture.md Technology Stack table with Python 3.13, FastAPI, uvicorn, pytest
+- [x] T070 Add backend data flow diagram to architecture.md (Frontend → POST /api/v1/messages → Backend → Response)
+- [x] T071 Update /workspaces/python-specbot/README.md with backend setup instructions and quickstart
+- [x] T072 [P] Create backend/CHANGELOG.md documenting feature 003 implementation
+- [x] T073 Run full test suite (backend + frontend) and verify 100% pass rate
+- [x] T074 Manual smoke test: Start backend, start frontend, send message "Hello world", verify "api says: Hello world" appears
+- [x] T075 Manual smoke test: Stop backend, send message, verify error message appears
+- [x] T076 Manual smoke test: Send message with emoji 🚀, verify emoji preserved in response
 
 **Checkpoint**: Feature complete, documented, and ready for commit
 

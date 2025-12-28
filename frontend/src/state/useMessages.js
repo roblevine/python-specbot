@@ -1,6 +1,10 @@
 /**
  * useMessages Composable
- * Manages message sending and loopback functionality
+ * Manages message sending with backend API integration
+ *
+ * Updated for Feature 003-backend-api-loopback:
+ * - T043: Call apiClient.sendMessage() instead of local loopback
+ * - T044: Handle API response format (status, message, timestamp)
  */
 
 import { computed } from 'vue'
@@ -9,6 +13,7 @@ import { validateMessageText } from '../utils/validators.js'
 import * as logger from '../utils/logger.js'
 import { useConversations } from './useConversations.js'
 import { useAppState } from './useAppState.js'
+import { sendMessage as apiSendMessage, ApiError } from '../services/apiClient.js'
 
 export function useMessages() {
   const { activeConversation, addMessage, saveToStorage } = useConversations()
@@ -23,7 +28,7 @@ export function useMessages() {
   })
 
   /**
-   * Sends a user message and generates a loopback response
+   * T043, T044: Sends a user message to backend API and receives loopback response
    * @param {string} text - Message text to send
    * @returns {Promise<void>}
    */
@@ -44,7 +49,7 @@ export function useMessages() {
 
     try {
       setProcessing(true)
-      setStatus('Processing message...', 'processing')
+      setStatus('Sending message...', 'processing')
 
       const now = new Date().toISOString()
 
@@ -60,33 +65,54 @@ export function useMessages() {
       // Add user message to conversation
       addMessage(activeConversation.value.id, userMessage)
 
-      // Simulate brief processing delay for loopback (makes it feel more natural)
-      await new Promise(resolve => setTimeout(resolve, 50))
+      // T043: Call backend API instead of local loopback
+      const response = await apiSendMessage(
+        text.trim(),
+        activeConversation.value.id
+      )
 
-      // Create system loopback message
-      const systemMessage = {
-        id: generateId('msg'),
-        text: text.trim(), // Echo back the same text
-        sender: 'system',
-        timestamp: new Date().toISOString(),
-        status: 'pending',
+      // T044: Handle API response format (status, message, timestamp)
+      if (response.status === 'success') {
+        // Create system message from API response
+        const systemMessage = {
+          id: generateId('msg'),
+          text: response.message, // Backend response with "api says: " prefix
+          sender: 'system',
+          timestamp: response.timestamp,
+          status: 'sent',
+        }
+
+        // Add system message from API
+        addMessage(activeConversation.value.id, systemMessage)
+
+        // Mark user message as sent
+        userMessage.status = 'sent'
+
+        // Save to storage
+        saveToStorage()
+
+        setStatus('Message sent', 'ready')
+        logger.info('Message sent successfully', {
+          messageId: userMessage.id,
+          responseTimestamp: response.timestamp,
+        })
+      } else {
+        // Unexpected response format
+        throw new Error('Unexpected response format from API')
       }
-
-      // Add system loopback message
-      addMessage(activeConversation.value.id, systemMessage)
-
-      // Mark both messages as sent
-      userMessage.status = 'sent'
-      systemMessage.status = 'sent'
-
-      // Save to storage
-      saveToStorage()
-
-      setStatus('Message sent', 'ready')
-      logger.info('Message sent with loopback', { messageId: userMessage.id })
     } catch (error) {
-      setError('Failed to send message')
-      logger.error('Failed to send message', error)
+      // Handle API errors with specific messages
+      if (error instanceof ApiError) {
+        setError(`Error: ${error.message}`)
+        logger.error('API error sending message', {
+          message: error.message,
+          statusCode: error.statusCode,
+          details: error.details,
+        })
+      } else {
+        setError('Failed to send message')
+        logger.error('Failed to send message', error)
+      }
     } finally {
       setProcessing(false)
     }

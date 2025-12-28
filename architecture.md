@@ -1,7 +1,7 @@
 # SpecBot Architecture
 
 **Last Updated**: 2025-12-28
-**Current Version**: P1 MVP Complete (Chat Interface with Loopback)
+**Current Version**: P1 + Backend API (Feature 003 Complete)
 
 This document describes the current implemented architecture and planned future architecture for SpecBot.
 
@@ -11,9 +11,9 @@ This document describes the current implemented architecture and planned future 
 
 ### Overview
 
-SpecBot currently implements a **browser-based chat interface** with message loopback functionality. The architecture is a **single-page application (SPA)** built with Vue.js 3, using browser LocalStorage for persistence.
+SpecBot is a **full-stack chat application** with a Vue.js frontend and Python FastAPI backend. The backend provides a message loopback API that echoes messages with "api says: " prefix, establishing the foundation for future LLM integrations.
 
-**Status**: ✅ **IMPLEMENTED** (P1 MVP Complete)
+**Status**: ✅ **IMPLEMENTED** (Frontend P1 + Backend API 003 Complete)
 
 ### Architecture Diagram
 
@@ -36,22 +36,46 @@ SpecBot currently implements a **browser-based chat interface** with message loo
 │  │                  │  (Composables)  │                     │ │
 │  │                  └────────┬────────┘                     │ │
 │  │                           │                              │ │
-│  │                  ┌────────▼────────┐                     │ │
-│  │                  │ Storage Adapter │                     │ │
-│  │                  │  (LocalStorage) │                     │ │
-│  │                  └─────────────────┘                     │ │
-│  │         │                                                │ │
-│  │  ┌──────▼───────┐                                        │ │
-│  │  │  InputArea   │                                        │ │
-│  │  │  Component   │                                        │ │
-│  │  └──────────────┘                                        │ │
-│  └────────────────────────────────────────────────────────┘ │
-│                                                              │
-│  ┌────────────────────────────────────────────────────────┐ │
+│  │         ┌─────────────────┼─────────────────┐            │ │
+│  │         │                 │                 │            │ │
+│  │    ┌────▼─────┐   ┌──────▼──────┐   ┌─────▼──────┐     │ │
+│  │    │   API    │   │   Storage   │   │ InputArea  │     │ │
+│  │    │  Client  │   │   Adapter   │   │ Component  │     │ │
+│  │    └────┬─────┘   │(LocalStorage)│   └────────────┘     │ │
+│  │         │         └─────────────┘                       │ │
+│  └─────────┼───────────────────────────────────────────────┘ │
+│            │                                                 │
+│  ┌─────────▼──────────────────────────────────────────────┐ │
 │  │           Browser LocalStorage (Persistence)            │ │
 │  │    - Conversations (messages, metadata, timestamps)     │ │
 │  │    - Schema Version: v1.0.0                             │ │
-│  └────────────────────────────────────────────────────────┘ │
+│  └─────────────────────────────────────────────────────────┘ │
+└────────────┼────────────────────────────────────────────────┘
+             │
+     HTTP POST /api/v1/messages
+             │
+┌────────────▼────────────────────────────────────────────────┐
+│              Backend API Server (Python/FastAPI)             │
+│                     Port 8000                                │
+│                                                              │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │                  API Routes Layer                       │ │
+│  │         POST /api/v1/messages (loopback)                │ │
+│  │         GET /health (health check)                      │ │
+│  └──────────────────────┬─────────────────────────────────┘ │
+│                         │                                    │
+│  ┌──────────────────────▼───────────────────────────────┐   │
+│  │              Message Service Layer                    │   │
+│  │   - create_loopback_message(text)                     │   │
+│  │   - validate_message(text)                            │   │
+│  └──────────────────────┬───────────────────────────────┘   │
+│                         │                                    │
+│  ┌──────────────────────▼───────────────────────────────┐   │
+│  │               Middleware Layer                        │   │
+│  │   - CORS (allows localhost:5173)                      │   │
+│  │   - Logging (request/response)                        │   │
+│  │   - Error handling                                    │   │
+│  └───────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -70,15 +94,20 @@ frontend/
 │   │   └── InputArea.vue    # Text input + Send button
 │   │
 │   ├── state/               # State management (Vue Composition API)
-│   │   └── conversation.js  # Conversation state composable
+│   │   ├── useMessages.js   # Message state composable (with API integration)
+│   │   ├── useAppState.js   # Application state (processing, status, errors)
+│   │   └── useConversations.js  # Conversation state composable
+│   │
+│   ├── services/            # External service integrations
+│   │   └── apiClient.js     # Backend API client (fetch wrapper)
 │   │
 │   ├── storage/             # Persistence layer
-│   │   ├── localStorage.js  # LocalStorage adapter
-│   │   └── schema.js        # Data schema v1.0.0
+│   │   ├── LocalStorageAdapter.js  # LocalStorage adapter
+│   │   └── StorageSchema.js        # Data schema v1.0.0
 │   │
 │   └── utils/               # Shared utilities
-│       ├── validation.js    # Input validation
-│       ├── logging.js       # Logging utilities
+│       ├── validators.js    # Input validation
+│       ├── logger.js        # Logging utilities
 │       └── idGenerator.js   # UUID generation
 │
 ├── tests/
@@ -89,20 +118,57 @@ frontend/
 └── public/                  # Static assets
 ```
 
+**Backend API Server** (`backend/`)
+
+```
+backend/
+├── src/
+│   ├── api/
+│   │   └── routes/
+│   │       └── messages.py  # POST /api/v1/messages endpoint
+│   │
+│   ├── services/
+│   │   └── message_service.py  # Business logic (loopback, validation)
+│   │
+│   ├── middleware/
+│   │   └── logging_middleware.py  # Request/response logging
+│   │
+│   ├── utils/
+│   │   └── logger.py        # Structured logging setup
+│   │
+│   └── schemas.py           # Pydantic models (MessageRequest, MessageResponse)
+│
+├── tests/
+│   ├── contract/            # OpenAPI schema validation tests
+│   ├── integration/         # Full request-response cycle tests
+│   └── unit/                # Service and utility tests
+│
+├── main.py                  # FastAPI application entry point
+├── requirements.txt         # Python dependencies
+└── pytest.ini              # Test configuration
+```
+
 ### Technology Stack (Current)
 
 | Layer | Technology | Version | Status |
 |-------|-----------|---------|--------|
 | **Frontend Framework** | Vue.js (Composition API) | 3.4.0 | ✅ In Use |
 | **Build Tool** | Vite | 5.0.0 | ✅ In Use |
-| **Unit Testing** | Vitest | Latest | ✅ In Use |
-| **E2E Testing** | Playwright | Latest | ✅ In Use |
+| **Frontend Testing** | Vitest + Playwright | Latest | ✅ In Use |
 | **State Management** | Vue Composables | Native | ✅ In Use |
-| **Storage** | Browser LocalStorage | Native API | ✅ In Use |
-| **Code Quality** | ESLint + Prettier | Latest | ✅ In Use |
-| **Package Manager** | npm | 8+ | ✅ In Use |
+| **Frontend Storage** | Browser LocalStorage | Native API | ✅ In Use |
+| **Backend Language** | Python | 3.13 | ✅ In Use |
+| **Backend Framework** | FastAPI | 0.115.0 | ✅ In Use |
+| **ASGI Server** | uvicorn | 0.32.0 | ✅ In Use |
+| **Data Validation** | Pydantic | 2.10.0 | ✅ In Use |
+| **Backend Testing** | pytest + httpx + openapi-core | 8.3.0 | ✅ In Use |
+| **API Documentation** | OpenAPI 3.1 (auto-generated) | 3.1.0 | ✅ In Use |
+| **Code Quality** | ESLint + Prettier (frontend) | Latest | ✅ In Use |
+| **Package Manager** | npm (frontend), pip (backend) | 8+ / Latest | ✅ In Use |
 
 ### Data Flow (Current Implementation)
+
+**Frontend → Backend → Frontend** (Feature 003)
 
 ```
 User Action (Type Message)
@@ -110,17 +176,61 @@ User Action (Type Message)
     ▼
 InputArea Component
     │
-    ├─► Validation (utils/validation.js)
+    ├─► Validation (utils/validators.js)
     │
     ▼
-State Management (conversation.js)
+State Management (useMessages.js)
     │
     ├─► Generate Message ID (utils/idGenerator.js)
-    ├─► Add User Message
-    ├─► Create Loopback Response (System Message)
+    ├─► Add User Message (optimistic update)
     │
     ▼
-Storage Adapter (localStorage.js)
+API Client (services/apiClient.js)
+    │
+    ├─► POST /api/v1/messages
+    ├─► Timeout: 10 seconds
+    ├─► Headers: Content-Type: application/json
+    │
+    ▼
+Backend API Server (main.py)
+    │
+    ├─► CORS Middleware (validate origin)
+    ├─► Logging Middleware (log request)
+    │
+    ▼
+Messages Route (/api/v1/messages)
+    │
+    ├─► Pydantic Validation (MessageRequest schema)
+    │
+    ▼
+Message Service (message_service.py)
+    │
+    ├─► validate_message() - Check empty, whitespace, length
+    ├─► create_loopback_message() - Add "api says: " prefix
+    │
+    ▼
+MessageResponse (Pydantic schema)
+    │
+    ├─► status: "success"
+    ├─► message: "api says: {user_message}"
+    ├─► timestamp: server timestamp
+    │
+    ▼
+HTTP Response (200 OK, JSON)
+    │
+    ▼
+API Client (receives response)
+    │
+    ├─► Error handling (timeout, network, HTTP errors)
+    │
+    ▼
+State Management (useMessages.js)
+    │
+    ├─► Add System Message (from API response)
+    ├─► Mark User Message as sent
+    │
+    ▼
+Storage Adapter (LocalStorageAdapter.js)
     │
     ├─► Serialize to Schema v1.0.0
     ├─► Write to Browser LocalStorage
@@ -129,7 +239,7 @@ Storage Adapter (localStorage.js)
 State Update Triggers Re-render
     │
     ▼
-ChatArea Component (Displays Messages)
+ChatArea Component (Displays Messages with "api says: " prefix)
 ```
 
 ### Module Boundaries (Current)
@@ -450,6 +560,51 @@ ChatArea Component (Live Update)
 - ✅ Familiar user experience
 - ✅ Room for future features without redesign
 - ✅ Clear component boundaries
+
+---
+
+### ADR-006: FastAPI for Backend API Framework
+
+**Date**: 2025-12-28
+**Status**: ✅ Implemented (Feature 003)
+
+**Context**: Need a Python backend API framework for message loopback and future LLM integrations.
+
+**Decision**: Use FastAPI 0.115.0 with Pydantic for data validation and uvicorn as the ASGI server.
+
+**Alternatives Considered**:
+1. **Flask** - Simpler, more mature, but lacks native async support and automatic API documentation
+2. **Django REST Framework** - Full-featured but heavyweight for our API-only needs
+3. **FastAPI** - Modern, async-native, automatic OpenAPI docs, excellent type hints
+
+**Rationale**:
+- **API-First Design** (Principle I): FastAPI auto-generates OpenAPI 3.1 docs from code
+- **Performance**: Native async/await support for future streaming LLM responses
+- **Type Safety**: Pydantic provides runtime validation matching our TypeScript frontend patterns
+- **Developer Experience**: Automatic `/docs` endpoint, clear error messages, fast iteration
+- **Testing**: Built-in TestClient integrates with pytest, openapi-core validates contracts
+- **Simplicity** (Principle VI): Minimal boilerplate, clear request/response patterns
+
+**Implementation Details**:
+- **Port**: 8000 (standard Python API convention, avoids collision with frontend on 5173)
+- **CORS**: Configured to allow localhost:5173 for local development
+- **Middleware**: Logging middleware for request/response tracking (FR-014)
+- **Validation**: Pydantic schemas match OpenAPI contract exactly
+- **Error Handling**: Structured error responses (400, 422, 500) with timestamps
+
+**Consequences**:
+- ✅ Automatic interactive API documentation at `/docs`
+- ✅ OpenAPI 3.1 contract generated from code (single source of truth)
+- ✅ Fast development iteration with auto-reload
+- ✅ Ready for async streaming when adding LLM providers
+- ✅ Excellent type hints improve IDE support and reduce bugs
+- ⚠️ Newer framework than Flask (less Stack Overflow answers, but excellent official docs)
+
+**Architecture Impact**:
+- Frontend communicates via HTTP POST to `/api/v1/messages`
+- Backend validates requests with Pydantic, processes via service layer
+- Responses follow OpenAPI contract (status, message, timestamp)
+- Foundation for future endpoints: `/api/conversations`, `/api/messages/stream`
 
 ---
 

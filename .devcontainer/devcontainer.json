@@ -21,7 +21,8 @@
 				"DotJoshJohnson.xml",
 				"ms-python.black-formatter",
 				"alexcvzz.vscode-sqlite",
-				"eamodio.gitlens"
+				"eamodio.gitlens",
+				"Anthropic.claude-code"
 			]
 		}
 	},
