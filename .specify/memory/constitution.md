@@ -1,16 +1,17 @@
 <!--
 Sync Impact Report:
-Version: 1.0.0 → 1.1.0 (added Principle VIII)
+Version: 1.1.0 → 1.2.0 (added Principle IX)
 Modified Principles: N/A
 Added Sections:
-  - Principle VIII: Incremental Delivery & Thin Slices
+  - Principle IX: Living Architecture Documentation
 Removed Sections: N/A
 Templates Status:
-  ✅ plan-template.md - Reviewed, "Constitution Check" section aligns with principles I-VIII
-  ✅ spec-template.md - Reviewed, requirements structure aligns with API-First principle
-  ✅ tasks-template.md - Reviewed, test-first workflow aligns with principle III
-  ⚠️  tasks-template.md - Will need update to emphasize thin slice approach per Principle VIII
-Follow-up TODOs: Update tasks template to emphasize P1/MVP-first approach
+  ✅ plan-template.md - Updated Constitution Check section with architecture.md reminder
+  ✅ spec-template.md - No changes needed (architecture is implementation detail, not spec-level)
+  ✅ tasks-template.md - Updated Polish phase to include architecture.md update task
+Follow-up TODOs:
+  - Create initial architecture.md for the project (recommended)
+  - Consider updating CLAUDE.md to reflect architecture documentation requirement
 -->
 
 # SpecBot Constitution
@@ -123,6 +124,33 @@ Features MUST be implemented as thin vertical slices that deliver end-to-end val
 
 **Rationale**: Thin slices enable rapid feedback, reduce integration risk, provide early value, and make progress visible. Working software after each slice proves the system works and builds confidence. This approach prevents "90% done" syndrome where integration happens late and reveals major issues.
 
+### IX. Living Architecture Documentation
+
+The project MUST maintain an up-to-date `architecture.md` document that describes both current and planned architecture. This document:
+- Describes the **current implemented architecture** with clear component diagrams and relationships
+- Documents **planned future architecture** with explicit markers indicating what is NOT yet implemented
+- Is updated on **every architectural change** or feature addition that affects system structure
+- Clearly distinguishes between "what exists now" vs "what we plan to build"
+- Includes rationale for major architectural decisions and technology choices
+- Documents integration points, data flows, and module boundaries
+
+**Required Sections**:
+- **Current Architecture**: What is actually implemented today
+- **Planned Architecture**: Future changes with clear "NOT IMPLEMENTED" labels
+- **Technology Stack**: Current and planned technologies with adoption status
+- **Data Flow**: How data moves through the system
+- **Module Boundaries**: Clear interface contracts between components
+- **Architectural Decisions**: Why key choices were made (ADRs)
+
+**Update Triggers**:
+- New feature added (update Current Architecture section)
+- Architectural refactoring (update both Current and Planned sections)
+- Technology changes (update Technology Stack)
+- Module boundaries change (update Module Boundaries)
+- New architectural decisions made (add to ADRs)
+
+**Rationale**: Architecture documentation prevents knowledge silos and ensures all contributors understand system structure. Clearly marking planned vs implemented architecture prevents confusion and sets realistic expectations. Living documentation (updated with every change) stays accurate, unlike static docs that become stale. This practice enables faster onboarding, better architectural decisions, and reduces "surprise" integrations.
+
 ## Development Standards
 
 ### Code Quality
@@ -136,6 +164,7 @@ Features MUST be implemented as thin vertical slices that deliver end-to-end val
 - API contracts documented in OpenAPI/JSON Schema format
 - Complex algorithms include inline comments explaining "why"
 - Public modules include docstrings
+- **architecture.md** maintained and updated with every architectural change
 
 ### Security
 - No credentials or secrets in source code or version control
@@ -146,12 +175,13 @@ Features MUST be implemented as thin vertical slices that deliver end-to-end val
 ## Quality Gates
 
 All pull requests MUST pass:
-1. **Constitution Compliance**: Code review verifies adherence to principles I-VIII
+1. **Constitution Compliance**: Code review verifies adherence to principles I-IX
 2. **Test Gate**: All tests pass (unit, integration, contract)
 3. **Test-First Verification**: Tests existed and failed before implementation
 4. **Code Quality**: Linting, formatting, type checking pass
 5. **Documentation**: Contracts, APIs, and complex logic documented
 6. **Thin Slice Verification**: PR implements complete vertical slice (one user story)
+7. **Architecture Documentation**: architecture.md updated if architectural changes made
 
 New features MUST include:
 - Contract definition (if adding/modifying API)
@@ -159,6 +189,7 @@ New features MUST include:
 - Update to relevant documentation
 - Evidence that tests were written first and initially failed
 - Demonstration that slice is independently testable and deployable
+- Update to architecture.md if feature changes system architecture
 
 ## Governance
 
@@ -187,4 +218,4 @@ This constitution is a **living document** that evolves with the project.
 - Templates (plan, spec, tasks) updated when constitution changes
 - Team retrospectives can propose amendments
 
-**Version**: 1.1.0 | **Ratified**: 2025-12-23 | **Last Amended**: 2025-12-23
+**Version**: 1.2.0 | **Ratified**: 2025-12-23 | **Last Amended**: 2025-12-28

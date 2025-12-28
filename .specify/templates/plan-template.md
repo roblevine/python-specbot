@@ -33,6 +33,12 @@
 
 [Gates determined based on constitution file]
 
+**Note**: If this feature introduces architectural changes (new modules, data flows, integration points, or technology choices), plan to update `architecture.md` with:
+- Current architecture changes in the "Current Architecture" section
+- Any planned future work in the "Planned Architecture" section with "NOT IMPLEMENTED" labels
+- Technology stack updates if new dependencies added
+- Architectural decision records (ADRs) for major choices
+
 ## Project Structure
 
 ### Documentation (this feature)
