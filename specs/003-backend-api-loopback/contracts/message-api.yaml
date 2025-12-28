@@ -1,0 +1,371 @@
+openapi: 3.1.0
+info:
+  title: SpecBot Backend API
+  version: 1.0.0
+  description: |
+    Backend API for SpecBot chat interface with message loopback functionality.
+
+    ## Overview
+    This API provides a simple loopback endpoint that echoes user messages with an "api says: " prefix.
+    This is Phase 1 (P1 MVP) - establishing the client-server architecture before adding LLM integrations.
+
+    ## Feature
+    - **Feature ID**: 003-backend-api-loopback
+    - **Spec**: `specs/003-backend-api-loopback/spec.md`
+    - **Status**: P1 Implementation
+
+  contact:
+    name: SpecBot Development Team
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: http://127.0.0.1:8000
+    description: Alternative localhost
+
+tags:
+  - name: messages
+    description: Message sending and loopback operations
+
+paths:
+  /api/v1/messages:
+    post:
+      tags:
+        - messages
+      summary: Send message and receive loopback response
+      description: |
+        Accepts a user message and returns a loopback response with "api says: " prefix.
+
+        **Implements**: spec.md User Story 1 - Backend API Loopback
+
+        **Acceptance Criteria**:
+        - Response contains user message prefixed with "api says: "
+        - Special characters and emoji are preserved
+        - Response time under 2 seconds (per FR-006)
+        - Empty messages are rejected with 400 error
+
+      operationId: sendMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageRequest'
+            examples:
+              basicMessage:
+                summary: Basic message
+                value:
+                  message: "Hello world"
+              messageWithConversationId:
+                summary: Message with conversation ID
+                value:
+                  message: "Hello world"
+                  conversationId: "a1b2c3d4-5678-90ab-cdef-123456789abc"
+                  timestamp: "2025-12-28T10:00:00.000Z"
+              specialCharacters:
+                summary: Message with emoji and special characters
+                value:
+                  message: "Hello 🚀 World!\nNew line here."
+              multiline:
+                summary: Multiline message
+                value:
+                  message: "Line 1\nLine 2\nLine 3"
+
+      responses:
+        '200':
+          description: Success - Message processed and loopback response generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                basicResponse:
+                  summary: Basic loopback response
+                  value:
+                    status: "success"
+                    message: "api says: Hello world"
+                    timestamp: "2025-12-28T10:00:01.234Z"
+                specialCharactersResponse:
+                  summary: Response with special characters preserved
+                  value:
+                    status: "success"
+                    message: "api says: Hello 🚀 World!\nNew line here."
+                    timestamp: "2025-12-28T10:00:01.234Z"
+
+        '400':
+          description: Bad Request - Invalid message (empty, too long, malformed)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                emptyMessage:
+                  summary: Empty message error
+                  value:
+                    status: "error"
+                    error: "Message cannot be empty"
+                    timestamp: "2025-12-28T10:00:01.234Z"
+                tooLong:
+                  summary: Message too long error
+                  value:
+                    status: "error"
+                    error: "Message exceeds maximum length of 10,000 characters"
+                    timestamp: "2025-12-28T10:00:01.234Z"
+                whitespaceOnly:
+                  summary: Whitespace-only message error
+                  value:
+                    status: "error"
+                    error: "Message cannot be only whitespace"
+                    timestamp: "2025-12-28T10:00:01.234Z"
+
+        '422':
+          description: Unprocessable Entity - Schema validation failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missingField:
+                  summary: Missing required field
+                  value:
+                    status: "error"
+                    error: "Invalid request format"
+                    detail:
+                      field: "message"
+                      issue: "Field required"
+                    timestamp: "2025-12-28T10:00:01.234Z"
+                invalidJson:
+                  summary: Malformed JSON
+                  value:
+                    status: "error"
+                    error: "Invalid JSON format"
+                    timestamp: "2025-12-28T10:00:01.234Z"
+
+        '500':
+          description: Internal Server Error - Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                serverError:
+                  summary: Internal server error
+                  value:
+                    status: "error"
+                    error: "Internal server error occurred"
+                    timestamp: "2025-12-28T10:00:01.234Z"
+
+        '503':
+          description: Service Unavailable - Server overloaded or maintenance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                serviceUnavailable:
+                  summary: Service unavailable
+                  value:
+                    status: "error"
+                    error: "Service temporarily unavailable"
+                    timestamp: "2025-12-28T10:00:01.234Z"
+
+  /health:
+    get:
+      tags:
+        - monitoring
+      summary: Health check endpoint
+      description: Returns server health status for monitoring and load balancers
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                    example: "ok"
+                required:
+                  - status
+
+components:
+  schemas:
+    MessageRequest:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          minLength: 1
+          maxLength: 10000
+          description: |
+            User message text to be processed by the backend.
+
+            **Validation**:
+            - Cannot be empty or only whitespace (per FR-012)
+            - Maximum 10,000 characters (per FR-007)
+            - Preserves special characters, emoji, multi-byte characters (per FR-010)
+            - Supports line breaks and formatting
+
+          examples:
+            - "Hello world"
+            - "Test message 🚀"
+            - "Line 1\nLine 2"
+
+        conversationId:
+          type: string
+          format: uuid
+          description: |
+            Optional conversation ID for future use.
+            When backend adds conversation persistence, this will become required.
+
+          pattern: '^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$'
+          examples:
+            - "a1b2c3d4-5678-90ab-cdef-123456789abc"
+
+        timestamp:
+          type: string
+          format: date-time
+          description: |
+            Optional client-side timestamp of message creation (ISO-8601 format).
+            Used for client-side tracking and debugging.
+
+          examples:
+            - "2025-12-28T10:00:00.000Z"
+
+      examples:
+        - message: "Hello world"
+        - message: "Hello world"
+          conversationId: "a1b2c3d4-5678-90ab-cdef-123456789abc"
+          timestamp: "2025-12-28T10:00:00.000Z"
+
+    MessageResponse:
+      type: object
+      required:
+        - status
+        - message
+        - timestamp
+      properties:
+        status:
+          type: string
+          enum: [success]
+          description: Response status indicator (always "success" for 200 responses)
+          example: "success"
+
+        message:
+          type: string
+          description: |
+            Loopback message with "api says: " prefix.
+
+            **Requirements** (per FR-002, FR-011):
+            - MUST start with "api says: " (exact prefix)
+            - MUST preserve all characters from request message (no truncation)
+            - MUST preserve emoji, special characters, line breaks, formatting
+
+          pattern: '^api says: '
+          examples:
+            - "api says: Hello world"
+            - "api says: Test 🚀"
+            - "api says: Line 1\nLine 2"
+
+        timestamp:
+          type: string
+          format: date-time
+          description: |
+            Server-side timestamp of response creation (ISO-8601 format).
+            Used for latency measurement and debugging.
+
+          examples:
+            - "2025-12-28T10:00:01.234Z"
+
+      examples:
+        - status: "success"
+          message: "api says: Hello world"
+          timestamp: "2025-12-28T10:00:01.234Z"
+
+    ErrorResponse:
+      type: object
+      required:
+        - status
+        - error
+        - timestamp
+      properties:
+        status:
+          type: string
+          enum: [error]
+          description: Response status indicator (always "error" for error responses)
+          example: "error"
+
+        error:
+          type: string
+          description: |
+            Human-readable error message.
+
+            **Requirements** (per FR-008, FR-012):
+            - MUST be descriptive and actionable
+            - MUST indicate what went wrong and how to fix it
+            - Common messages:
+              - "Message cannot be empty"
+              - "Message exceeds maximum length of 10,000 characters"
+              - "Invalid request format"
+              - "Internal server error occurred"
+
+          examples:
+            - "Message cannot be empty"
+            - "Message exceeds maximum length of 10,000 characters"
+            - "Invalid request format"
+
+        detail:
+          type: object
+          description: |
+            Optional additional error context for debugging.
+            Typically includes field-level validation errors.
+
+          additionalProperties: true
+          examples:
+            - field: "message"
+              issue: "Field required"
+
+        timestamp:
+          type: string
+          format: date-time
+          description: Server-side timestamp of error occurrence (ISO-8601 format)
+          examples:
+            - "2025-12-28T10:00:01.234Z"
+
+      examples:
+        - status: "error"
+          error: "Message cannot be empty"
+          timestamp: "2025-12-28T10:00:01.234Z"
+        - status: "error"
+          error: "Invalid request format"
+          detail:
+            field: "message"
+            issue: "Field required"
+          timestamp: "2025-12-28T10:00:01.234Z"
+
+  securitySchemes: {}
+
+security: []
+
+x-requirements-mapping:
+  FR-001: "Backend API server accepts message requests (POST /api/v1/messages)"
+  FR-002: "Backend echoes messages with 'api says: ' prefix (MessageResponse.message)"
+  FR-003: "Frontend sends messages to backend API (client responsibility)"
+  FR-004: "Frontend displays backend responses (client responsibility)"
+  FR-005: "System maintains message order (not applicable for stateless loopback)"
+  FR-006: "Backend responds within 2 seconds (performance requirement, not schema)"
+  FR-007: "Backend rejects messages >10,000 chars (MessageRequest.message maxLength)"
+  FR-008: "Frontend handles connection failures (client responsibility)"
+  FR-009: "Frontend implements 10s timeout (client responsibility)"
+  FR-010: "Backend accepts special characters (MessageRequest.message validation)"
+  FR-011: "System preserves message content (MessageResponse.message requirement)"
+  FR-012: "Backend validates and rejects malformed requests (400/422 error responses)"
+  FR-013: "Frontend shows loading indicator (client responsibility)"
+  FR-014: "Backend logs requests/responses (implementation detail, not schema)"
