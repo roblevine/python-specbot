@@ -33,9 +33,9 @@ class MessageRequest(BaseModel):
     )
     conversationId: Optional[str] = Field(
         None,
-        description="Optional conversation ID (UUID format)",
-        pattern=r'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$',
-        examples=["a1b2c3d4-5678-90ab-cdef-123456789abc"]
+        description="Optional conversation ID (with conv- prefix)",
+        pattern=r'^conv-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$',
+        examples=["conv-a1b2c3d4-5678-90ab-cdef-123456789abc"]
     )
     timestamp: Optional[str] = Field(
         None,
@@ -56,7 +56,7 @@ class MessageRequest(BaseModel):
             "examples": [
                 {
                     "message": "Hello world",
-                    "conversationId": "a1b2c3d4-5678-90ab-cdef-123456789abc",
+                    "conversationId": "conv-a1b2c3d4-5678-90ab-cdef-123456789abc",
                     "timestamp": "2025-12-28T10:00:00.000Z"
                 }
             ]

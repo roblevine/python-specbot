@@ -67,7 +67,7 @@ def sample_message_request() -> dict:
     """
     return {
         "message": "Hello world",
-        "conversationId": "a1b2c3d4-5678-90ab-cdef-123456789abc",
+        "conversationId": "conv-a1b2c3d4-5678-90ab-cdef-123456789abc",
         "timestamp": "2025-12-28T10:00:00.000Z"
     }
 

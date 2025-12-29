@@ -164,4 +164,37 @@ describe('useConversations', () => {
 
     expect(conversations.value).toHaveLength(1)
   })
+
+  it('should default to first conversation when no activeConversationId is set', () => {
+    // Manually save conversation data without an activeConversationId
+    const testData = {
+      version: '1.0.0',
+      conversations: [
+        {
+          id: 'conv-test-123',
+          title: 'Test Conversation',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          messages: [
+            {
+              id: 'msg-test-1',
+              text: 'Test message',
+              sender: 'user',
+              timestamp: new Date().toISOString(),
+              status: 'sent',
+            },
+          ],
+        },
+      ],
+      activeConversationId: null, // No active conversation set
+    }
+    localStorage.setItem('chatInterface:v1:data', JSON.stringify(testData))
+
+    // Load and verify it sets the first conversation as active
+    const { loadFromStorage, activeConversationId, conversations } = useConversations()
+    loadFromStorage()
+
+    expect(conversations.value).toHaveLength(1)
+    expect(activeConversationId.value).toBe('conv-test-123')
+  })
 })

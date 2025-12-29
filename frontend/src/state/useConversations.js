@@ -90,6 +90,12 @@ export function useConversations() {
       // If no conversations exist, create an initial one
       if (conversations.value.length === 0) {
         createConversation()
+      } else if (!activeConversationId.value && conversations.value.length > 0) {
+        // If conversations exist but no active conversation is set, default to the first one
+        activeConversationId.value = conversations.value[0].id
+        logger.info('No active conversation set, defaulting to first conversation', {
+          conversationId: activeConversationId.value
+        })
       }
 
       logger.info('Loaded conversations from storage', { count: conversations.value.length })

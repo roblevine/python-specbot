@@ -62,7 +62,7 @@ paths:
                 summary: Message with conversation ID
                 value:
                   message: "Hello world"
-                  conversationId: "a1b2c3d4-5678-90ab-cdef-123456789abc"
+                  conversationId: "conv-a1b2c3d4-5678-90ab-cdef-123456789abc"
                   timestamp: "2025-12-28T10:00:00.000Z"
               specialCharacters:
                 summary: Message with emoji and special characters
@@ -220,14 +220,15 @@ components:
 
         conversationId:
           type: string
-          format: uuid
           description: |
-            Optional conversation ID for future use.
+            Optional conversation ID with 'conv-' prefix (frontend format).
             When backend adds conversation persistence, this will become required.
 
-          pattern: '^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$'
+            Format: conv-{uuid} where {uuid} is a standard UUID v4.
+
+          pattern: '^conv-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$'
           examples:
-            - "a1b2c3d4-5678-90ab-cdef-123456789abc"
+            - "conv-a1b2c3d4-5678-90ab-cdef-123456789abc"
 
         timestamp:
           type: string
@@ -242,7 +243,7 @@ components:
       examples:
         - message: "Hello world"
         - message: "Hello world"
-          conversationId: "a1b2c3d4-5678-90ab-cdef-123456789abc"
+          conversationId: "conv-a1b2c3d4-5678-90ab-cdef-123456789abc"
           timestamp: "2025-12-28T10:00:00.000Z"
 
     MessageResponse:

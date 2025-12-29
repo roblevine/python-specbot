@@ -162,7 +162,7 @@ def test_message_with_conversation_id(client: TestClient):
     """
     request_data = {
         "message": "Test with conversation ID",
-        "conversationId": "a1b2c3d4-5678-90ab-cdef-123456789abc"
+        "conversationId": "conv-a1b2c3d4-5678-90ab-cdef-123456789abc"
     }
 
     response = client.post("/api/v1/messages", json=request_data)

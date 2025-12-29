@@ -9,8 +9,12 @@ Python: 3.13+
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from datetime import datetime
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 
 from src.utils.logger import get_logger
@@ -62,6 +66,49 @@ app.add_middleware(
 
 # Add logging middleware
 app.add_middleware(LoggingMiddleware)
+
+
+# Custom exception handler for Pydantic validation errors
+# Converts FastAPI's default 422 error format to our ErrorResponse schema
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """
+    Handle Pydantic validation errors and return ErrorResponse format.
+
+    This ensures ALL error responses match the OpenAPI contract,
+    including 422 validation errors from Pydantic.
+    """
+    # Extract first error for user-friendly message
+    errors = exc.errors()
+    first_error = errors[0] if errors else {}
+    field = first_error.get("loc", ["unknown"])[-1]
+    error_type = first_error.get("type", "validation_error")
+
+    # Create user-friendly error message
+    if error_type == "string_too_short":
+        error_message = f"{field.capitalize()} cannot be empty"
+    elif error_type == "missing":
+        error_message = f"{field.capitalize()} is required"
+    else:
+        error_message = "Invalid request format"
+
+    logger.warning(f"Validation error: {error_message}", extra={"errors": errors})
+
+    # Return ErrorResponse format matching OpenAPI contract
+    # Note: detail is optional and should be an object (not array) per OpenAPI schema
+    return JSONResponse(
+        status_code=422,
+        content={
+            "status": "error",
+            "error": error_message,
+            "detail": {
+                "field": str(field),
+                "issue": first_error.get("msg", "Validation error"),
+                "type": error_type
+            },
+            "timestamp": datetime.utcnow().isoformat() + "Z"
+        }
+    )
 
 
 # Health check endpoint
