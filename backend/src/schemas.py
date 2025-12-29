@@ -83,8 +83,8 @@ class MessageResponse(BaseModel):
         examples=["api says: Hello world"]
     )
     timestamp: str = Field(
-        default_factory=lambda: datetime.utcnow().isoformat() + "Z",
-        description="Server-side timestamp (ISO-8601)",
+        default_factory=lambda: datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z',
+        description="Server-side timestamp (ISO-8601 with milliseconds)",
         examples=["2025-12-28T10:00:01.234Z"]
     )
 
@@ -125,8 +125,8 @@ class ErrorResponse(BaseModel):
         examples=[{"field": "message", "issue": "Field required"}]
     )
     timestamp: str = Field(
-        default_factory=lambda: datetime.utcnow().isoformat() + "Z",
-        description="Server-side timestamp (ISO-8601)"
+        default_factory=lambda: datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z',
+        description="Server-side timestamp (ISO-8601 with milliseconds)"
     )
 
     model_config = {

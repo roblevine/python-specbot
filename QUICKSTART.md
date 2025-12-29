@@ -5,7 +5,7 @@
 Run both servers with a single command:
 
 ```bash
-./start-servers.sh
+./scripts/start-servers.sh
 ```
 
 This will:
@@ -204,7 +204,7 @@ npm test
 
 ## Development Workflow
 
-1. **Start servers** (once): `./start-servers.sh`
+1. **Start servers** (once): `./scripts/start-servers.sh`
 2. **Edit code**: Both servers auto-reload on file changes
 3. **Test changes**: Browser auto-refreshes (Vite HMR)
 4. **Check logs**:

@@ -72,7 +72,7 @@ async def send_message(request: MessageRequest) -> MessageResponse:
         response = MessageResponse(
             status="success",
             message=loopback_message,
-            timestamp=datetime.utcnow().isoformat() + "Z"
+            timestamp=datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
         )
 
         # Log response (T037 - per FR-014)
@@ -94,7 +94,7 @@ async def send_message(request: MessageRequest) -> MessageResponse:
             detail={
                 "status": "error",
                 "error": error_message,
-                "timestamp": datetime.utcnow().isoformat() + "Z"
+                "timestamp": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
             }
         )
 
@@ -108,7 +108,7 @@ async def send_message(request: MessageRequest) -> MessageResponse:
                 "status": "error",
                 "error": "Invalid request format",
                 "detail": e.errors(),
-                "timestamp": datetime.utcnow().isoformat() + "Z"
+                "timestamp": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
             }
         )
 
@@ -121,6 +121,6 @@ async def send_message(request: MessageRequest) -> MessageResponse:
             detail={
                 "status": "error",
                 "error": "Internal server error occurred",
-                "timestamp": datetime.utcnow().isoformat() + "Z"
+                "timestamp": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
             }
         )

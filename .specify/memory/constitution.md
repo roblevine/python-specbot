@@ -1,17 +1,31 @@
 <!--
 Sync Impact Report:
-Version: 1.1.0 → 1.2.0 (added Principle IX)
-Modified Principles: N/A
-Added Sections:
-  - Principle IX: Living Architecture Documentation
+Version: 1.2.0 → 1.3.0 (strengthened Principle IV - Contract Testing)
+Modified Principles:
+  - Principle IV: Integration & Contract Testing
+    - Marked as NON-NEGOTIABLE
+    - Added explicit Contract Test Requirements section
+    - Added Contract Test Workflow
+    - Added Prohibited Practices
+    - Added reference to timestamp bug as rationale
+Modified Sections:
+  - Quality Gates:
+    - Added explicit "Contract Test Gate" as gate #3
+    - Added "API changes ADDITIONALLY require" section
+    - Strengthened contract testing requirements
 Removed Sections: N/A
 Templates Status:
-  ✅ plan-template.md - Updated Constitution Check section with architecture.md reminder
-  ✅ spec-template.md - No changes needed (architecture is implementation detail, not spec-level)
-  ✅ tasks-template.md - Updated Polish phase to include architecture.md update task
+  ⏳ To be updated in follow-up:
+    - plan-template.md - Add contract testing reminder to Constitution Check
+    - tasks-template.md - Ensure contract test tasks included for API features
+Rationale for Change:
+  Timestamp bug (2025-12-29) proved that incomplete contract testing (only validating
+  requests, not responses) allows format mismatches to reach production. This amendment
+  makes contract testing requirements explicit and non-negotiable.
 Follow-up TODOs:
-  - Create initial architecture.md for the project (recommended)
-  - Consider updating CLAUDE.md to reflect architecture documentation requirement
+  - Update CLAUDE.md to emphasize contract testing requirement
+  - Ensure all API endpoints have contract tests with response validation
+  - Add contract testing to CI pipeline (User Story 3 - P2)
 -->
 
 # SpecBot Constitution
@@ -49,16 +63,36 @@ Test-Driven Development is mandatory for all feature work. The workflow is:
 
 **Rationale**: TDD enforces design thinking before coding, ensures testability from the start, creates a safety net for refactoring, and produces executable specifications. This is non-negotiable because it fundamentally changes quality outcomes.
 
-### IV. Integration & Contract Testing
+### IV. Integration & Contract Testing (NON-NEGOTIABLE)
 
-Integration tests are REQUIRED for:
+**Contract tests are MANDATORY and MUST be maintained**. Integration tests are REQUIRED for:
 - New API endpoints (contract tests)
 - Changes to existing contracts
 - Inter-module communication
 - External service integrations
 - Shared data models
 
-**Rationale**: Unit tests alone don't catch integration issues. Contract tests verify that modules actually work together as specified and prevent breaking changes from reaching production.
+**Contract Test Requirements**:
+- **Consumer-driven contract tests** MUST exist for ALL API endpoints
+- Contract tests MUST validate BOTH request format (client → server) AND response format (server → client)
+- ALL contract tests MUST pass before merging any API-related changes
+- Breaking a contract test is a **BLOCKING ISSUE** that MUST be fixed before merge
+- Contract snapshots MUST be committed to version control as test artifacts
+- When API contracts change, contract tests MUST be updated in the same commit
+
+**Contract Test Workflow**:
+1. **Capture**: Frontend tests capture actual HTTP requests as snapshots
+2. **Validate**: Snapshots validated against OpenAPI specification
+3. **Replay**: Backend tests replay snapshots to verify compatibility
+4. **Enforce**: CI pipeline fails if snapshots are stale or tests fail
+
+**Prohibited Practices**:
+- Skipping contract tests for "quick fixes"
+- Modifying API endpoints without running contract tests
+- Committing code that breaks contract tests with intent to "fix later"
+- Deleting or disabling contract tests to make tests pass
+
+**Rationale**: Unit tests alone don't catch integration issues. Contract tests verify that modules actually work together as specified and prevent breaking changes from reaching production. The timestamp bug (2025-12-29) proved that response validation is critical - without it, format mismatches reach production and break user-facing features.
 
 ### V. Observability & Debuggability
 
@@ -177,19 +211,28 @@ The project MUST maintain an up-to-date `architecture.md` document that describe
 All pull requests MUST pass:
 1. **Constitution Compliance**: Code review verifies adherence to principles I-IX
 2. **Test Gate**: All tests pass (unit, integration, contract)
-3. **Test-First Verification**: Tests existed and failed before implementation
-4. **Code Quality**: Linting, formatting, type checking pass
-5. **Documentation**: Contracts, APIs, and complex logic documented
-6. **Thin Slice Verification**: PR implements complete vertical slice (one user story)
-7. **Architecture Documentation**: architecture.md updated if architectural changes made
+3. **Contract Test Gate**: ALL contract tests MUST pass for API changes (NON-NEGOTIABLE)
+4. **Test-First Verification**: Tests existed and failed before implementation
+5. **Code Quality**: Linting, formatting, type checking pass
+6. **Documentation**: Contracts, APIs, and complex logic documented
+7. **Thin Slice Verification**: PR implements complete vertical slice (one user story)
+8. **Architecture Documentation**: architecture.md updated if architectural changes made
 
 New features MUST include:
 - Contract definition (if adding/modifying API)
-- Contract and integration tests
+- Consumer-driven contract tests (request AND response validation)
+- Contract snapshots committed to version control
+- Integration tests for inter-module communication
 - Update to relevant documentation
 - Evidence that tests were written first and initially failed
 - Demonstration that slice is independently testable and deployable
 - Update to architecture.md if feature changes system architecture
+
+API changes ADDITIONALLY require:
+- Running contract tests and verifying they pass
+- Updating contract snapshots if request/response format changed
+- Committing updated snapshots in same PR as API changes
+- Evidence that contract tests failed before fix (for bug fixes)
 
 ## Governance
 
@@ -218,4 +261,4 @@ This constitution is a **living document** that evolves with the project.
 - Templates (plan, spec, tasks) updated when constitution changes
 - Team retrospectives can propose amendments
 
-**Version**: 1.2.0 | **Ratified**: 2025-12-23 | **Last Amended**: 2025-12-28
+**Version**: 1.3.0 | **Ratified**: 2025-12-23 | **Last Amended**: 2025-12-29

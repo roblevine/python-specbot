@@ -1,8 +1,12 @@
 #!/bin/bash
 # Start both backend and frontend servers for local development
-# Usage: ./start-servers.sh
+# Usage: ./scripts/start-servers.sh
 
 set -e
+
+# Get repository root (one level up from scripts directory)
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT"
 
 echo "🚀 Starting SpecBot Servers..."
 echo ""
@@ -35,7 +39,7 @@ echo ""
 
 # Start backend in background
 cd backend
-PYTHONPATH=/workspaces/python-specbot/backend venv/bin/python main.py > server.log 2>&1 &
+PYTHONPATH="${REPO_ROOT}/backend" venv/bin/python main.py > server.log 2>&1 &
 BACKEND_PID=$!
 cd ..
 
