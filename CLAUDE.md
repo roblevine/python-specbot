@@ -29,7 +29,6 @@ tests/
 - 003-backend-api-loopback: Added Python 3.13 (confirmed in devcontainer) + FastAPI 0.115.0, uvicorn (ASGI server), Pydantic (validation)
 - 002-new-conversation-button: Added JavaScript (ES6+), Vue 3.4.0 + Vue 3 (Composition API), Vite 5.0.0
 
-- 001-chat-interface: Added
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
