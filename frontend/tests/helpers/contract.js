@@ -196,7 +196,7 @@ export async function captureSnapshot(operationId, request) {
   };
 
   // Write snapshot to file
-  const snapshotDir = join(__dirname, '../../../specs/contract-snapshots');
+  const snapshotDir = join(__dirname, '../../../tests/contract-snapshots');
   const snapshotPath = join(snapshotDir, `${operationId}.json`);
 
   writeFileSync(snapshotPath, JSON.stringify(snapshot, null, 2));

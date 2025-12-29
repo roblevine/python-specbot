@@ -88,7 +88,7 @@ Runs the complete contract testing workflow to verify frontend-backend API compa
 ./scripts/run-contract-tests.sh
 
 # If tests pass, commit both code and snapshots
-git add specs/contract-snapshots/
+git add tests/contract-snapshots/
 git commit -m "Update API contract"
 ```
 

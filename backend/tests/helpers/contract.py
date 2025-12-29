@@ -26,7 +26,7 @@ def load_snapshots() -> List[Dict[str, Any]]:
         ValueError: If no snapshots found (frontend tests must run first)
     """
     # Path to shared snapshot directory
-    snapshot_dir = Path(__file__).parent.parent.parent.parent / "specs" / "contract-snapshots"
+    snapshot_dir = Path(__file__).parent.parent.parent.parent / "tests" / "contract-snapshots"
 
     if not snapshot_dir.exists():
         raise FileNotFoundError(
@@ -46,7 +46,7 @@ def load_snapshots() -> List[Dict[str, Any]]:
 
     if not snapshots:
         raise ValueError(
-            "No contract snapshots found in specs/contract-snapshots/\n"
+            "No contract snapshots found in tests/contract-snapshots/\n"
             "Run frontend contract tests first: cd frontend && npm test tests/contract/"
         )
 

@@ -107,9 +107,9 @@ if [ "$SKIP_PREREQS" = false ]; then
   fi
 
   # Check if snapshot directory exists
-  if [ ! -d "specs/contract-snapshots" ]; then
+  if [ ! -d "tests/contract-snapshots" ]; then
     echo -e "${YELLOW}  → Creating snapshot directory...${NC}"
-    mkdir -p specs/contract-snapshots
+    mkdir -p tests/contract-snapshots
   else
     echo -e "${GREEN}  ✓ Snapshot directory exists${NC}"
   fi
@@ -140,7 +140,7 @@ if [ "$BACKEND_ONLY" = false ]; then
     echo -e "${GREEN}  ✓ Frontend contract tests passed${NC}"
 
     # Count snapshots generated
-    SNAPSHOT_COUNT=$(ls -1 ../specs/contract-snapshots/*.json 2>/dev/null | wc -l)
+    SNAPSHOT_COUNT=$(ls -1 ../tests/contract-snapshots/*.json 2>/dev/null | wc -l)
     echo -e "${GREEN}  ✓ Generated $SNAPSHOT_COUNT snapshot(s)${NC}"
 
     if [ "$VERBOSE" = false ]; then
@@ -168,15 +168,15 @@ fi
 if [ "$BACKEND_ONLY" = false ]; then
   echo -e "${YELLOW}[3/4] Verifying snapshots were generated...${NC}"
 
-  SNAPSHOT_FILES=$(find specs/contract-snapshots -name "*.json" -not -name ".gitkeep" 2>/dev/null | wc -l)
+  SNAPSHOT_FILES=$(find tests/contract-snapshots -name "*.json" -not -name ".gitkeep" 2>/dev/null | wc -l)
 
   if [ "$SNAPSHOT_FILES" -eq 0 ]; then
     echo -e "${RED}  ✗ No snapshots found${NC}"
-    echo -e "     Expected snapshots in: specs/contract-snapshots/"
+    echo -e "     Expected snapshots in: tests/contract-snapshots/"
     exit 1
   else
     echo -e "${GREEN}  ✓ Found $SNAPSHOT_FILES snapshot(s):${NC}"
-    for snapshot in specs/contract-snapshots/*.json; do
+    for snapshot in tests/contract-snapshots/*.json; do
       if [ -f "$snapshot" ] && [ "$(basename "$snapshot")" != ".gitkeep" ]; then
         OPERATION_ID=$(jq -r '.metadata.operationId' "$snapshot" 2>/dev/null || echo "unknown")
         echo -e "     - $(basename "$snapshot") (${OPERATION_ID})"
