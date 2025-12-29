@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm test:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run test:e2e:*)",
+      "Bash(npx playwright test --project=chromium)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run format:*)",
+      "Bash(npm run dev:*)",
+      "Bash(git add:*)",
+      "Bash(ls:*)",
+      "Bash(.specify/scripts/bash/create-new-feature.sh:*)",
+      "Bash(.specify/scripts/bash/check-prerequisites.sh:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(cd /workspaces/python-specbot/backend && python -m pytest:*)",
+      "Bash(python -m venv:*)",
+      "Bash(venv/bin/pip install:*)",
+      "Bash(venv/bin/pytest tests/ -v --tb=short)",
+      "Bash(PYTHONPATH=/workspaces/python-specbot/backend venv/bin/pytest:*)",
+      "Bash(timeout 5 venv/bin/python:*)",
+      "Bash(PYTHONPATH=/workspaces/python-specbot/backend venv/bin/python:*)",
+      "Bash(chmod:*)",
+      "Bash(venv/bin/python:*)",
+      "Bash(git commit:*)",
+      "Bash(.specify/scripts/bash/setup-plan.sh:*)",
+      "WebSearch",
+      "Bash(.specify/scripts/bash/update-agent-context.sh:*)"
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash /workspaces/python-specbot/.claude/statusline-command.sh"
+  }
+}
