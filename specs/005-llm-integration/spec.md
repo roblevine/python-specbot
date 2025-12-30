@@ -21,6 +21,9 @@ A user types a message in the chat interface and receives a real-time streamed r
 2. **Given** a message is being sent, **When** the LLM begins responding, **Then** the user sees a visual indicator that the AI is generating a response
 3. **Given** the user has sent a message, **When** the complete response has been received, **Then** the message appears in the conversation history with proper formatting
 4. **Given** the user sends multiple messages in sequence, **When** each response completes, **Then** the conversation history displays all messages in chronological order
+5. **Given** the user has sent a message, **When** a response is actively streaming, **Then** the Send button transforms into a Stop button
+6. **Given** a response is streaming and the Stop button is visible, **When** the user clicks the Stop button, **Then** the stream is immediately interrupted, a message "conversation interrupted by user" appears in the chat, and the Stop button reverts to a Send button
+7. **Given** an error occurs during message sending or response generation, **When** the error is detected, **Then** the status bar displays an error state indicator AND error details appear in the chat area in user-friendly, non-technical language
 
 ---
 
@@ -61,13 +64,13 @@ The system maintains conversation history and context, allowing the AI to refere
 
 ### Edge Cases
 
-- What happens when the API key is invalid or missing?
-- How does the system handle network timeouts or connection failures?
-- What occurs when the selected model is temporarily unavailable or rate-limited?
-- How does streaming behave if the connection is interrupted mid-response?
-- What happens if the user sends a new message while a response is still streaming?
-- How does the system handle extremely long messages or conversations that exceed token limits?
-- What feedback does the user receive if an error occurs during message sending or response generation?
+- **Invalid or missing API key**: The status bar displays an error state indicator, and the chat area shows an error message explaining that authentication failed in user-friendly terms (e.g., "Unable to connect to AI service. Please check your configuration.")
+- **Network timeouts or connection failures**: The status bar displays an error state indicator, and the chat area shows an error message explaining the connection issue (e.g., "Connection lost. Please check your network and try again.")
+- **Model temporarily unavailable or rate-limited**: The status bar displays an error state indicator, and the chat area shows an error message explaining the service limitation (e.g., "The AI service is temporarily busy. Please try again in a moment.")
+- **Connection interrupted mid-response**: The partial response received so far is displayed, followed by an error message in the chat indicating the connection was lost
+- **User sends a new message while a response is streaming**: While streaming, the Send button transforms into a Stop button. If clicked, the stream is interrupted with the message "conversation interrupted by user" displayed in the chat, and the Stop button reverts to Send
+- **Extremely long messages or token limit exceeded**: The system handles this per the LLM library's default behavior, which typically truncates conversation history or returns an error. If an error occurs, it is displayed in both the status bar and chat area
+- **Error during message sending or response generation**: The status bar displays an error state indicator, and error details appear in the chat area in clear, non-technical language explaining what went wrong and potential next steps
 
 ## Requirements *(mandatory)*
 
@@ -81,8 +84,12 @@ The system maintains conversation history and context, allowing the AI to refere
 - **FR-006**: System MUST include conversation history when sending messages to the LLM, following the default behavior of the chosen Python LLM library
 - **FR-007**: System MUST provide visual feedback when a message is being sent and when a response is being generated
 - **FR-008**: System MUST handle errors gracefully, including API failures, network timeouts, authentication errors, and rate limiting
-- **FR-009**: System MUST display error messages to users in a clear, non-technical manner when failures occur
+- **FR-009**: System MUST display error messages in the chat area in clear, non-technical language when failures occur
 - **FR-010**: System MUST be architected to support future addition of other LLM providers and local models without major refactoring
+- **FR-011**: System MUST transform the Send button into a Stop button while a response is actively streaming, and allow users to interrupt the stream by clicking the Stop button
+- **FR-012**: When the Stop button is clicked during streaming, the system MUST immediately halt the stream, display "conversation interrupted by user" in the chat, and revert the Stop button back to a Send button
+- **FR-013**: System MUST display an error state indicator in the status bar when any error occurs (API failures, network issues, authentication problems, rate limiting, etc.)
+- **FR-014**: When errors occur, the system MUST display error information in both the status bar (error state indicator) AND the chat area (detailed, user-friendly error message)
 
 ### Key Entities
 
@@ -99,9 +106,11 @@ The system maintains conversation history and context, allowing the AI to refere
 - **SC-003**: Users can switch between LLM models in 2 clicks or less
 - **SC-004**: Model selection persists correctly across browser sessions in 100% of cases
 - **SC-005**: 95% of messages successfully receive complete responses without errors under normal operating conditions
-- **SC-006**: When errors occur, users receive clear feedback within 5 seconds explaining the issue in non-technical terms
+- **SC-006**: When errors occur, users receive clear feedback within 5 seconds, with error indicators appearing in both the status bar and chat area
 - **SC-007**: Multi-turn conversations maintain context correctly, with the AI demonstrating awareness of at least the last 5 message exchanges
-- **SC-008**: The system handles conversation interruptions (e.g., sending a new message while streaming) without crashes or data loss
+- **SC-008**: The Send button transforms to a Stop button within 1 second of a response beginning to stream
+- **SC-009**: When the Stop button is clicked, the stream halts immediately (within 500ms), displays the interruption message, and the button reverts to Send
+- **SC-010**: The system handles conversation interruptions without crashes or data loss, preserving all messages sent and received up to the point of interruption
 
 ## Assumptions
 
