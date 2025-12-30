@@ -37,10 +37,11 @@
 	"portsAttributes": {
 		"22": {
 			"label": "SSH",
-			"onAutoForward": "silent"
+			"onAutoForward": "notify"
 		}
 	},
-
+	
+	"shutdownAction": "stopContainer",
 	"postCreateCommand": "sh .devcontainer/installation.sh",
 	"postStartCommand": "sudo service ssh start",
 	"remoteUser": "vscode"
