@@ -40,14 +40,14 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T006 Create backend/src/schemas.py with ChatStreamRequest, HistoryMessage, StreamEvent schemas (Pydantic models)
-- [ ] T007 [P] Create backend/src/services/llm_service.py skeleton with LLMService class and model initialization
-- [ ] T008 [P] Create backend/src/api/routes/chat.py skeleton with streaming endpoint stub
-- [ ] T009 [P] Create frontend/src/services/streamingClient.js with StreamingClient class skeleton
-- [ ] T010 [P] Create frontend/src/state/useModelSelection.js with model selection state management
-- [ ] T011 Register chat router in backend/main.py (app.include_router(chat.router))
-- [ ] T012 [P] Update backend/tests/conftest.py with LLM mocks and fixtures
-- [ ] T013 [P] Implement LocalStorage schema migration v1.0.0 → v2.0.0 in frontend/src/storage/LocalStorageAdapter.js
+- [X] T006 Create backend/src/schemas.py with ChatStreamRequest, HistoryMessage, StreamEvent schemas (Pydantic models)
+- [X] T007 [P] Create backend/src/services/llm_service.py skeleton with LLMService class and model initialization
+- [X] T008 [P] Create backend/src/api/routes/chat.py skeleton with streaming endpoint stub
+- [X] T009 [P] Create frontend/src/services/streamingClient.js with StreamingClient class skeleton
+- [X] T010 [P] Create frontend/src/state/useModelSelection.js with model selection state management
+- [X] T011 Register chat router in backend/main.py (app.include_router(chat.router))
+- [X] T012 [P] Update backend/tests/conftest.py with LLM mocks and fixtures
+- [X] T013 [P] Implement LocalStorage schema migration v1.0.0 → v2.0.0 in frontend/src/storage/LocalStorageAdapter.js
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
