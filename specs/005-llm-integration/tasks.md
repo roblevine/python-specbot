@@ -26,11 +26,11 @@
 
 **Purpose**: Project initialization and LangChain dependency setup
 
-- [ ] T001 Add LangChain dependencies to backend/requirements.txt (langchain==0.3.0, langchain-openai==0.3.0, langchain-core==0.3.0, langchain-anthropic==0.3.0, langchain-community==0.3.0, openai>=1.0.0)
-- [ ] T002 Create backend/src/config.py with LLM configuration (API keys, model mappings, streaming settings)
-- [ ] T003 [P] Create backend/.env.example with OPENAI_API_KEY, DEFAULT_LLM_MODEL, AVAILABLE_MODELS, STREAM_TIMEOUT, MAX_TOKENS, TEMPERATURE
-- [ ] T004 [P] Update backend/.gitignore to exclude .env file
-- [ ] T005 Install backend dependencies (pip install -r backend/requirements.txt)
+- [X] T001 Add LangChain dependencies to backend/requirements.txt (langchain~=0.3.0, langchain-openai~=0.3.0, langchain-core~=0.3.0, langchain-anthropic~=0.3.0, langchain-community~=0.3.0, openai>=1.0.0)
+- [X] T002 Create backend/src/config.py with LLM configuration (API keys, model mappings, streaming settings)
+- [X] T003 [P] Create backend/.env.example with OPENAI_API_KEY, DEFAULT_LLM_MODEL, AVAILABLE_MODELS, STREAM_TIMEOUT, MAX_TOKENS, TEMPERATURE
+- [X] T004 [P] Update backend/.gitignore to exclude .env file
+- [X] T005 Install backend dependencies (pip install -r backend/requirements.txt)
 
 ---
 
