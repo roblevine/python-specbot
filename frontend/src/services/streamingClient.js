@@ -22,7 +22,7 @@ export class StreamingClient {
   /**
    * Start streaming chat response.
    *
-   * This is a skeleton implementation. Full implementation in T025.
+   * T025: Full implementation with fetch + ReadableStream and SSE parsing.
    *
    * @param {string} message - User message
    * @param {string} conversationId - Conversation ID (conv-<uuid>)
@@ -36,15 +36,105 @@ export class StreamingClient {
    * @returns {AbortController} Controller to cancel stream
    */
   async streamChat(message, conversationId, conversationHistory, model, callbacks) {
-    // Skeleton - full implementation in T025
-    console.log('StreamingClient.streamChat called:', {
-      message,
-      conversationId,
-      historyLength: conversationHistory?.length || 0,
-      model
-    })
+    const controller = new AbortController()
+    this.activeStream = controller
 
-    throw new Error('StreamingClient.streamChat not yet implemented (T025)')
+    try {
+      const response = await fetch(`${this.baseURL}/api/v1/chat/stream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message,
+          conversationId,
+          conversationHistory: conversationHistory || [],
+          model: model || 'gpt-5'
+        }),
+        signal: controller.signal
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+
+      // Parse SSE stream
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+
+        if (done) {
+          break
+        }
+
+        // Decode chunk and add to buffer
+        buffer += decoder.decode(value, { stream: true })
+
+        // Process complete events (separated by double newlines)
+        const events = buffer.split('\n\n')
+
+        // Keep the last incomplete event in buffer
+        buffer = events.pop()
+
+        for (const eventText of events) {
+          if (!eventText.trim()) continue
+
+          // Parse SSE format: "event: type\ndata: json"
+          const lines = eventText.split('\n')
+          let eventType = 'message'
+          let eventData = null
+
+          for (const line of lines) {
+            if (line.startsWith('event:')) {
+              eventType = line.substring(6).trim()
+            } else if (line.startsWith('data:')) {
+              const dataStr = line.substring(5).trim()
+              try {
+                eventData = JSON.parse(dataStr)
+              } catch (e) {
+                console.error('Failed to parse SSE data:', dataStr, e)
+              }
+            }
+          }
+
+          if (!eventData) continue
+
+          // Handle different event types
+          if (eventType === 'message') {
+            if (eventData.type === 'start') {
+              callbacks.onStart?.(eventData.messageId)
+            } else if (eventData.type === 'chunk') {
+              callbacks.onChunk?.(eventData.content)
+            } else if (eventData.type === 'done') {
+              callbacks.onDone?.(eventData.messageId, eventData.model)
+            }
+          } else if (eventType === 'error') {
+            callbacks.onError?.(eventData.code, eventData.message, eventData.details)
+          }
+        }
+      }
+
+      this.activeStream = null
+      return controller
+
+    } catch (error) {
+      this.activeStream = null
+
+      if (error.name === 'AbortError') {
+        // Stream was cancelled by user
+        console.log('Stream cancelled by user')
+      } else {
+        // Network or other error
+        console.error('Stream error:', error)
+        callbacks.onError?.('network_error', error.message, { originalError: error })
+      }
+
+      throw error
+    }
   }
 
   /**

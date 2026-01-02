@@ -274,7 +274,7 @@ components:
 
         conversationHistory:
           type: array
-          description: Previous messages for context (optional, default: empty array)
+          description: "Previous messages for context (optional, default: empty array)"
           default: []
           items:
             $ref: '#/components/schemas/HistoryMessage'

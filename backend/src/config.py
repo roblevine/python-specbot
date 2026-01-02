@@ -41,6 +41,7 @@ class LLMConfig(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = False
+        extra = "ignore"  # Ignore extra env vars not in this config
 
 
 # Global configuration instance

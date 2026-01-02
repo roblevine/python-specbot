@@ -25,7 +25,7 @@ async def stream_chat_response(request: ChatStreamRequest):
     """
     Stream AI chat response using Server-Sent Events (SSE).
 
-    This is a skeleton implementation. Full implementation in T022.
+    T022-T024: Full implementation with validation, streaming, and logging.
 
     Args:
         request: ChatStreamRequest with message, conversationId, conversationHistory, model
@@ -39,11 +39,39 @@ async def stream_chat_response(request: ChatStreamRequest):
     logger.info(
         f"POST /api/v1/chat/stream - model={request.model}, "
         f"conversationId={request.conversationId}, "
-        f"history_length={len(request.conversationHistory)}"
+        f"history_length={len(request.conversationHistory)}, "
+        f"message_length={len(request.message)}"
     )
 
-    # Skeleton - full implementation in T022
-    raise HTTPException(
-        status_code=501,
-        detail="Chat streaming endpoint not yet implemented (T022)"
+    # T023: Request validation is handled by Pydantic (ChatStreamRequest)
+    # Additional validation could go here if needed
+
+    # Initialize LLM service
+    llm_service = LLMService()
+
+    # T024: Structured logging for LLM request
+    logger.debug(
+        f"Stream request details: conversationId={request.conversationId}, "
+        f"model={request.model}, historyMessages={len(request.conversationHistory)}"
+    )
+
+    # Convert conversationHistory to list of dicts for service
+    history = [
+        {"role": msg.role, "content": msg.content}
+        for msg in request.conversationHistory
+    ]
+
+    # T022: Call LLMService and return StreamingResponse
+    return StreamingResponse(
+        llm_service.stream_chat_response(
+            message=request.message,
+            conversation_history=history,
+            model=request.model
+        ),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"  # Disable nginx buffering
+        }
     )
