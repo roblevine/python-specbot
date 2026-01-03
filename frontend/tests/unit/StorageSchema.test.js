@@ -12,7 +12,7 @@ describe('StorageSchema', () => {
     it('should create schema with correct version', () => {
       const schema = createEmptySchema()
       expect(schema.version).toBe(SCHEMA_VERSION)
-      expect(schema.version).toBe('1.0.0')
+      expect(schema.version).toBe('2.0.0')
     })
 
     it('should create schema with empty conversations array', () => {
@@ -29,7 +29,7 @@ describe('StorageSchema', () => {
 
   describe('validateSchema', () => {
     const validSchema = {
-      version: '1.0.0',
+      version: '2.0.0',
       conversations: [
         {
           id: 'conv-550e8400-e29b-41d4-a716-446655440000',
@@ -63,7 +63,7 @@ describe('StorageSchema', () => {
     })
 
     it('should reject schema with wrong version', () => {
-      const schema = { ...validSchema, version: '2.0.0' }
+      const schema = { ...validSchema, version: '1.0.0' }
       const result = validateSchema(schema)
       expect(result.isValid).toBe(false)
       expect(result.error).toContain('version mismatch')
@@ -78,7 +78,7 @@ describe('StorageSchema', () => {
 
     it('should filter out invalid conversations', () => {
       const schema = {
-        version: '1.0.0',
+        version: '2.0.0',
         conversations: [
           {
             id: 'conv-valid',
@@ -124,7 +124,7 @@ describe('StorageSchema', () => {
   describe('migrateSchema', () => {
     it('should return data unchanged if version matches', () => {
       const data = {
-        version: '1.0.0',
+        version: '2.0.0',
         conversations: [],
         activeConversationId: null,
       }
