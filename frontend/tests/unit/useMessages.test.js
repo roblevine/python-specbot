@@ -3,6 +3,25 @@ import { useMessages } from '../../src/state/useMessages.js'
 import { useConversations } from '../../src/state/useConversations.js'
 import { useAppState } from '../../src/state/useAppState.js'
 
+// Mock the API client
+vi.mock('../../src/services/apiClient.js', () => ({
+  sendMessage: vi.fn((messageText) => {
+    return Promise.resolve({
+      status: 'success',
+      message: messageText,
+      timestamp: new Date().toISOString()
+    })
+  }),
+  ApiError: class ApiError extends Error {
+    constructor(message, statusCode = null, details = null) {
+      super(message)
+      this.name = 'ApiError'
+      this.statusCode = statusCode
+      this.details = details
+    }
+  }
+}))
+
 describe('useMessages', () => {
   beforeEach(() => {
     localStorage.clear()
