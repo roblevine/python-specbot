@@ -10,7 +10,43 @@ Task: T017 (TDD - should FAIL before implementation)
 
 import pytest
 import json
+import uuid
+from unittest.mock import MagicMock, AsyncMock
 from fastapi.testclient import TestClient
+
+
+@pytest.fixture(autouse=True)
+def mock_llm_service_for_integration(monkeypatch):
+    """
+    Auto-use fixture to mock LLMService for all integration tests.
+
+    Prevents integration tests from making real API calls to OpenAI.
+    Returns proper SSE-formatted mock responses.
+    """
+    async def mock_stream_chat_response(message: str, conversation_history: list, model: str):
+        """Mock streaming response generator"""
+        # Generate unique message ID for each call
+        message_id = f"msg-{uuid.uuid4()}"
+
+        # Start event
+        yield f'event: message\ndata: {json.dumps({"type": "start", "messageId": message_id})}\n\n'
+
+        # Chunk events (simulate streaming response)
+        yield f'event: message\ndata: {json.dumps({"type": "chunk", "content": "Hello"})}\n\n'
+        yield f'event: message\ndata: {json.dumps({"type": "chunk", "content": " from"})}\n\n'
+        yield f'event: message\ndata: {json.dumps({"type": "chunk", "content": " mock"})}\n\n'
+
+        # Done event (includes model name from request)
+        yield f'event: message\ndata: {json.dumps({"type": "done", "messageId": message_id, "model": model})}\n\n'
+
+    # Create mock LLMService instance
+    mock_service = MagicMock()
+    mock_service.stream_chat_response = mock_stream_chat_response
+
+    # Patch the LLMService class to return our mock
+    monkeypatch.setattr("src.api.routes.chat.LLMService", lambda: mock_service)
+
+    return mock_service
 
 
 @pytest.mark.integration
