@@ -116,4 +116,64 @@ describe('useMessages', () => {
     const data = JSON.parse(stored)
     expect(data.conversations[0].messages).toHaveLength(2)
   })
+
+  // US1: Error handling tests
+  it('should create error message when API call fails', async () => {
+    const apiClient = await import('../../src/services/apiClient.js')
+    const { createConversation } = useConversations()
+    const { sendUserMessage, currentMessages } = useMessages()
+
+    // Mock API to throw error
+    vi.mocked(apiClient.sendMessage).mockRejectedValueOnce(
+      new apiClient.ApiError('Cannot connect to server', null, {})
+    )
+
+    createConversation()
+    await sendUserMessage('Test message')
+
+    const messages = currentMessages.value
+    const errorMessage = messages[messages.length - 1]
+
+    expect(errorMessage.status).toBe('error')
+    expect(errorMessage.errorMessage).toBe('Cannot connect to server')
+    expect(errorMessage.errorType).toBe('Network Error')
+  })
+
+  it('should populate errorMessage, errorType, errorTimestamp fields', async () => {
+    const apiClient = await import('../../src/services/apiClient.js')
+    const { createConversation } = useConversations()
+    const { sendUserMessage, currentMessages } = useMessages()
+
+    vi.mocked(apiClient.sendMessage).mockRejectedValueOnce(
+      new apiClient.ApiError('Network failure', null, {})
+    )
+
+    createConversation()
+    const beforeTime = new Date().toISOString()
+    await sendUserMessage('Test message')
+    const afterTime = new Date().toISOString()
+
+    const errorMessage = currentMessages.value[0]
+
+    expect(errorMessage.errorMessage).toBe('Network failure')
+    expect(errorMessage.errorType).toBe('Network Error')
+    expect(errorMessage.errorTimestamp).toBeDefined()
+    expect(errorMessage.errorTimestamp >= beforeTime).toBe(true)
+    expect(errorMessage.errorTimestamp <= afterTime).toBe(true)
+  })
+
+  it('should categorize network errors correctly', async () => {
+    const apiClient = await import('../../src/services/apiClient.js')
+    const { createConversation } = useConversations()
+    const { sendUserMessage, currentMessages } = useMessages()
+
+    vi.mocked(apiClient.sendMessage).mockRejectedValueOnce(
+      new apiClient.ApiError('Timeout', null, {})
+    )
+
+    createConversation()
+    await sendUserMessage('Test')
+
+    expect(currentMessages.value[0].errorType).toBe('Network Error')
+  })
 })

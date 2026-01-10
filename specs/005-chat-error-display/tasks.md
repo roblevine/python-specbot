@@ -27,10 +27,10 @@
 
 **Note**: This is a frontend-only feature. Backend requires no changes.
 
-- [ ] T001 Create sensitive data redactor utility skeleton in frontend/src/utils/sensitiveDataRedactor.js
-- [ ] T002 Create collapsible composable skeleton in frontend/src/composables/useCollapsible.js
-- [ ] T003 Create test file skeletons: frontend/tests/unit/sensitiveDataRedactor.test.js, frontend/tests/unit/useCollapsible.test.js
-- [ ] T004 Add CSS variables for error styling to frontend/public/styles/global.css (--color-error-light, --color-error-background)
+- [x] T001 Create sensitive data redactor utility skeleton in frontend/src/utils/sensitiveDataRedactor.js
+- [x] T002 Create collapsible composable skeleton in frontend/src/composables/useCollapsible.js
+- [x] T003 Create test file skeletons: frontend/tests/unit/sensitiveDataRedactor.test.js, frontend/tests/unit/useCollapsible.test.js
+- [x] T004 Add CSS variables for error styling to frontend/public/styles/global.css (--color-error-light, --color-error-background)
 
 ---
 

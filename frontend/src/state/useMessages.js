@@ -15,6 +15,29 @@ import { useConversations } from './useConversations.js'
 import { useAppState } from './useAppState.js'
 import { sendMessage as apiSendMessage, ApiError } from '../services/apiClient.js'
 
+/**
+ * T038: Categorize errors based on statusCode
+ * @param {ApiError} error - The API error
+ * @returns {string} Error category
+ */
+function categorizeError(error) {
+  // If no statusCode, it's a network error
+  if (!error.statusCode) {
+    return 'Network Error'
+  }
+
+  // Categorize based on HTTP status code
+  if (error.statusCode >= 400 && error.statusCode < 500) {
+    return 'Validation Error'
+  }
+
+  if (error.statusCode >= 500) {
+    return 'Server Error'
+  }
+
+  return 'Network Error'
+}
+
 export function useMessages() {
   const { activeConversation, addMessage, saveToStorage } = useConversations()
   const { setProcessing, setStatus, setError } = useAppState()
@@ -47,6 +70,9 @@ export function useMessages() {
       return
     }
 
+    // Create user message reference for error handling
+    let userMessage = null
+
     try {
       setProcessing(true)
       setStatus('Sending message...', 'processing')
@@ -54,7 +80,7 @@ export function useMessages() {
       const now = new Date().toISOString()
 
       // Create user message
-      const userMessage = {
+      userMessage = {
         id: generateId('msg'),
         text: text.trim(),
         sender: 'user',
@@ -101,6 +127,38 @@ export function useMessages() {
         throw new Error('Unexpected response format from API')
       }
     } catch (error) {
+      // T022-T024, T038-T039, T060: Create error message with error fields
+      const errorMessage = {
+        id: generateId('msg'),
+        text: text.trim(),
+        sender: 'user',
+        timestamp: new Date().toISOString(),
+        status: 'error',
+        errorMessage: error.message,
+        errorType: categorizeError(error), // T038: Categorize based on statusCode
+        errorTimestamp: new Date().toISOString(),
+      }
+
+      // T039: Add errorCode field if statusCode exists
+      if (error.statusCode) {
+        errorMessage.errorCode = error.statusCode
+      }
+
+      // T060: Add errorDetails field if details exist
+      if (error.details && Object.keys(error.details).length > 0) {
+        errorMessage.errorDetails = JSON.stringify(error.details)
+      }
+
+      // Replace pending user message with error message
+      const conversationMessages = activeConversation.value.messages
+      const lastMessageIndex = conversationMessages.length - 1
+      if (lastMessageIndex >= 0 && conversationMessages[lastMessageIndex].id === userMessage.id) {
+        conversationMessages[lastMessageIndex] = errorMessage
+      }
+
+      // Save to storage
+      saveToStorage()
+
       // Handle API errors with specific messages
       if (error instanceof ApiError) {
         setError(`Error: ${error.message}`)
