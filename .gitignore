@@ -146,3 +146,6 @@ $RECYCLE.BIN/
 .Trash-*
 
 .env_devcontainer
+
+# Claude Code
+.claude/settings.local.json
