@@ -42,20 +42,20 @@
 
 ### Tests for Foundational (TDD - Write FIRST, Verify FAIL)
 
-- [ ] T005 [P] Write failing unit tests for sensitiveDataRedactor.redactSensitiveData() in frontend/tests/unit/sensitiveDataRedactor.test.js
-- [ ] T006 [P] Write failing unit tests for sensitiveDataRedactor.containsSensitiveData() in frontend/tests/unit/sensitiveDataRedactor.test.js
-- [ ] T007 [P] Write failing unit tests for sensitiveDataRedactor.detectSensitivePatterns() in frontend/tests/unit/sensitiveDataRedactor.test.js
-- [ ] T008 [P] Write failing unit tests for useCollapsible composable (toggle, expand, collapse, ARIA attrs) in frontend/tests/unit/useCollapsible.test.js
-- [ ] T009 Verify all foundational tests FAIL (run npm test and confirm red state)
+- [x] T005 [P] Write failing unit tests for sensitiveDataRedactor.redactSensitiveData() in frontend/tests/unit/sensitiveDataRedactor.test.js
+- [x] T006 [P] Write failing unit tests for sensitiveDataRedactor.containsSensitiveData() in frontend/tests/unit/sensitiveDataRedactor.test.js
+- [x] T007 [P] Write failing unit tests for sensitiveDataRedactor.detectSensitivePatterns() in frontend/tests/unit/sensitiveDataRedactor.test.js
+- [x] T008 [P] Write failing unit tests for useCollapsible composable (toggle, expand, collapse, ARIA attrs) in frontend/tests/unit/useCollapsible.test.js
+- [x] T009 Verify all foundational tests FAIL (run npm test and confirm red state)
 
 ### Implementation for Foundational
 
-- [ ] T010 [P] Implement SENSITIVE_PATTERNS array with 15+ regex patterns in frontend/src/utils/sensitiveDataRedactor.js
-- [ ] T011 [P] Implement redactSensitiveData() function in frontend/src/utils/sensitiveDataRedactor.js
-- [ ] T012 [P] Implement containsSensitiveData() function in frontend/src/utils/sensitiveDataRedactor.js
-- [ ] T013 [P] Implement detectSensitivePatterns() function in frontend/src/utils/sensitiveDataRedactor.js
-- [ ] T014 Implement useCollapsible composable with state management and ARIA attributes in frontend/src/composables/useCollapsible.js
-- [ ] T015 Verify all foundational tests PASS (run npm test and confirm green state)
+- [x] T010 [P] Implement SENSITIVE_PATTERNS array with 15+ regex patterns in frontend/src/utils/sensitiveDataRedactor.js
+- [x] T011 [P] Implement redactSensitiveData() function in frontend/src/utils/sensitiveDataRedactor.js
+- [x] T012 [P] Implement containsSensitiveData() function in frontend/src/utils/sensitiveDataRedactor.js
+- [x] T013 [P] Implement detectSensitivePatterns() function in frontend/src/utils/sensitiveDataRedactor.js
+- [x] T014 Implement useCollapsible composable with state management and ARIA attributes in frontend/src/composables/useCollapsible.js
+- [x] T015 Verify all foundational tests PASS (run npm test and confirm green state)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -69,23 +69,23 @@
 
 ### Tests for User Story 1 (TDD - Write FIRST, Verify FAIL)
 
-- [ ] T016 [P] [US1] Write failing test: MessageBubble renders error section when status='error' in frontend/tests/unit/MessageBubble.test.js
-- [ ] T017 [P] [US1] Write failing test: MessageBubble applies .message-error styling in frontend/tests/unit/MessageBubble.test.js
-- [ ] T018 [P] [US1] Write failing test: MessageBubble does NOT render error section for non-error messages in frontend/tests/unit/MessageBubble.test.js
-- [ ] T019 [P] [US1] Write failing test: useMessages creates error message on API failure in frontend/tests/unit/useMessages.test.js
-- [ ] T020 [P] [US1] Write failing test: useMessages populates errorMessage, errorType, errorTimestamp fields in frontend/tests/unit/useMessages.test.js
-- [ ] T021 [US1] Verify all US1 tests FAIL (run npm test MessageBubble.test.js useMessages.test.js)
+- [x] T016 [P] [US1] Write failing test: MessageBubble renders error section when status='error' in frontend/tests/unit/MessageBubble.test.js
+- [x] T017 [P] [US1] Write failing test: MessageBubble applies .message-error styling in frontend/tests/unit/MessageBubble.test.js
+- [x] T018 [P] [US1] Write failing test: MessageBubble does NOT render error section for non-error messages in frontend/tests/unit/MessageBubble.test.js
+- [x] T019 [P] [US1] Write failing test: useMessages creates error message on API failure in frontend/tests/unit/useMessages.test.js
+- [x] T020 [P] [US1] Write failing test: useMessages populates errorMessage, errorType, errorTimestamp fields in frontend/tests/unit/useMessages.test.js
+- [x] T021 [US1] Verify all US1 tests FAIL (run npm test MessageBubble.test.js useMessages.test.js)
 
 ### Implementation for User Story 1
 
-- [ ] T022 [P] [US1] Extend Message schema validation in frontend/src/components/ChatArea/MessageBubble.vue to accept optional error fields
-- [ ] T023 [US1] Add error section to MessageBubble template with error icon and summary in frontend/src/components/ChatArea/MessageBubble.vue
-- [ ] T024 [US1] Add error section styles (.error-section, .error-summary, .error-icon, .error-message) in frontend/src/components/ChatArea/MessageBubble.vue
-- [ ] T025 [US1] Add hasError computed property in MessageBubble setup() in frontend/src/components/ChatArea/MessageBubble.vue
-- [ ] T026 [US1] Implement categorizeError() helper function in frontend/src/state/useMessages.js
-- [ ] T027 [US1] Implement updateMessageWithError() helper in frontend/src/state/useMessages.js
-- [ ] T028 [US1] Update sendUserMessage() catch block to populate error fields in frontend/src/state/useMessages.js
-- [ ] T029 [US1] Verify all US1 tests PASS (run npm test and confirm green state)
+- [x] T022 [P] [US1] Extend Message schema validation in frontend/src/components/ChatArea/MessageBubble.vue to accept optional error fields
+- [x] T023 [US1] Add error section to MessageBubble template with error icon and summary in frontend/src/components/ChatArea/MessageBubble.vue
+- [x] T024 [US1] Add error section styles (.error-section, .error-summary, .error-icon, .error-message) in frontend/src/components/ChatArea/MessageBubble.vue
+- [x] T025 [US1] Add hasError computed property in MessageBubble setup() in frontend/src/components/ChatArea/MessageBubble.vue
+- [x] T026 [US1] Implement categorizeError() helper function in frontend/src/state/useMessages.js
+- [x] T027 [US1] Implement updateMessageWithError() helper in frontend/src/state/useMessages.js
+- [x] T028 [US1] Update sendUserMessage() catch block to populate error fields in frontend/src/state/useMessages.js
+- [x] T029 [US1] Verify all US1 tests PASS (run npm test and confirm green state)
 
 **Checkpoint**: At this point, User Story 1 should be fully functional - client-side errors display in chat with visual distinction
 
@@ -99,20 +99,20 @@
 
 ### Tests for User Story 2 (TDD - Write FIRST, Verify FAIL)
 
-- [ ] T030 [P] [US2] Write failing integration test: 422 validation error displays in chat in frontend/tests/integration/errorDisplay.test.js
-- [ ] T031 [P] [US2] Write failing integration test: 500 server error displays in chat in frontend/tests/integration/errorDisplay.test.js
-- [ ] T032 [P] [US2] Write failing integration test: 400 bad request displays in chat in frontend/tests/integration/errorDisplay.test.js
-- [ ] T033 [P] [US2] Write failing test: apiClient.ApiError includes statusCode and details properties in frontend/tests/unit/apiClient.test.js
-- [ ] T034 [US2] Verify all US2 tests FAIL (run npm test errorDisplay.test.js apiClient.test.js)
+- [x] T030 [P] [US2] Write failing integration test: 422 validation error displays in chat in frontend/tests/integration/errorDisplay.test.js
+- [x] T031 [P] [US2] Write failing integration test: 500 server error displays in chat in frontend/tests/integration/errorDisplay.test.js
+- [x] T032 [P] [US2] Write failing integration test: 400 bad request displays in chat in frontend/tests/integration/errorDisplay.test.js
+- [x] T033 [P] [US2] Write failing test: apiClient.ApiError includes statusCode and details properties in frontend/tests/unit/apiClient.test.js
+- [x] T034 [US2] Verify all US2 tests FAIL (run npm test errorDisplay.test.js apiClient.test.js)
 
 ### Implementation for User Story 2
 
-- [ ] T035 [US2] Enhance ApiError class to ensure statusCode and details are always populated in frontend/src/services/apiClient.js
-- [ ] T036 [US2] Update sendMessage() to extract error message and details from server response JSON in frontend/src/services/apiClient.js
-- [ ] T037 [US2] Update sendMessage() to throw ApiError with correct statusCode for 400/422/500 responses in frontend/src/services/apiClient.js
-- [ ] T038 [US2] Update categorizeError() to correctly map 400/422 to Validation Error, 500+ to Server Error in frontend/src/state/useMessages.js
-- [ ] T039 [US2] Update updateMessageWithError() to include errorCode field from ApiError.statusCode in frontend/src/state/useMessages.js
-- [ ] T040 [US2] Verify all US2 tests PASS (run npm test and confirm green state)
+- [x] T035 [US2] Enhance ApiError class to ensure statusCode and details are always populated in frontend/src/services/apiClient.js
+- [x] T036 [US2] Update sendMessage() to extract error message and details from server response JSON in frontend/src/services/apiClient.js
+- [x] T037 [US2] Update sendMessage() to throw ApiError with correct statusCode for 400/422/500 responses in frontend/src/services/apiClient.js
+- [x] T038 [US2] Update categorizeError() to correctly map 400/422 to Validation Error, 500+ to Server Error in frontend/src/state/useMessages.js
+- [x] T039 [US2] Update updateMessageWithError() to include errorCode field from ApiError.statusCode in frontend/src/state/useMessages.js
+- [x] T040 [US2] Verify all US2 tests PASS (run npm test and confirm green state)
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently - client and server errors display in chat
 
@@ -126,30 +126,30 @@
 
 ### Tests for User Story 3 (TDD - Write FIRST, Verify FAIL)
 
-- [ ] T041 [P] [US3] Write failing test: MessageBubble renders Details button when errorDetails present in frontend/tests/unit/MessageBubble.test.js
-- [ ] T042 [P] [US3] Write failing test: Clicking Details button expands error details section in frontend/tests/unit/MessageBubble.test.js
-- [ ] T043 [P] [US3] Write failing test: Clicking Details button again collapses error details in frontend/tests/unit/MessageBubble.test.js
-- [ ] T044 [P] [US3] Write failing test: Expanded error details display errorType, errorCode, redacted errorDetails in frontend/tests/unit/MessageBubble.test.js
-- [ ] T045 [P] [US3] Write failing test: Error details are redacted by default (sensitive data hidden) in frontend/tests/unit/MessageBubble.test.js
-- [ ] T046 [P] [US3] Write failing test: Keyboard navigation (Enter/Space) works on Details button in frontend/tests/unit/MessageBubble.test.js
-- [ ] T047 [US3] Verify all US3 tests FAIL (run npm test MessageBubble.test.js)
+- [x] T041 [P] [US3] Write failing test: MessageBubble renders Details button when errorDetails present in frontend/tests/unit/MessageBubble.test.js
+- [x] T042 [P] [US3] Write failing test: Clicking Details button expands error details section in frontend/tests/unit/MessageBubble.test.js
+- [x] T043 [P] [US3] Write failing test: Clicking Details button again collapses error details in frontend/tests/unit/MessageBubble.test.js
+- [x] T044 [P] [US3] Write failing test: Expanded error details display errorType, errorCode, redacted errorDetails in frontend/tests/unit/MessageBubble.test.js
+- [x] T045 [P] [US3] Write failing test: Error details are redacted by default (sensitive data hidden) in frontend/tests/unit/MessageBubble.test.js
+- [x] T046 [P] [US3] Write failing test: Keyboard navigation (Enter/Space) works on Details button in frontend/tests/unit/MessageBubble.test.js
+- [x] T047 [US3] Verify all US3 tests FAIL (run npm test MessageBubble.test.js)
 
 ### Implementation for User Story 3
 
-- [ ] T048 [US3] Import useCollapsible composable in MessageBubble.vue setup() in frontend/src/components/ChatArea/MessageBubble.vue
-- [ ] T049 [US3] Import redactSensitiveData from sensitiveDataRedactor in MessageBubble.vue in frontend/src/components/ChatArea/MessageBubble.vue
-- [ ] T050 [US3] Add errorCollapsible instance with useCollapsible(false) in MessageBubble setup() in frontend/src/components/ChatArea/MessageBubble.vue
-- [ ] T051 [US3] Add hasErrorDetails computed property in MessageBubble setup() in frontend/src/components/ChatArea/MessageBubble.vue
-- [ ] T052 [US3] Add redactedErrorDetails computed property using redactSensitiveData() in frontend/src/components/ChatArea/MessageBubble.vue
-- [ ] T053 [US3] Add Details toggle button to error section template with errorCollapsible.triggerAttrs in frontend/src/components/ChatArea/MessageBubble.vue
-- [ ] T054 [US3] Add expandable error details section with <transition name="expand"> in frontend/src/components/ChatArea/MessageBubble.vue
-- [ ] T055 [US3] Add error details content showing errorType, errorCode, redactedErrorDetails in <pre> tag in frontend/src/components/ChatArea/MessageBubble.vue
-- [ ] T056 [US3] Add styles for .error-toggle button (border, hover, focus states) in frontend/src/components/ChatArea/MessageBubble.vue
-- [ ] T057 [US3] Add styles for .error-details section (background, border, padding) in frontend/src/components/ChatArea/MessageBubble.vue
-- [ ] T058 [US3] Add styles for .error-stack <pre> tag (monospace font, max-height, scrollbar) in frontend/src/components/ChatArea/MessageBubble.vue
-- [ ] T059 [US3] Add .expand-enter-active/.expand-leave-active transition styles in frontend/src/components/ChatArea/MessageBubble.vue
-- [ ] T060 [US3] Update updateMessageWithError() to populate errorDetails field with JSON.stringify(error.details) in frontend/src/state/useMessages.js
-- [ ] T061 [US3] Verify all US3 tests PASS (run npm test and confirm green state)
+- [x] T048 [US3] Import useCollapsible composable in MessageBubble.vue setup() in frontend/src/components/ChatArea/MessageBubble.vue
+- [x] T049 [US3] Import redactSensitiveData from sensitiveDataRedactor in MessageBubble.vue in frontend/src/components/ChatArea/MessageBubble.vue
+- [x] T050 [US3] Add errorCollapsible instance with useCollapsible(false) in MessageBubble setup() in frontend/src/components/ChatArea/MessageBubble.vue
+- [x] T051 [US3] Add hasErrorDetails computed property in MessageBubble setup() in frontend/src/components/ChatArea/MessageBubble.vue
+- [x] T052 [US3] Add redactedErrorDetails computed property using redactSensitiveData() in frontend/src/components/ChatArea/MessageBubble.vue
+- [x] T053 [US3] Add Details toggle button to error section template with errorCollapsible.triggerAttrs in frontend/src/components/ChatArea/MessageBubble.vue
+- [x] T054 [US3] Add expandable error details section with <transition name="expand"> in frontend/src/components/ChatArea/MessageBubble.vue
+- [x] T055 [US3] Add error details content showing errorType, errorCode, redactedErrorDetails in <pre> tag in frontend/src/components/ChatArea/MessageBubble.vue
+- [x] T056 [US3] Add styles for .error-toggle button (border, hover, focus states) in frontend/src/components/ChatArea/MessageBubble.vue
+- [x] T057 [US3] Add styles for .error-details section (background, border, padding) in frontend/src/components/ChatArea/MessageBubble.vue
+- [x] T058 [US3] Add styles for .error-stack <pre> tag (monospace font, max-height, scrollbar) in frontend/src/components/ChatArea/MessageBubble.vue
+- [x] T059 [US3] Add .expand-enter-active/.expand-leave-active transition styles in frontend/src/components/ChatArea/MessageBubble.vue
+- [x] T060 [US3] Update updateMessageWithError() to populate errorDetails field with JSON.stringify(error.details) in frontend/src/state/useMessages.js
+- [x] T061 [US3] Verify all US3 tests PASS (run npm test and confirm green state)
 
 **Checkpoint**: All user stories should now be independently functional - errors display, expand, and redact sensitive data
 
@@ -161,19 +161,19 @@
 
 ### E2E Tests (Playwright)
 
-- [ ] T062 [P] Write E2E test: Simulate network failure, verify error appears in chat in frontend/tests/e2e/error-scenarios.spec.js
-- [ ] T063 [P] Write E2E test: Stop backend, send message, verify "Cannot connect to server" error in frontend/tests/e2e/error-scenarios.spec.js
-- [ ] T064 [P] Write E2E test: Send empty message, verify 422 validation error displays in frontend/tests/e2e/error-scenarios.spec.js
-- [ ] T065 [P] Write E2E test: Click Details button, verify error expands with technical details in frontend/tests/e2e/error-scenarios.spec.js
-- [ ] T066 [P] Write E2E test: Verify keyboard navigation (Tab, Enter, Space) works on Details button in frontend/tests/e2e/error-scenarios.spec.js
-- [ ] T067 Write E2E test: Verify error with API key shows redacted version by default in frontend/tests/e2e/error-scenarios.spec.js
+- [x] T062 [P] Write E2E test: Simulate network failure, verify error appears in chat in frontend/tests/e2e/error-scenarios.spec.js
+- [x] T063 [P] Write E2E test: Stop backend, send message, verify "Cannot connect to server" error in frontend/tests/e2e/error-scenarios.spec.js
+- [x] T064 [P] Write E2E test: Send empty message, verify 422 validation error displays in frontend/tests/e2e/error-scenarios.spec.js
+- [x] T065 [P] Write E2E test: Click Details button, verify error expands with technical details in frontend/tests/e2e/error-scenarios.spec.js
+- [x] T066 [P] Write E2E test: Verify keyboard navigation (Tab, Enter, Space) works on Details button in frontend/tests/e2e/error-scenarios.spec.js
+- [x] T067 Write E2E test: Verify error with API key shows redacted version by default in frontend/tests/e2e/error-scenarios.spec.js
 
 ### Edge Case Implementation
 
-- [ ] T068 Add max-height and overflow handling for extremely long error messages (>10,000 chars) in MessageBubble.vue styles
-- [ ] T069 Add word-break and white-space handling for error details with long tokens/URLs in MessageBubble.vue styles
-- [ ] T070 Test multiple rapid errors in succession and verify all display in chronological order
-- [ ] T071 Test error that occurs before chat interface fully loads and verify it displays correctly
+- [x] T068 Add max-height and overflow handling for extremely long error messages (>10,000 chars) in MessageBubble.vue styles
+- [x] T069 Add word-break and white-space handling for error details with long tokens/URLs in MessageBubble.vue styles
+- [x] T070 Test multiple rapid errors in succession and verify all display in chronological order
+- [x] T071 Test error that occurs before chat interface fully loads and verify it displays correctly
 
 ---
 
