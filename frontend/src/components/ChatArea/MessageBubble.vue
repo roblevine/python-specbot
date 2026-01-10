@@ -26,10 +26,10 @@ export default {
       validator: msg => {
         return (
           msg.id &&
-          msg.text &&
-          ['user', 'system'].includes(msg.sender) &&
+          msg.text !== undefined && // Allow empty text during streaming
+          ['user', 'system', 'assistant'].includes(msg.sender) && // Support assistant messages
           msg.timestamp &&
-          ['pending', 'sent', 'error'].includes(msg.status)
+          ['pending', 'sent', 'error', 'streaming'].includes(msg.status) // Support streaming status
         )
       },
     },
@@ -38,8 +38,10 @@ export default {
     const messageClass = computed(() => ({
       'message-user': props.message.sender === 'user',
       'message-system': props.message.sender === 'system',
+      'message-assistant': props.message.sender === 'assistant',
       'message-pending': props.message.status === 'pending',
       'message-error': props.message.status === 'error',
+      'message-streaming': props.message.status === 'streaming',
     }))
 
     const formattedTime = computed(() => {
@@ -87,6 +89,13 @@ export default {
 }
 
 .message-system {
+  align-self: flex-start;
+  background-color: var(--color-system-message-bg);
+  color: var(--color-system-message-text);
+  margin-right: auto;
+}
+
+.message-assistant {
   align-self: flex-start;
   background-color: var(--color-system-message-bg);
   color: var(--color-system-message-text);
