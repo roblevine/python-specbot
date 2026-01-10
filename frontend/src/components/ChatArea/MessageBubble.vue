@@ -189,7 +189,7 @@ export default {
   opacity: 0.8;
 }
 
-/* T028: Error section styling */
+/* T028, T068: Error section styling with overflow handling */
 .error-section {
   display: flex;
   align-items: center;
@@ -210,7 +210,28 @@ export default {
 .error-message {
   color: var(--color-error);
   word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
   flex: 1;
+  /* T068: Handle extremely long error messages */
+  max-height: 150px;
+  overflow-y: auto;
+  /* Smooth scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-error) transparent;
+}
+
+.error-message::-webkit-scrollbar {
+  width: 6px;
+}
+
+.error-message::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.error-message::-webkit-scrollbar-thumb {
+  background-color: var(--color-error);
+  border-radius: 3px;
 }
 
 /* T056: Error toggle button styling */
@@ -251,7 +272,7 @@ export default {
   color: var(--color-error);
 }
 
-/* T058: Error stack pre tag styling */
+/* T058, T069: Error stack pre tag styling with long token/URL handling */
 .error-stack {
   font-family: 'Courier New', Courier, monospace;
   font-size: var(--font-size-xs);
@@ -261,9 +282,35 @@ export default {
   border-radius: var(--border-radius-sm);
   max-height: 200px;
   overflow-y: auto;
+  overflow-x: auto;
   white-space: pre-wrap;
   word-break: break-word;
+  overflow-wrap: anywhere;
+  /* T069: Handle long URLs and tokens */
+  word-wrap: break-word;
+  hyphens: auto;
   margin: 0;
+  /* Smooth scrollbars */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.3) transparent;
+}
+
+.error-stack::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.error-stack::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.error-stack::-webkit-scrollbar-thumb {
+  background-color: rgba(100, 116, 139, 0.3);
+  border-radius: 3px;
+}
+
+.error-stack::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* T059: Expand/collapse transition styles */
