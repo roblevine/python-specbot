@@ -69,17 +69,29 @@ export function validateMessage(message) {
     return { isValid: false, error: 'Message must have valid ID with msg- prefix' }
   }
 
-  const textValidation = validateMessageText(message.text)
-  if (!textValidation.isValid) {
-    return textValidation
+  // Allow empty text for streaming messages (they accumulate content progressively)
+  // Only validate text if it's not a streaming assistant message
+  const isStreamingAssistant = message.sender === 'assistant' && message.status === 'streaming'
+  if (!isStreamingAssistant) {
+    const textValidation = validateMessageText(message.text)
+    if (!textValidation.isValid) {
+      return textValidation
+    }
+  } else {
+    // For streaming messages, just check text is a string
+    if (typeof message.text !== 'string') {
+      return { isValid: false, error: 'Message text must be a string' }
+    }
   }
 
-  if (!['user', 'system'].includes(message.sender)) {
-    return { isValid: false, error: 'Message sender must be "user" or "system"' }
+  // Updated for Feature 005: support 'assistant' sender for LLM responses
+  if (!['user', 'system', 'assistant'].includes(message.sender)) {
+    return { isValid: false, error: 'Message sender must be "user", "system", or "assistant"' }
   }
 
-  if (!['pending', 'sent', 'error'].includes(message.status)) {
-    return { isValid: false, error: 'Message status must be "pending", "sent", or "error"' }
+  // Updated for Feature 005: support 'streaming' and 'completed' statuses for LLM streaming
+  if (!['pending', 'sent', 'error', 'streaming', 'completed'].includes(message.status)) {
+    return { isValid: false, error: 'Message status must be "pending", "sent", "error", "streaming", or "completed"' }
   }
 
   if (!message.timestamp || !isValidISODate(message.timestamp)) {

@@ -6,8 +6,11 @@
     <div v-else class="messages-container">
       <MessageBubble v-for="message in messages" :key="message.id" :message="message" />
     </div>
-    <div v-if="isProcessing" class="loading-indicator">
+    <div v-if="isProcessing && !isStreaming" class="loading-indicator">
       <span class="loading-dots">Processing...</span>
+    </div>
+    <div v-if="isStreaming" class="streaming-indicator">
+      <span class="streaming-dots">AI is responding...</span>
     </div>
   </div>
 </template>
@@ -30,13 +33,21 @@ export default {
       type: Boolean,
       default: false,
     },
+    isStreaming: {
+      type: Boolean,
+      default: false,
+    },
   },
   setup(props) {
     const chatArea = ref(null)
 
-    // Auto-scroll to bottom when messages change
+    // Auto-scroll to bottom when messages change or update
+    // Watch both message count and content (for streaming updates)
     watch(
-      () => props.messages.length,
+      [
+        () => props.messages.length,
+        () => props.messages.map(m => m.text).join(''),
+      ],
       async () => {
         await nextTick()
         if (chatArea.value) {
@@ -94,5 +105,17 @@ export default {
   50% {
     opacity: 0.5;
   }
+}
+
+.streaming-indicator {
+  padding: var(--spacing-md);
+  text-align: center;
+  color: var(--color-primary);
+  font-style: italic;
+}
+
+.streaming-dots {
+  display: inline-block;
+  animation: pulse 1s ease-in-out infinite;
 }
 </style>

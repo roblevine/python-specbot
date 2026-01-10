@@ -4,11 +4,25 @@
       v-model="inputText"
       class="input-textarea"
       placeholder="Type your message..."
-      :disabled="disabled"
+      :disabled="disabled || isStreaming"
       @keydown.enter.exact="handleEnter"
       @keydown.enter.shift.exact="handleShiftEnter"
     />
-    <button class="send-button" :disabled="disabled || !canSend" @click="handleSend">Send</button>
+    <button
+      v-if="!isStreaming"
+      class="send-button"
+      :disabled="disabled || !canSend"
+      @click="handleSend"
+    >
+      Send
+    </button>
+    <button
+      v-else
+      class="stop-button"
+      @click="handleStop"
+    >
+      Stop
+    </button>
   </div>
 </template>
 
@@ -22,8 +36,12 @@ export default {
       type: Boolean,
       default: false,
     },
+    isStreaming: {
+      type: Boolean,
+      default: false,
+    },
   },
-  emits: ['send-message'],
+  emits: ['send-message', 'stop-stream'],
   setup(props, { emit }) {
     const inputText = ref('')
 
@@ -32,7 +50,7 @@ export default {
     })
 
     function handleSend() {
-      if (!canSend.value || props.disabled) return
+      if (!canSend.value || props.disabled || props.isStreaming) return
 
       const text = inputText.value.trim()
       if (text) {
@@ -41,8 +59,17 @@ export default {
       }
     }
 
+    function handleStop() {
+      emit('stop-stream')
+    }
+
     function handleEnter(event) {
-      // Enter without Shift = Send
+      // Enter without Shift = Send (only if not streaming)
+      if (props.isStreaming) {
+        event.preventDefault()
+        return
+      }
+
       event.preventDefault()
       handleSend()
     }
@@ -60,6 +87,7 @@ export default {
       inputText,
       canSend,
       handleSend,
+      handleStop,
       handleEnter,
       handleShiftEnter,
       clearInput,
@@ -123,6 +151,26 @@ export default {
 }
 
 .send-button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.stop-button {
+  padding: 0 var(--spacing-xl);
+  background-color: var(--color-error, #dc3545);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.stop-button:hover {
+  background-color: var(--color-error-hover, #c82333);
+}
+
+.stop-button:active {
   transform: scale(0.98);
 }
 </style>

@@ -1,11 +1,12 @@
 /**
  * Storage Schema Definition
- * Defines the v1.0.0 schema structure and validation for LocalStorage
+ * Defines the v2.0.0 schema structure and validation for LocalStorage
+ * Updated for Feature 005 (LLM Integration) to support streaming messages
  */
 
 import { validateConversation } from '../utils/validators.js'
 
-export const SCHEMA_VERSION = '1.0.0'
+export const SCHEMA_VERSION = '2.0.0'
 export const STORAGE_KEY = 'chatInterface:v1:data'
 
 /**

@@ -13,6 +13,11 @@ if [ "$(uname -m)" = "aarch64" ]; then
     sudo ln -sf /usr/lib/aarch64-linux-gnu/libcrypt.so.1 /usr/lib/aarch64-linux-gnu/libcrypt-c6b9afc0.so.1
 fi
 
+echo "** locale fixup for SSH sessions - needed for MacOS clients"
+sudo apt install -y locales
+sudo sed -i '/en_GB.UTF-8/s/^# //g' /etc/locale.gen
+sudo locale-gen
+
 echo "** calling out to script to configure SSH server"
 . .devcontainer/install_ssh_server.sh
 

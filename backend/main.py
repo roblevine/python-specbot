@@ -122,6 +122,10 @@ async def health_check():
 from src.api.routes.messages import router as messages_router
 app.include_router(messages_router, prefix="/api/v1")
 
+# T011: Register Chat Streaming routes (Feature 005)
+from src.api.routes.chat import router as chat_router
+app.include_router(chat_router)
+
 
 if __name__ == "__main__":
     import uvicorn

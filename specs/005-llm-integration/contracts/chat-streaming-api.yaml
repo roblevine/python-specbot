@@ -1,0 +1,449 @@
+openapi: 3.1.0
+info:
+  title: LLM Chat Streaming API
+  version: 1.0.0
+  description: |
+    API contract for streaming chat responses from LLM models (GPT-5, GPT-5 Codex).
+    Supports real-time Server-Sent Events (SSE) streaming with conversation context.
+
+    Feature: 005-llm-integration
+    Created: 2025-12-30
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: http://localhost:8000/api/v1
+    description: API v1 base path
+
+paths:
+  /api/v1/chat/stream:
+    post:
+      summary: Stream AI chat response
+      description: |
+        Initiates a streaming chat response from the selected LLM model.
+        Returns Server-Sent Events (SSE) with progressive response chunks.
+
+        Supports conversation context by including previous message history.
+        Client can abort the stream by closing the connection.
+
+      operationId: streamChatResponse
+      tags:
+        - Chat
+        - Streaming
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatStreamRequest'
+            examples:
+              basicRequest:
+                summary: Basic chat request with GPT-5
+                value:
+                  message: "Hello, how are you?"
+                  conversationId: "conv-123e4567-e89b-12d3-a456-426614174000"
+                  conversationHistory: []
+                  model: "gpt-5"
+
+              withContext:
+                summary: Request with conversation history
+                value:
+                  message: "What was my previous question?"
+                  conversationId: "conv-123e4567-e89b-12d3-a456-426614174000"
+                  conversationHistory:
+                    - role: "user"
+                      content: "Tell me about Python"
+                    - role: "assistant"
+                      content: "Python is a high-level programming language..."
+                  model: "gpt-5"
+
+              codexRequest:
+                summary: Coding question with GPT-5 Codex
+                value:
+                  message: "Write a function to calculate fibonacci numbers"
+                  conversationId: "conv-987fcdeb-51a2-43f7-8d9c-123456789abc"
+                  conversationHistory: []
+                  model: "gpt-5-codex"
+
+      responses:
+        '200':
+          description: |
+            Streaming response with Server-Sent Events (SSE).
+            Content-Type: text/event-stream
+
+            Events are sent progressively as the LLM generates the response.
+            Client accumulates chunks to build the complete message.
+
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: Server-Sent Events stream
+                example: |
+                  event: message
+                  data: {"type": "start", "messageId": "msg-abc123"}
+
+                  event: message
+                  data: {"type": "chunk", "content": "Hello"}
+
+                  event: message
+                  data: {"type": "chunk", "content": " there!"}
+
+                  event: message
+                  data: {"type": "done", "messageId": "msg-abc123", "model": "gpt-5"}
+
+              examples:
+                successfulStream:
+                  summary: Successful streaming response
+                  value: |
+                    event: message
+                    data: {"type": "start", "messageId": "msg-a1b2c3d4-e5f6-7890-abcd-ef1234567890"}
+
+                    event: message
+                    data: {"type": "chunk", "content": "Python"}
+
+                    event: message
+                    data: {"type": "chunk", "content": " is"}
+
+                    event: message
+                    data: {"type": "chunk", "content": " great!"}
+
+                    event: message
+                    data: {"type": "done", "messageId": "msg-a1b2c3d4-e5f6-7890-abcd-ef1234567890", "model": "gpt-5"}
+
+                streamWithError:
+                  summary: Stream that encounters an error
+                  value: |
+                    event: message
+                    data: {"type": "start", "messageId": "msg-error123"}
+
+                    event: message
+                    data: {"type": "chunk", "content": "Starting to answer..."}
+
+                    event: error
+                    data: {"type": "error", "code": "rate_limit", "message": "The AI service is temporarily busy. Please try again in a moment.", "details": {"retryAfter": 60}}
+
+        '400':
+          description: Bad Request - Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                emptyMessage:
+                  summary: Empty message text
+                  value:
+                    status: "error"
+                    error: "Message cannot be empty"
+                    detail:
+                      field: "message"
+                      value: ""
+                    timestamp: "2025-12-30T12:00:00.000Z"
+
+                invalidConversationId:
+                  summary: Invalid conversation ID format
+                  value:
+                    status: "error"
+                    error: "Invalid conversation ID format"
+                    detail:
+                      field: "conversationId"
+                      value: "invalid-id"
+                      expected: "conv-<uuid>"
+                    timestamp: "2025-12-30T12:00:00.000Z"
+
+        '401':
+          description: Unauthorized - Invalid or missing API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missingApiKey:
+                  summary: API key not configured
+                  value:
+                    status: "error"
+                    error: "Unable to connect to AI service. Please check your configuration."
+                    detail:
+                      code: "authentication_error"
+                      provider: "openai"
+                    timestamp: "2025-12-30T12:00:00.000Z"
+
+        '422':
+          description: Unprocessable Entity - Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                messageTooLong:
+                  summary: Message exceeds maximum length
+                  value:
+                    status: "error"
+                    error: "Message is too long"
+                    detail:
+                      field: "message"
+                      maxLength: 10000
+                      actualLength: 15000
+                    timestamp: "2025-12-30T12:00:00.000Z"
+
+                invalidModel:
+                  summary: Unsupported model name
+                  value:
+                    status: "error"
+                    error: "Invalid model selection"
+                    detail:
+                      field: "model"
+                      value: "gpt-4"
+                      allowed: ["gpt-5", "gpt-5-codex"]
+                    timestamp: "2025-12-30T12:00:00.000Z"
+
+        '429':
+          description: Rate Limit Exceeded - Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                rateLimitExceeded:
+                  summary: OpenAI rate limit hit
+                  value:
+                    status: "error"
+                    error: "The AI service is temporarily busy. Please try again in a moment."
+                    detail:
+                      code: "rate_limit_exceeded"
+                      provider: "openai"
+                      retryAfter: 60
+                    timestamp: "2025-12-30T12:00:00.000Z"
+
+        '500':
+          description: Internal Server Error - Unexpected failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                llmProviderError:
+                  summary: LLM provider internal error
+                  value:
+                    status: "error"
+                    error: "An unexpected error occurred. Please try again."
+                    detail:
+                      code: "llm_provider_error"
+                      provider: "openai"
+                    timestamp: "2025-12-30T12:00:00.000Z"
+
+        '503':
+          description: Service Unavailable - LLM model temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                modelUnavailable:
+                  summary: Selected model is down
+                  value:
+                    status: "error"
+                    error: "The selected AI model is temporarily unavailable. Please try again later."
+                    detail:
+                      code: "model_unavailable"
+                      model: "gpt-5"
+                      provider: "openai"
+                    timestamp: "2025-12-30T12:00:00.000Z"
+
+components:
+  schemas:
+    ChatStreamRequest:
+      type: object
+      required:
+        - message
+        - conversationId
+      properties:
+        message:
+          type: string
+          minLength: 1
+          maxLength: 10000
+          description: User's message text
+          example: "Hello, how are you?"
+
+        conversationId:
+          type: string
+          pattern: '^conv-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+          description: Unique conversation identifier (UUID with 'conv-' prefix)
+          example: "conv-123e4567-e89b-12d3-a456-426614174000"
+
+        conversationHistory:
+          type: array
+          description: "Previous messages for context (optional, default: empty array)"
+          default: []
+          items:
+            $ref: '#/components/schemas/HistoryMessage'
+          example:
+            - role: "user"
+              content: "What is Python?"
+            - role: "assistant"
+              content: "Python is a programming language."
+
+        model:
+          type: string
+          enum:
+            - gpt-5
+            - gpt-5-codex
+          default: gpt-5
+          description: LLM model to use for this request
+          example: "gpt-5"
+
+    HistoryMessage:
+      type: object
+      required:
+        - role
+        - content
+      properties:
+        role:
+          type: string
+          enum:
+            - user
+            - assistant
+            - system
+          description: Message sender role
+          example: "user"
+
+        content:
+          type: string
+          minLength: 1
+          description: Message content
+          example: "What is Python?"
+
+    StreamEvent:
+      oneOf:
+        - $ref: '#/components/schemas/StreamStartEvent'
+        - $ref: '#/components/schemas/StreamChunkEvent'
+        - $ref: '#/components/schemas/StreamDoneEvent'
+        - $ref: '#/components/schemas/StreamErrorEvent'
+      discriminator:
+        propertyName: type
+
+    StreamStartEvent:
+      type: object
+      required:
+        - type
+        - messageId
+      properties:
+        type:
+          type: string
+          enum: [start]
+          description: Event type indicating stream start
+        messageId:
+          type: string
+          pattern: '^msg-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+          description: Unique ID for this AI response message
+          example: "msg-987fcdeb-51a2-43f7-8d9c-123456789abc"
+
+    StreamChunkEvent:
+      type: object
+      required:
+        - type
+        - content
+      properties:
+        type:
+          type: string
+          enum: [chunk]
+          description: Event type indicating content chunk
+        content:
+          type: string
+          description: Partial text content to append
+          example: "Hello"
+
+    StreamDoneEvent:
+      type: object
+      required:
+        - type
+        - messageId
+        - model
+      properties:
+        type:
+          type: string
+          enum: [done]
+          description: Event type indicating stream completion
+        messageId:
+          type: string
+          pattern: '^msg-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+          description: ID of the completed message
+          example: "msg-987fcdeb-51a2-43f7-8d9c-123456789abc"
+        model:
+          type: string
+          enum:
+            - gpt-5
+            - gpt-5-codex
+          description: Model that generated this response
+          example: "gpt-5"
+
+    StreamErrorEvent:
+      type: object
+      required:
+        - type
+        - code
+        - message
+      properties:
+        type:
+          type: string
+          enum: [error]
+          description: Event type indicating error occurred
+        code:
+          type: string
+          description: Machine-readable error code
+          enum:
+            - authentication_error
+            - rate_limit_exceeded
+            - model_unavailable
+            - network_timeout
+            - llm_provider_error
+            - validation_error
+          example: "rate_limit_exceeded"
+        message:
+          type: string
+          description: Human-readable error message (non-technical)
+          example: "The AI service is temporarily busy. Please try again in a moment."
+        details:
+          type: object
+          description: Additional error context (optional)
+          additionalProperties: true
+          example:
+            retryAfter: 60
+            provider: "openai"
+
+    ErrorResponse:
+      type: object
+      required:
+        - status
+        - error
+        - timestamp
+      properties:
+        status:
+          type: string
+          enum: [error]
+          description: Response status indicator
+          example: "error"
+        error:
+          type: string
+          description: Human-readable error message (non-technical)
+          example: "The AI service is temporarily busy. Please try again in a moment."
+        detail:
+          type: object
+          description: Additional error context (optional)
+          additionalProperties: true
+          nullable: true
+          example:
+            code: "rate_limit_exceeded"
+            retryAfter: 60
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO-8601 timestamp of when error occurred
+          example: "2025-12-30T12:00:00.000Z"
+
+tags:
+  - name: Chat
+    description: AI chat conversation endpoints
+  - name: Streaming
+    description: Server-Sent Events (SSE) streaming endpoints

@@ -75,3 +75,14 @@ fi
 
 chown vscode:vscode /home/vscode/.bashrc
 chown -R vscode:vscode /home/vscode/.ssh
+
+# Set default working directory for SSH sessions
+if ! grep -q "cd /workspaces" /home/vscode/.bashrc 2>/dev/null; then
+    cat >> /home/vscode/.bashrc << 'EOF'
+
+# Default to workspace directory if it exists
+if [ -d /workspaces ] && [ "$(pwd)" = "$HOME" ]; then
+    cd /workspaces/* 2>/dev/null || true
+fi
+EOF
+fi

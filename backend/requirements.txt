@@ -17,3 +17,11 @@ openapi-core==0.18.2
 # Configuration and utilities
 pyyaml==6.0.1
 python-dotenv==1.0.0
+
+# LLM Integration (Feature 005)
+langchain~=0.3.0
+langchain-openai~=0.3.0
+langchain-core~=0.3.0
+langchain-anthropic~=0.3.0
+langchain-community~=0.3.0
+openai>=1.0.0

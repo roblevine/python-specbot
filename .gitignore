@@ -48,6 +48,10 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 
+# Frontend test artifacts
+frontend/playwright-report/
+frontend/test-results/
+
 # mypy
 .mypy_cache/
 .dmypy.json

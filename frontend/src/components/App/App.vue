@@ -9,8 +9,14 @@
         @new-conversation="handleNewConversation"
       />
       <div class="chat-container">
-        <ChatArea :messages="currentMessages" :is-processing="isProcessing" />
-        <InputArea ref="inputAreaRef" :disabled="isProcessing" @send-message="handleSendMessage" />
+        <ChatArea :messages="currentMessages" :is-processing="isProcessing" :is-streaming="isStreaming" />
+        <InputArea
+          ref="inputAreaRef"
+          :disabled="isProcessing"
+          :is-streaming="isStreaming"
+          @send-message="handleSendMessage"
+          @stop-stream="handleStopStream"
+        />
       </div>
     </div>
   </div>
@@ -48,7 +54,13 @@ export default {
       saveToStorage,
     } = useConversations()
 
-    const { currentMessages, sendUserMessage } = useMessages()
+    const {
+      currentMessages,
+      sendUserMessage,
+      sendStreamingMessage,
+      stopStream,
+      isStreaming,
+    } = useMessages()
 
     const { isProcessing, status, statusType, setStatus, setError } = useAppState()
 
@@ -65,13 +77,23 @@ export default {
       }
     })
 
-    // Handle sending a message
+    // Handle sending a message (with streaming)
     async function handleSendMessage(text) {
       try {
-        await sendUserMessage(text)
+        // Use streaming by default
+        await sendStreamingMessage(text)
       } catch (error) {
         logger.error('Error sending message', error)
         setError('Failed to send message')
+      }
+    }
+
+    // Handle stopping stream
+    function handleStopStream() {
+      try {
+        stopStream()
+      } catch (error) {
+        logger.error('Error stopping stream', error)
       }
     }
 
@@ -107,9 +129,11 @@ export default {
       activeConversationId,
       currentMessages,
       isProcessing,
+      isStreaming,
       status,
       statusType,
       handleSendMessage,
+      handleStopStream,
       handleSelectConversation,
       handleNewConversation,
     }
