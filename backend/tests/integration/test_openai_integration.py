@@ -100,13 +100,13 @@ async def test_llm_service_handles_message_conversion():
     Validates that user messages are converted to LangChain format
     before being sent to ChatOpenAI.
 
-    Expected: FAIL (service not implemented yet)
+    Updated for T022: Now accepts message history array format.
     """
     from src.services.llm_service import convert_to_langchain_messages
 
-    # Test simple message conversion
-    user_message = "Hello, how are you?"
-    langchain_messages = convert_to_langchain_messages(user_message)
+    # Test simple message conversion (single message as history array)
+    message_history = [{"sender": "user", "text": "Hello, how are you?"}]
+    langchain_messages = convert_to_langchain_messages(message_history)
 
     # Verify format (LangChain expects list of messages)
     assert isinstance(langchain_messages, list)

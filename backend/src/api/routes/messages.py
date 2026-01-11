@@ -84,8 +84,17 @@ async def send_message(request: MessageRequest) -> MessageResponse:
         # T015: Log LLM request start
         llm_request_start(request.message, model)
 
-        # T014: Get AI response from LLM service
-        ai_response = await get_ai_response(request.message)
+        # T024: Convert history from Pydantic models to dict format if provided
+        history_dict = None
+        if request.history:
+            history_dict = [
+                {"sender": msg.sender, "text": msg.text}
+                for msg in request.history
+            ]
+            logger.debug(f"Including {len(history_dict)} message(s) from conversation history")
+
+        # T014: Get AI response from LLM service (with optional history)
+        ai_response = await get_ai_response(request.message, history=history_dict)
 
         # Calculate duration
         duration_ms = (time.time() - start_time) * 1000

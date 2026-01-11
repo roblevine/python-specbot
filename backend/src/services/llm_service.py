@@ -8,8 +8,9 @@ Tasks: T006, T007
 """
 
 import os
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Union
 from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, AIMessage, BaseMessage
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -122,48 +123,62 @@ def get_llm_instance() -> ChatOpenAI:
     return _llm_instance
 
 
-def convert_to_langchain_messages(message: str) -> list:
+def convert_to_langchain_messages(history: List[Dict[str, str]]) -> List[BaseMessage]:
     """
-    T006: Convert user message to LangChain message format.
+    T022: Convert conversation history to LangChain message format.
 
-    Converts a simple string message into the list format expected by
-    LangChain's ChatOpenAI.ainvoke() method.
+    Converts an array of message objects with sender/text fields into
+    LangChain message types (HumanMessage for user, AIMessage for system).
 
     Args:
-        message: User message text
+        history: List of message dictionaries with "sender" and "text" fields
+                 sender can be "user" or "system"
 
     Returns:
-        List of message dictionaries in LangChain format
+        List of LangChain message objects (HumanMessage or AIMessage)
 
     Examples:
-        >>> messages = convert_to_langchain_messages("Hello")
-        >>> isinstance(messages, list)
+        >>> history = [
+        ...     {"sender": "user", "text": "Hello"},
+        ...     {"sender": "system", "text": "Hi there!"}
+        ... ]
+        >>> messages = convert_to_langchain_messages(history)
+        >>> isinstance(messages[0], HumanMessage)
         True
-        >>> len(messages) > 0
+        >>> isinstance(messages[1], AIMessage)
         True
     """
-    logger.debug(f"Converting message to LangChain format: {message[:50]}...")
+    logger.debug(f"Converting {len(history)} message(s) to LangChain format")
 
-    # LangChain expects a list of messages
-    # For now, just convert the single message to proper format
-    # Future: This will be extended to handle conversation history (User Story 2)
-    messages = [
-        {"role": "user", "content": message}
-    ]
+    langchain_messages: List[BaseMessage] = []
 
-    logger.debug(f"Converted to {len(messages)} LangChain message(s)")
-    return messages
+    for msg in history:
+        sender = msg.get("sender")
+        text = msg.get("text", "")
+
+        if sender == "user":
+            langchain_messages.append(HumanMessage(content=text))
+        elif sender == "system":
+            langchain_messages.append(AIMessage(content=text))
+        else:
+            logger.warning(f"Unknown sender type: {sender}, skipping message")
+
+    logger.debug(f"Converted to {len(langchain_messages)} LangChain message(s)")
+    return langchain_messages
 
 
-async def get_ai_response(message: str) -> str:
+async def get_ai_response(message: str, history: Optional[List[Dict[str, str]]] = None) -> str:
     """
-    T013: Get AI response for a user message.
+    T023: Get AI response for a user message with optional conversation history.
 
     Sends the user message to OpenAI ChatGPT via LangChain and returns
-    the AI-generated response.
+    the AI-generated response. Optionally includes conversation history
+    for context-aware responses.
 
     Args:
         message: User message text
+        history: Optional list of previous messages with sender/text fields
+                 for context-aware responses (T023)
 
     Returns:
         AI-generated response text
@@ -177,17 +192,38 @@ async def get_ai_response(message: str) -> str:
         >>> response = asyncio.run(get_ai_response("Hello"))
         >>> len(response) > 0
         True
+
+        >>> # With conversation history
+        >>> history = [
+        ...     {"sender": "user", "text": "My name is Alice"},
+        ...     {"sender": "system", "text": "Nice to meet you!"}
+        ... ]
+        >>> response = asyncio.run(get_ai_response("What is my name?", history=history))
+        >>> len(response) > 0
+        True
     """
     if not message or not message.strip():
         raise ValueError("Message cannot be empty")
 
     logger.info(f"Processing AI request for message: {message[:50]}...")
+    if history:
+        logger.info(f"Including {len(history)} message(s) from conversation history")
 
     # Get LLM instance
     llm = get_llm_instance()
 
-    # Convert message to LangChain format
-    langchain_messages = convert_to_langchain_messages(message)
+    # Build complete message list: history + current message
+    all_messages = []
+
+    # Add conversation history if provided
+    if history:
+        all_messages = history.copy()
+
+    # Add current user message
+    all_messages.append({"sender": "user", "text": message})
+
+    # Convert to LangChain format
+    langchain_messages = convert_to_langchain_messages(all_messages)
 
     # Call LLM service
     logger.debug(f"Invoking ChatOpenAI with {len(langchain_messages)} message(s)")
