@@ -10,6 +10,7 @@
 
 import { ref, watch, onMounted } from 'vue'
 import { loadConversations, saveSelectedModel } from '../storage/LocalStorageAdapter.js'
+import { fetchModels as apiFetchModels } from '../services/apiClient.js'
 
 // Shared state across all component instances
 const availableModels = ref([])
@@ -32,13 +33,7 @@ export function useModels() {
     error.value = null
 
     try {
-      const response = await fetch('/api/v1/models')
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch models: ${response.statusText}`)
-      }
-
-      const data = await response.json()
+      const data = await apiFetchModels()
 
       if (!data.models || !Array.isArray(data.models)) {
         throw new Error('Invalid models response format')
