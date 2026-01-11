@@ -369,3 +369,244 @@ async def test_timeout_error_mapping():
 
     # Clean up
     llm_service._llm_instance = None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_ai_response_with_specific_model():
+    """
+    T015: Unit test for get_ai_response() with per-request model selection.
+
+    Validates that when a specific model is requested, the LLM service:
+    - Creates ChatOpenAI instance with the specified model
+    - Returns both the response and the model ID that was used
+    - Does not use the default/cached model
+
+    Feature: 008-openai-model-selector User Story 1
+    """
+    import src.services.llm_service as llm_service
+    from src.services.llm_service import get_ai_response
+
+    # Clear cached instance
+    llm_service._llm_instance = None
+
+    with patch.dict('os.environ', {
+        'OPENAI_API_KEY': 'test-key',
+        'OPENAI_MODEL': 'gpt-3.5-turbo'  # Default model
+    }):
+        with patch('src.services.llm_service.ChatOpenAI') as mock_chat, \
+             patch('src.services.llm_service.load_model_configuration') as mock_load_config, \
+             patch('src.services.llm_service.validate_model_id') as mock_validate:
+
+            # Mock model configuration
+            mock_config = Mock()
+            mock_config.models = []
+            mock_load_config.return_value = mock_config
+            mock_validate.return_value = True  # Model is valid
+
+            # Setup mock LLM for requested model
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+
+            # Mock ainvoke response
+            mock_response = Mock()
+            mock_response.content = "Response from GPT-4"
+            mock_llm.ainvoke = AsyncMock(return_value=mock_response)
+
+            # Call get_ai_response with specific model
+            result, model_used = await get_ai_response("Hello", model="gpt-4")
+
+            # Verify ChatOpenAI was created with requested model
+            mock_chat.assert_called_with(
+                api_key='test-key',
+                model='gpt-4'
+            )
+
+            # Verify response and model are returned
+            assert result == "Response from GPT-4"
+            assert model_used == "gpt-4"
+
+    # Clean up
+    llm_service._llm_instance = None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_ai_response_uses_default_model_when_not_specified():
+    """
+    T015: Unit test for get_ai_response() using default model.
+
+    Validates that when no model is specified:
+    - The default model from configuration is used
+    - Returns the default model ID in the response tuple
+    """
+    import src.services.llm_service as llm_service
+    from src.services.llm_service import get_ai_response
+
+    # Clear cached instance
+    llm_service._llm_instance = None
+
+    with patch.dict('os.environ', {
+        'OPENAI_API_KEY': 'test-key',
+        'OPENAI_MODEL': 'gpt-3.5-turbo'
+    }):
+        with patch('src.services.llm_service.ChatOpenAI') as mock_chat, \
+             patch('src.services.llm_service.load_model_configuration') as mock_load_config, \
+             patch('src.services.llm_service.get_default_model') as mock_get_default, \
+             patch('src.services.llm_service.validate_model_id') as mock_validate:
+
+            # Mock model configuration with actual model
+            mock_model = Mock()
+            mock_model.id = "gpt-3.5-turbo"
+            mock_config = Mock()
+            mock_config.models = [mock_model]
+            mock_load_config.return_value = mock_config
+            mock_get_default.return_value = "gpt-3.5-turbo"
+            mock_validate.return_value = True  # Validate default model
+
+            # Setup mock LLM
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+
+            # Mock ainvoke response
+            mock_response = Mock()
+            mock_response.content = "Response from default model"
+            mock_llm.ainvoke = AsyncMock(return_value=mock_response)
+
+            # Call get_ai_response WITHOUT specifying model
+            result, model_used = await get_ai_response("Hello")
+
+            # Verify default model was used
+            mock_chat.assert_called_with(
+                api_key='test-key',
+                model='gpt-3.5-turbo'
+            )
+
+            # Verify response and default model are returned
+            assert result == "Response from default model"
+            assert model_used == "gpt-3.5-turbo"
+
+    # Clean up
+    llm_service._llm_instance = None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_ai_response_validates_model_id():
+    """
+    T015: Unit test for model ID validation in get_ai_response().
+
+    Validates that:
+    - Invalid model IDs are rejected with LLMServiceError
+    - Validation happens before calling OpenAI API
+    """
+    import src.services.llm_service as llm_service
+    from src.services.llm_service import get_ai_response, LLMServiceError
+
+    # Clear cached instance
+    llm_service._llm_instance = None
+
+    with patch.dict('os.environ', {
+        'OPENAI_API_KEY': 'test-key',
+        'OPENAI_MODEL': 'gpt-3.5-turbo'
+    }):
+        with patch('src.services.llm_service.load_model_configuration') as mock_load_config, \
+             patch('src.services.llm_service.validate_model_id') as mock_validate, \
+             patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+
+            # Mock model configuration
+            mock_model = Mock()
+            mock_model.id = "gpt-4"
+            mock_config = Mock()
+            mock_config.models = [mock_model]
+            mock_load_config.return_value = mock_config
+
+            # Model validation returns False for invalid model
+            mock_validate.return_value = False
+
+            # Should raise LLMServiceError (ValueError is wrapped)
+            with pytest.raises(LLMServiceError):
+                await get_ai_response("Hello", model="invalid-model")
+
+            # Verify ChatOpenAI was NOT called (validation failed first)
+            mock_chat.assert_not_called()
+
+    # Clean up
+    llm_service._llm_instance = None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_ai_response_with_conversation_history_and_model():
+    """
+    T015: Unit test for get_ai_response() with history and model selection.
+
+    Validates that both conversation history and model selection work together.
+    """
+    import src.services.llm_service as llm_service
+    from src.services.llm_service import get_ai_response
+    from langchain_core.messages import HumanMessage, AIMessage
+
+    # Clear cached instance
+    llm_service._llm_instance = None
+
+    with patch.dict('os.environ', {
+        'OPENAI_API_KEY': 'test-key',
+        'OPENAI_MODEL': 'gpt-3.5-turbo'
+    }):
+        with patch('src.services.llm_service.ChatOpenAI') as mock_chat, \
+             patch('src.services.llm_service.load_model_configuration') as mock_load_config, \
+             patch('src.services.llm_service.validate_model_id') as mock_validate:
+
+            # Mock model configuration
+            mock_config = Mock()
+            mock_config.models = []
+            mock_load_config.return_value = mock_config
+            mock_validate.return_value = True
+
+            # Setup mock LLM
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+
+            # Mock ainvoke response
+            mock_response = Mock()
+            mock_response.content = "Context-aware response"
+            mock_llm.ainvoke = AsyncMock(return_value=mock_response)
+
+            # Call with history and model
+            history = [
+                {"sender": "user", "text": "First message"},
+                {"sender": "system", "text": "First response"}
+            ]
+
+            result, model_used = await get_ai_response(
+                "Second message",
+                history=history,
+                model="gpt-4"
+            )
+
+            # Verify ChatOpenAI was created with requested model
+            mock_chat.assert_called_with(
+                api_key='test-key',
+                model='gpt-4'
+            )
+
+            # Verify ainvoke was called with history + new message
+            mock_llm.ainvoke.assert_called_once()
+            call_args = mock_llm.ainvoke.call_args[0][0]
+
+            # Should have 3 messages: history (2) + new message (1)
+            assert len(call_args) == 3
+            assert isinstance(call_args[0], HumanMessage)
+            assert call_args[0].content == "First message"
+            assert isinstance(call_args[1], AIMessage)
+            assert call_args[1].content == "First response"
+            assert isinstance(call_args[2], HumanMessage)
+            assert call_args[2].content == "Second message"
+
+            # Verify response
+            assert result == "Context-aware response"
+            assert model_used == "gpt-4"
+
+    # Clean up
+    llm_service._llm_instance = None

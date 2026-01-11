@@ -17,8 +17,48 @@ import os
 import yaml
 from fastapi.testclient import TestClient
 from openapi_core import Spec, validate_response
-from openapi_core.protocols import Response as OpenAPIResponse
-from werkzeug.datastructures import Headers as WerkzeugHeaders
+from openapi_core.protocols import Request as OpenAPIRequest, Response as OpenAPIResponse
+from openapi_core.datatypes import RequestParameters, Headers
+from werkzeug.datastructures import Headers as WerkzeugHeaders, ImmutableMultiDict
+
+
+class FastAPIOpenAPIRequest(OpenAPIRequest):
+    """
+    Adapter to convert FastAPI TestClient request to openapi-core Request protocol.
+    """
+    def __init__(self, fastapi_request, body: bytes):
+        self._request = fastapi_request
+        self._body = body
+
+    @property
+    def host_url(self) -> str:
+        # Override testserver with localhost:8000 to match OpenAPI spec
+        return "http://localhost:8000"
+
+    @property
+    def path(self) -> str:
+        return self._request.url.path
+
+    @property
+    def method(self) -> str:
+        return self._request.method.lower()
+
+    @property
+    def parameters(self) -> RequestParameters:
+        return RequestParameters(
+            query=ImmutableMultiDict(self._request.url.params.items()),
+            header=Headers(dict(self._request.headers)),
+            cookie=ImmutableMultiDict(),
+            path={}
+        )
+
+    @property
+    def body(self) -> bytes:
+        return self._body
+
+    @property
+    def mimetype(self) -> str:
+        return self._request.headers.get('content-type', 'application/json')
 
 
 class FastAPIOpenAPIResponse(OpenAPIResponse):
@@ -127,15 +167,21 @@ def test_list_models_success_matches_contract(
         f"Exactly one model must be default, found {default_count}"
 
     # Validate response against OpenAPI schema using openapi-core
+    # Create request adapter for GET request (no body)
+    openapi_request = FastAPIOpenAPIRequest(response.request, b'')
     openapi_response = FastAPIOpenAPIResponse(response)
 
     # Validate response against spec
-    # Note: We validate the response format, not the request since it's a GET with no body
-    validate_response(
-        models_openapi_spec,
-        request=None,  # GET requests don't need request validation
-        response=openapi_response
+    result = validate_response(
+        openapi_request,
+        openapi_response,
+        spec=models_openapi_spec,
+        base_url="http://localhost:8000"
     )
+
+    # If result is None, validation passed
+    if result is not None:
+        assert not result.errors, f"Response validation errors: {[str(e) for e in result.errors]}"
 
 
 @pytest.mark.contract
