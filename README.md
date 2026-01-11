@@ -2,51 +2,6 @@
 
 SpecBot is a fully featured chat-bot, built spec-first using Spec-kit, in Python and Vue. It interfaces to multiple LLM providers, including local providers, and can be easily extended to support more. It features a web-based chat interface, with support for conversation history, message editing, and more.
 
-## Current Implementation Status
-
-### ✅ P1 MVP - Chat Interface with Message Loopback (Complete)
-
-**Feature:** 001-chat-interface (Branch: `001-chat-interface`)
-
-The initial MVP implementation provides a complete chat interface with message loopback functionality:
-
-- **Message Sending & Display**: Users can type messages and see them displayed in the chat area
-- **Loopback Functionality**: System echoes back user messages immediately (loopback response)
-- **Conversation Persistence**: Messages are saved to browser LocalStorage and persist across page refreshes
-- **Four-Panel Layout**:
-  - Status bar (top) - Shows application state (Ready/Processing/Error)
-  - History sidebar (left) - Displays conversation list
-  - Chat area (center) - Shows messages with user/system distinction
-  - Input area (bottom) - Text input with Send button
-
-### ✅ Feature 003 - Backend API Loopback (Complete)
-
-**Feature:** 003-backend-api-loopback (Branch: `003-backend-api-loopback`)
-
-Backend API server that replaces client-side loopback with server-side processing:
-
-- **Backend API**: FastAPI server providing message loopback endpoint
-- **API Integration**: Frontend communicates with backend via HTTP POST
-- **Server Response**: Backend echoes messages with "api says: " prefix
-- **Error Handling**: Graceful handling of connection errors, timeouts, and validation failures
-- **Structured Logging**: Request/response logging for debugging
-- **OpenAPI Documentation**: Auto-generated API docs at `/docs`
-
-**Technologies:**
-- **Frontend**: Vue.js 3 (Composition API), Vite 5
-- **Backend**: Python 3.13, FastAPI 0.115.0, uvicorn 0.32.0
-- **Data Validation**: Pydantic 2.10.0
-- **Testing**: pytest 8.3.0, Vitest, Playwright
-- **API Contract**: OpenAPI 3.1 specification
-- **Storage**: Browser LocalStorage API (frontend)
-
-**Test Coverage:**
-- Frontend: 72 unit & integration tests ✅
-- Backend: Unit, integration, and contract tests ✅
-- E2E: 4 end-to-end tests ✅
-
-**Production Bundle:** 75.78 KB JavaScript (29.30 KB gzipped)
-
 ## Getting Started
 
 ### Prerequisites
