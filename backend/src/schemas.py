@@ -4,14 +4,43 @@ Pydantic Schemas for API Request/Response Models
 Defines data validation and serialization for the Message API.
 Based on contracts/message-api.yaml and data-model.md.
 
-Feature: 003-backend-api-loopback
-Tasks: T030, T031, T032
+Feature: 003-backend-api-loopback (extended by 006-openai-langchain-chat)
+Tasks: T030, T031, T032, T020, T021
 """
 
 from datetime import datetime
-from typing import Any, Dict, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator
+
+
+class HistoryMessage(BaseModel):
+    """
+    T020: Individual message in conversation history.
+
+    Represents a single message from conversation history
+    for context-aware AI responses.
+
+    Feature: 006-openai-langchain-chat User Story 2
+    """
+
+    sender: Literal["user", "system"] = Field(
+        ...,
+        description="Message sender (user or system/AI)"
+    )
+    text: str = Field(
+        ...,
+        min_length=1,
+        description="Message content"
+    )
+
+    @field_validator('text')
+    @classmethod
+    def text_not_whitespace(cls, v: str) -> str:
+        """Validate text is not only whitespace (T021)"""
+        if not v.strip():
+            raise ValueError('Message text cannot be only whitespace')
+        return v
 
 
 class MessageRequest(BaseModel):
@@ -22,6 +51,8 @@ class MessageRequest(BaseModel):
     - Message required, 1-10,000 chars
     - Accepts special characters, emoji, multi-byte
     - Validates format and rejects malformed data
+
+    T020: Extended to support conversation history for context-aware responses.
     """
 
     message: str = Field(
@@ -41,6 +72,14 @@ class MessageRequest(BaseModel):
         None,
         description="Client-side timestamp (ISO-8601)",
         examples=["2025-12-28T10:00:00.000Z"]
+    )
+    history: Optional[List[HistoryMessage]] = Field(
+        None,
+        description="Optional conversation history for context-aware responses",
+        examples=[[
+            {"sender": "user", "text": "My name is Alice"},
+            {"sender": "system", "text": "Nice to meet you, Alice!"}
+        ]]
     )
 
     @field_validator('message')

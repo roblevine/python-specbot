@@ -453,3 +453,58 @@ def test_ai_response_matches_contract(
 
         # Verify AI response content is present
         assert len(data["message"]) > 0, "AI response message cannot be empty"
+
+
+@pytest.mark.contract
+def test_history_field_in_message_request(
+    client: TestClient,
+    openapi_spec: Spec
+):
+    """
+    T017: Validate that MessageRequest accepts optional history field.
+
+    This test validates:
+    - history: optional array of message objects
+    - Each history item has sender ("user" or "system") and text (non-empty string)
+    - Request with history passes contract validation
+    - Response is successful when history is provided
+
+    Feature: 006-openai-langchain-chat User Story 2
+    Expected: FAIL (history field not in schema yet)
+    """
+    import json
+    from unittest.mock import patch, AsyncMock
+
+    # Mock the LLM service
+    with patch('src.api.routes.messages.load_config') as mock_load_config, \
+         patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
+
+        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
+        mock_get_ai.return_value = "Yes, your name is Alice."
+
+        # Test request with conversation history
+        request_with_history = {
+            "message": "What is my name?",
+            "history": [
+                {"sender": "user", "text": "My name is Alice"},
+                {"sender": "system", "text": "Nice to meet you, Alice!"}
+            ]
+        }
+
+        body = json.dumps(request_with_history).encode('utf-8')
+        response = client.post("/api/v1/messages", json=request_with_history)
+
+        # Create OpenAPI request object
+        openapi_request = FastAPIOpenAPIRequest(response.request, body)
+
+        # Validate request against OpenAPI spec
+        result = validate_request(openapi_request, spec=openapi_spec, base_url="http://localhost:8000")
+
+        if result is not None:
+            assert not result.errors, f"Request with history failed validation: {[str(e) for e in result.errors]}"
+
+        # Verify response is successful
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+        data = response.json()
+        assert data["status"] == "success"
+        assert len(data["message"]) > 0, "Response message cannot be empty"

@@ -29,14 +29,16 @@ export class ApiError extends Error {
  * T040: Send message to backend API
  * T041: Error handling for network errors, timeouts, HTTP errors
  * T042: 10-second timeout (per FR-009)
+ * T025: Added conversation history support for context-aware responses
  *
  * @param {string} messageText - The message to send
  * @param {string} conversationId - Optional conversation ID
+ * @param {Array<{sender: string, text: string}>} history - Optional conversation history
  * @returns {Promise<{status: string, message: string, timestamp: string}>}
  * @throws {ApiError} - On network, timeout, or HTTP errors
  */
-export async function sendMessage(messageText, conversationId = null) {
-  logger.debug('Sending message to backend API', { messageText, conversationId })
+export async function sendMessage(messageText, conversationId = null, history = null) {
+  logger.debug('Sending message to backend API', { messageText, conversationId, historyLength: history?.length })
 
   // Create request payload
   const requestBody = {
@@ -45,6 +47,11 @@ export async function sendMessage(messageText, conversationId = null) {
 
   if (conversationId) {
     requestBody.conversationId = conversationId
+  }
+
+  // T025: Include conversation history if provided
+  if (history && history.length > 0) {
+    requestBody.history = history
   }
 
   // Add client-side timestamp

@@ -91,10 +91,24 @@ export function useMessages() {
       // Add user message to conversation
       addMessage(activeConversation.value.id, userMessage)
 
-      // T043: Call backend API instead of local loopback
+      // T026: Gather conversation history (all messages before current one)
+      const conversationHistory = activeConversation.value.messages
+        .filter(msg => msg.status === 'sent') // Only include successfully sent messages
+        .map(msg => ({
+          sender: msg.sender, // 'user' or 'system'
+          text: msg.text
+        }))
+
+      logger.debug('Sending message with conversation history', {
+        messageLength: text.trim().length,
+        historyLength: conversationHistory.length
+      })
+
+      // T043: Call backend API with conversation history
       const response = await apiSendMessage(
         text.trim(),
-        activeConversation.value.id
+        activeConversation.value.id,
+        conversationHistory // T026: Include history for context-aware responses
       )
 
       // T044: Handle API response format (status, message, timestamp)
