@@ -324,3 +324,80 @@ async def test_context_aware_ai_response():
 
     # Clean up
     llm_service._llm_instance = None
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_long_conversation_context_maintained():
+    """
+    T027: Integration test verifying context maintained for 10+ message exchanges.
+
+    Validates that:
+    - Conversation history accumulates correctly over multiple exchanges
+    - History is passed to LLM on each subsequent request
+    - Context from earlier messages is included in later requests
+    - System handles 10+ message history without errors
+
+    Feature: 006-openai-langchain-chat User Story 2
+    """
+    import src.services.llm_service as llm_service
+    from src.services.llm_service import get_ai_response
+
+    # Clear cached instance
+    llm_service._llm_instance = None
+
+    with patch.dict('os.environ', {
+        'OPENAI_API_KEY': 'test-key',
+        'OPENAI_MODEL': 'gpt-3.5-turbo'
+    }):
+        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+            # Setup mock LLM
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+
+            # Create mock responses for each exchange
+            mock_llm.ainvoke = AsyncMock()
+
+            # Simulate 12 message exchanges (6 user + 6 system messages)
+            conversation_history = []
+
+            for i in range(12):
+                # Alternate between user and system messages
+                if i % 2 == 0:
+                    # User message
+                    user_msg = f"User message {i // 2 + 1}"
+
+                    # Mock AI response
+                    mock_response = Mock()
+                    mock_response.content = f"AI response {i // 2 + 1}"
+                    mock_llm.ainvoke.return_value = mock_response
+
+                    # Get AI response with accumulated history
+                    ai_response = await get_ai_response(
+                        message=user_msg,
+                        history=conversation_history.copy() if conversation_history else None
+                    )
+
+                    # Add messages to history
+                    conversation_history.append({"sender": "user", "text": user_msg})
+                    conversation_history.append({"sender": "system", "text": ai_response})
+
+                    # Verify AI response
+                    assert ai_response == f"AI response {i // 2 + 1}"
+
+            # Verify we accumulated 12 messages (6 exchanges)
+            assert len(conversation_history) == 12
+
+            # Verify LLM was called 6 times (once per user message)
+            assert mock_llm.ainvoke.call_count == 6
+
+            # Verify the last call included all previous messages
+            last_call_args = mock_llm.ainvoke.call_args_list[-1]
+            messages_arg = last_call_args[0][0]
+
+            # Last call should have 11 messages (10 history from 5 exchanges + 1 current)
+            assert isinstance(messages_arg, list)
+            assert len(messages_arg) == 11
+
+    # Clean up
+    llm_service._llm_instance = None
