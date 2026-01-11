@@ -24,9 +24,9 @@
 
 **Purpose**: Verify existing infrastructure and prepare for UI changes
 
-- [ ] T001 Verify Node.js and npm installed, confirm frontend dependencies up to date
-- [ ] T002 Start development server with `npm run dev` and verify app loads at http://localhost:5173
-- [ ] T003 [P] Run existing test suite with `npm run test` to establish baseline (all passing)
+- [x] T001 Verify Node.js and npm installed, confirm frontend dependencies up to date
+- [x] T002 Start development server with `npm run dev` and verify app loads at http://localhost:5173
+- [x] T003 [P] Run existing test suite with `npm run test` to establish baseline (all passing)
 
 ---
 
@@ -50,19 +50,19 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T004 [P] [US1] Create color palette unit test in frontend/tests/unit/colorPalette.test.js to verify CSS variables defined
-- [ ] T005 [P] [US1] Create E2E visual test in frontend/tests/e2e/color-scheme.spec.js to verify color application
+- [x] T004 [P] [US1] Create color palette unit test in frontend/tests/unit/colorPalette.test.js to verify CSS variables defined
+- [x] T005 [P] [US1] Create E2E visual test in frontend/tests/e2e/color-scheme.spec.js to verify color application
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] Update CSS variables in frontend/public/styles/global.css with grey/pastel blue palette
-- [ ] T007 [P] [US1] Update StatusBar component styles in frontend/src/components/StatusBar/StatusBar.vue
-- [ ] T008 [P] [US1] Update ChatArea component styles in frontend/src/components/ChatArea/ChatArea.vue
-- [ ] T009 [P] [US1] Update InputArea component styles in frontend/src/components/InputArea/InputArea.vue
-- [ ] T010 [P] [US1] Update HistoryBar component styles in frontend/src/components/HistoryBar/HistoryBar.vue
-- [ ] T011 [US1] Verify all tests pass (T004, T005) - color scheme applied correctly
-- [ ] T012 [US1] Manual accessibility check: verify contrast ratios meet WCAG 2.1 AA (4.5:1 normal text)
-- [ ] T013 [US1] Visual inspection: confirm grey/pastel blue scheme throughout app with no inconsistencies
+- [x] T006 [US1] Update CSS variables in frontend/public/styles/global.css with grey/pastel blue palette
+- [x] T007 [P] [US1] Update StatusBar component styles in frontend/src/components/StatusBar/StatusBar.vue (uses CSS variables, auto-updated)
+- [x] T008 [P] [US1] Update ChatArea component styles in frontend/src/components/ChatArea/ChatArea.vue (uses CSS variables, auto-updated)
+- [x] T009 [P] [US1] Update InputArea component styles in frontend/src/components/InputArea/InputArea.vue (uses CSS variables, auto-updated)
+- [x] T010 [P] [US1] Update HistoryBar component styles in frontend/src/components/HistoryBar/HistoryBar.vue (uses CSS variables, auto-updated)
+- [x] T011 [US1] Verify all tests pass (T004, T005) - color scheme applied correctly
+- [x] T012 [US1] Manual accessibility check: verify contrast ratios meet WCAG 2.1 AA (4.5:1 normal text)
+- [x] T013 [US1] Visual inspection: confirm grey/pastel blue scheme throughout app with no inconsistencies
 
 **Checkpoint**: At this point, User Story 1 should be fully functional - color scheme applied consistently
 
