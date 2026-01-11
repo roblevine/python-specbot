@@ -358,3 +358,76 @@ def test_all_message_fields_validated(
     assert data["status"] == "success"
     assert data["message"] == "api says: Test message with all fields"
     assert "timestamp" in data
+
+
+@pytest.mark.contract
+def test_ai_response_matches_contract(
+    client: TestClient,
+    openapi_spec: Spec
+):
+    """
+    T009: Validate that AI response matches OpenAPI contract v2.0.0.
+
+    This test validates that when using the LLM service:
+    - Response status is "success"
+    - Response message contains AI text (NOT "api says: " prefix)
+    - Response includes ISO-8601 timestamp
+    - Response matches MessageResponse schema in contract
+
+    Feature: 006-openai-langchain-chat User Story 1
+    Expected: FAIL (LLM service not integrated into endpoint yet)
+    """
+    import json
+    from unittest.mock import patch, Mock, AsyncMock
+
+    # Mock the LLM service to return predictable AI response
+    # Patch where the functions are imported in messages.py
+    with patch('src.api.routes.messages.load_config') as mock_load_config, \
+         patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
+
+        # Mock config
+        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
+
+        # Mock AI response
+        mock_get_ai.return_value = "Hello! I'm doing well, thank you for asking."
+
+        # Prepare request
+        request_data = {"message": "Hello, how are you?"}
+        body = json.dumps(request_data).encode('utf-8')
+
+        # Make request
+        response = client.post(
+            "/api/v1/messages",
+            json=request_data,
+            headers={"Content-Type": "application/json"}
+        )
+
+        # Create OpenAPI request/response objects
+        openapi_request = FastAPIOpenAPIRequest(response.request, body)
+        openapi_response = FastAPIOpenAPIResponse(response)
+
+        # Validate response against OpenAPI spec (v2.0.0)
+        result = validate_response(
+            openapi_request,
+            openapi_response,
+            spec=openapi_spec,
+            base_url="http://localhost:8000"
+        )
+
+        # Check validation result
+        if result is not None:
+            assert not result.errors, f"AI response validation errors: {[str(e) for e in result.errors]}"
+
+        # Verify response structure
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+        data = response.json()
+
+        assert data["status"] == "success", "Response status must be 'success'"
+        assert "timestamp" in data, "Response must include timestamp"
+
+        # CRITICAL: AI response should NOT have "api says: " prefix
+        assert not data["message"].startswith("api says: "), \
+            f"AI response should not have 'api says: ' prefix, got: {data['message']}"
+
+        # Verify AI response content is present
+        assert len(data["message"]) > 0, "AI response message cannot be empty"

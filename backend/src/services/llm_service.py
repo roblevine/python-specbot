@@ -146,10 +146,56 @@ def convert_to_langchain_messages(message: str) -> list:
 
     # LangChain expects a list of messages
     # For now, just convert the single message to proper format
-    # Future: This will be extended to handle conversation history
+    # Future: This will be extended to handle conversation history (User Story 2)
     messages = [
         {"role": "user", "content": message}
     ]
 
     logger.debug(f"Converted to {len(messages)} LangChain message(s)")
     return messages
+
+
+async def get_ai_response(message: str) -> str:
+    """
+    T013: Get AI response for a user message.
+
+    Sends the user message to OpenAI ChatGPT via LangChain and returns
+    the AI-generated response.
+
+    Args:
+        message: User message text
+
+    Returns:
+        AI-generated response text
+
+    Raises:
+        ValueError: If message is empty or configuration is invalid
+        Exception: If AI service call fails
+
+    Examples:
+        >>> import asyncio
+        >>> response = asyncio.run(get_ai_response("Hello"))
+        >>> len(response) > 0
+        True
+    """
+    if not message or not message.strip():
+        raise ValueError("Message cannot be empty")
+
+    logger.info(f"Processing AI request for message: {message[:50]}...")
+
+    # Get LLM instance
+    llm = get_llm_instance()
+
+    # Convert message to LangChain format
+    langchain_messages = convert_to_langchain_messages(message)
+
+    # Call LLM service
+    logger.debug(f"Invoking ChatOpenAI with {len(langchain_messages)} message(s)")
+    response = await llm.ainvoke(langchain_messages)
+
+    # Extract content from response
+    ai_response = response.content
+    logger.info(f"AI response received: {len(ai_response)} characters")
+    logger.debug(f"AI response preview: {ai_response[:100]}...")
+
+    return ai_response

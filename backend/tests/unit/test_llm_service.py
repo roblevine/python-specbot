@@ -8,7 +8,7 @@ Tests: T004 (TDD - these should FAIL before implementation)
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch, MagicMock, AsyncMock
 
 
 @pytest.mark.unit
@@ -134,4 +134,94 @@ def test_llm_service_singleton_pattern():
             assert llm1 is llm2
 
     # Clean up: clear cached instance after test
+    llm_service._llm_instance = None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_ai_response_basic_invocation():
+    """
+    T010: Unit test for get_ai_response() with basic message.
+
+    Validates that get_ai_response() correctly:
+    - Converts message to LangChain format
+    - Calls ChatOpenAI.ainvoke()
+    - Returns AI response content
+
+    Feature: 006-openai-langchain-chat User Story 1
+    Expected: FAIL (get_ai_response not implemented yet)
+    """
+    import src.services.llm_service as llm_service
+    from src.services.llm_service import get_ai_response
+
+    # Clear cached instance
+    llm_service._llm_instance = None
+
+    with patch.dict('os.environ', {
+        'OPENAI_API_KEY': 'test-key',
+        'OPENAI_MODEL': 'gpt-3.5-turbo'
+    }):
+        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+            # Setup mock LLM
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+
+            # Mock ainvoke response
+            mock_response = Mock()
+            mock_response.content = "This is an AI response."
+            mock_llm.ainvoke = AsyncMock(return_value=mock_response)
+
+            # Call get_ai_response
+            result = await get_ai_response("Hello")
+
+            # Verify result
+            assert result == "This is an AI response."
+
+            # Verify ainvoke was called
+            mock_llm.ainvoke.assert_called_once()
+
+    # Clean up
+    llm_service._llm_instance = None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_ai_response_preserves_special_characters():
+    """
+    T010: Unit test for get_ai_response() with special characters.
+
+    Validates that emoji and unicode are preserved through
+    the AI response flow.
+
+    Feature: 006-openai-langchain-chat User Story 1
+    Expected: FAIL (get_ai_response not implemented yet)
+    """
+    import src.services.llm_service as llm_service
+    from src.services.llm_service import get_ai_response
+
+    # Clear cached instance
+    llm_service._llm_instance = None
+
+    with patch.dict('os.environ', {
+        'OPENAI_API_KEY': 'test-key',
+        'OPENAI_MODEL': 'gpt-3.5-turbo'
+    }):
+        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+            # Setup mock LLM
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+
+            # Mock ainvoke with special characters
+            mock_response = Mock()
+            mock_response.content = "🚀 means rocket! 世界"
+            mock_llm.ainvoke = AsyncMock(return_value=mock_response)
+
+            # Call with message containing special characters
+            result = await get_ai_response("What does 🚀 mean?")
+
+            # Verify special characters preserved
+            assert "🚀" in result
+            assert "世界" in result
+
+    # Clean up
     llm_service._llm_instance = None

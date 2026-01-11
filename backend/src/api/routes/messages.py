@@ -1,12 +1,13 @@
 """
 Messages API Routes
 
-Implements POST /api/v1/messages endpoint for message loopback.
+Implements POST /api/v1/messages endpoint for AI chat.
 
-Feature: 003-backend-api-loopback User Story 1
-Tasks: T035, T036, T037
+Feature: 006-openai-langchain-chat User Story 1
+Tasks: T014, T015
 """
 
+import time
 from datetime import datetime
 from typing import Union
 
@@ -14,8 +15,9 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import ValidationError
 
 from src.schemas import MessageRequest, MessageResponse, ErrorResponse
-from src.services.message_service import create_loopback_message, validate_message
-from src.utils.logger import get_logger
+from src.services.message_service import validate_message
+from src.services.llm_service import get_ai_response, load_config
+from src.utils.logger import get_logger, llm_request_start, llm_request_complete, llm_request_error
 
 logger = get_logger(__name__)
 
@@ -29,18 +31,21 @@ router = APIRouter(tags=["messages"])
     responses={
         400: {"model": ErrorResponse, "description": "Bad Request - Invalid message"},
         422: {"model": ErrorResponse, "description": "Unprocessable Entity - Schema validation failure"},
-        500: {"model": ErrorResponse, "description": "Internal Server Error"}
+        500: {"model": ErrorResponse, "description": "Internal Server Error"},
+        503: {"model": ErrorResponse, "description": "Service Unavailable - AI service issues"},
+        504: {"model": ErrorResponse, "description": "Gateway Timeout - AI request timed out"}
     },
-    summary="Send message and receive loopback response",
-    description="Accepts a user message and returns a loopback response with 'api says: ' prefix"
+    summary="Send message and receive AI response",
+    description="Accepts a user message and returns an AI-generated response from OpenAI ChatGPT via LangChain"
 )
 async def send_message(request: MessageRequest) -> MessageResponse:
     """
-    T035: POST /api/v1/messages endpoint.
+    T014: POST /api/v1/messages endpoint with AI integration.
 
     Implements User Story 1:
     - Accepts message from frontend
-    - Returns loopback response with "api says: " prefix
+    - Routes message to OpenAI ChatGPT via LLM service
+    - Returns AI-generated response
     - Validates message content
     - Handles errors appropriately
 
@@ -48,13 +53,15 @@ async def send_message(request: MessageRequest) -> MessageResponse:
         request: MessageRequest with user message
 
     Returns:
-        MessageResponse with loopback message
+        MessageResponse with AI-generated message
 
     Raises:
-        HTTPException: 400 for validation errors, 500 for server errors
+        HTTPException: 400 for validation errors, 500 for server errors, 503/504 for AI service errors
     """
+    start_time = time.time()
+
     try:
-        # Log incoming request (T037 - per FR-014)
+        # Log incoming request
         logger.info(
             f"Received message request: "
             f"message_length={len(request.message)}, "
@@ -62,23 +69,37 @@ async def send_message(request: MessageRequest) -> MessageResponse:
         )
         logger.debug(f"Message content: {request.message[:100]}...")
 
-        # T034: Validate message (additional validation beyond Pydantic)
+        # Validate message (additional validation beyond Pydantic)
         validate_message(request.message)
 
-        # T033: Create loopback message
-        loopback_message = create_loopback_message(request.message)
+        # Get model configuration for logging
+        config = load_config()
+        model = config['model']
+
+        # T015: Log LLM request start
+        llm_request_start(request.message, model)
+
+        # T014: Get AI response from LLM service
+        ai_response = await get_ai_response(request.message)
+
+        # Calculate duration
+        duration_ms = (time.time() - start_time) * 1000
+
+        # T015: Log LLM request completion
+        llm_request_complete(request.message, ai_response, model, duration_ms)
 
         # Create response
         response = MessageResponse(
             status="success",
-            message=loopback_message,
+            message=ai_response,
             timestamp=datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
         )
 
-        # Log response (T037 - per FR-014)
+        # Log response
         logger.info(
-            f"Sending loopback response: "
+            f"Sending AI response: "
             f"response_length={len(response.message)}, "
+            f"duration={duration_ms:.2f}ms, "
             f"timestamp={response.timestamp}"
         )
 
@@ -113,6 +134,15 @@ async def send_message(request: MessageRequest) -> MessageResponse:
         )
 
     except Exception as e:
+        # T015: Log LLM error
+        try:
+            config = load_config()
+            model = config['model']
+            llm_request_error(request.message, model, e)
+        except:
+            # If we can't load config, just log the error normally
+            logger.error(f"LLM error (config unavailable): {e}", exc_info=True)
+
         # T036: Handle unexpected errors (500 Internal Server Error)
         logger.error(f"Unexpected error processing message: {e}", exc_info=True)
 

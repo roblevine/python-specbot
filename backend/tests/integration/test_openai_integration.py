@@ -201,3 +201,58 @@ async def test_llm_response_preserves_special_characters():
 
     # Clean up
     llm_service._llm_instance = None
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_single_message_ai_response_flow():
+    """
+    T011: Integration test for complete AI response flow.
+
+    Validates that a single user message flows through the entire system:
+    - Message is converted to LangChain format
+    - LLM service processes the message
+    - AI response is returned (no loopback prefix)
+    - Response content matches mocked AI output
+
+    Feature: 006-openai-langchain-chat User Story 1
+    Expected: FAIL (get_ai_response not implemented yet)
+    """
+    import src.services.llm_service as llm_service
+    from src.services.llm_service import get_ai_response
+
+    # Clear cached instance
+    llm_service._llm_instance = None
+
+    with patch.dict('os.environ', {
+        'OPENAI_API_KEY': 'test-integration-key',
+        'OPENAI_MODEL': 'gpt-3.5-turbo'
+    }):
+        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+            # Setup mock LLM with realistic AI response
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+
+            # Mock realistic AI response
+            mock_response = Mock()
+            mock_response.content = "Hello! I'm an AI assistant. How can I help you today?"
+            mock_llm.ainvoke = AsyncMock(return_value=mock_response)
+
+            # Process message through AI service
+            user_message = "Hello, how are you?"
+            ai_response = await get_ai_response(user_message)
+
+            # Verify AI response
+            assert ai_response == "Hello! I'm an AI assistant. How can I help you today?"
+            assert not ai_response.startswith("api says: "), \
+                "AI response should not have loopback prefix"
+
+            # Verify LLM was invoked
+            mock_llm.ainvoke.assert_called_once()
+
+            # Verify message was passed to LLM (check the call arguments)
+            call_args = mock_llm.ainvoke.call_args
+            assert call_args is not None, "LLM ainvoke should have been called with arguments"
+
+    # Clean up
+    llm_service._llm_instance = None
