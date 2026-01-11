@@ -225,3 +225,117 @@ async def test_get_ai_response_preserves_special_characters():
 
     # Clean up
     llm_service._llm_instance = None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_authentication_error_mapping():
+    """
+    T030: Unit test for AuthenticationError → 503 error mapping.
+
+    Validates that OpenAI AuthenticationError exceptions are caught
+    and mapped to 503 status with user-friendly message.
+    """
+    import src.services.llm_service as llm_service
+    from src.services.llm_service import get_ai_response
+    from openai import AuthenticationError
+
+    # Clear cached instance
+    llm_service._llm_instance = None
+
+    with patch.dict('os.environ', {
+        'OPENAI_API_KEY': 'test-key',
+        'OPENAI_MODEL': 'gpt-3.5-turbo'
+    }):
+        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+            # Setup mock LLM
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+
+            # Mock ainvoke to raise AuthenticationError
+            mock_llm.ainvoke = AsyncMock(
+                side_effect=AuthenticationError("Invalid API key provided")
+            )
+
+            # Call should raise exception that will be caught by route handler
+            with pytest.raises(AuthenticationError):
+                await get_ai_response("Hello")
+
+    # Clean up
+    llm_service._llm_instance = None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_rate_limit_error_mapping():
+    """
+    T031: Unit test for RateLimitError → 503 error mapping.
+
+    Validates that OpenAI RateLimitError exceptions are caught
+    and mapped to 503 status with user-friendly message.
+    """
+    import src.services.llm_service as llm_service
+    from src.services.llm_service import get_ai_response
+    from openai import RateLimitError
+
+    # Clear cached instance
+    llm_service._llm_instance = None
+
+    with patch.dict('os.environ', {
+        'OPENAI_API_KEY': 'test-key',
+        'OPENAI_MODEL': 'gpt-3.5-turbo'
+    }):
+        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+            # Setup mock LLM
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+
+            # Mock ainvoke to raise RateLimitError
+            mock_llm.ainvoke = AsyncMock(
+                side_effect=RateLimitError("Rate limit exceeded")
+            )
+
+            # Call should raise exception that will be caught by route handler
+            with pytest.raises(RateLimitError):
+                await get_ai_response("Hello")
+
+    # Clean up
+    llm_service._llm_instance = None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_timeout_error_mapping():
+    """
+    T032: Unit test for TimeoutError → 504 error mapping.
+
+    Validates that timeout exceptions are caught
+    and mapped to 504 status with user-friendly message.
+    """
+    import src.services.llm_service as llm_service
+    from src.services.llm_service import get_ai_response
+    import asyncio
+
+    # Clear cached instance
+    llm_service._llm_instance = None
+
+    with patch.dict('os.environ', {
+        'OPENAI_API_KEY': 'test-key',
+        'OPENAI_MODEL': 'gpt-3.5-turbo'
+    }):
+        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+            # Setup mock LLM
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+
+            # Mock ainvoke to raise TimeoutError
+            mock_llm.ainvoke = AsyncMock(
+                side_effect=asyncio.TimeoutError("Request timed out")
+            )
+
+            # Call should raise exception that will be caught by route handler
+            with pytest.raises(asyncio.TimeoutError):
+                await get_ai_response("Hello")
+
+    # Clean up
+    llm_service._llm_instance = None

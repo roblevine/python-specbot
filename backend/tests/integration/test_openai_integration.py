@@ -256,3 +256,84 @@ async def test_single_message_ai_response_flow():
 
     # Clean up
     llm_service._llm_instance = None
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_no_sensitive_data_in_error_responses():
+    """
+    T033: Integration test verifying no sensitive data in error responses.
+
+    Validates that OpenAI errors are sanitized and don't expose:
+    - API keys
+    - Raw exception messages
+    - Stack traces
+    - Internal implementation details
+
+    Feature: 006-openai-langchain-chat User Story 3
+    """
+    from fastapi.testclient import TestClient
+    from main import app
+    from openai import AuthenticationError, RateLimitError, APIConnectionError
+    import asyncio
+
+    client = TestClient(app)
+
+    # Test scenarios that should NOT expose sensitive data
+    error_scenarios = [
+        (AuthenticationError("Incorrect API key provided: sk-test123"),
+         "authentication error should be sanitized"),
+        (RateLimitError("Rate limit exceeded for organization org-xyz"),
+         "rate limit error should be sanitized"),
+        (APIConnectionError("Connection failed to https://api.openai.com"),
+         "connection error should be sanitized"),
+    ]
+
+    for error_exception, description in error_scenarios:
+        with patch('src.api.routes.messages.load_config') as mock_load_config, \
+             patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
+
+            # Mock config
+            mock_load_config.return_value = {
+                'api_key': 'sk-secret-test-key-12345',
+                'model': 'gpt-3.5-turbo'
+            }
+
+            # Mock get_ai_response to raise the error
+            mock_get_ai.side_effect = error_exception
+
+            # Make request
+            response = client.post(
+                "/api/v1/messages",
+                json={"message": "Test message"}
+            )
+
+            # Verify error response exists
+            assert response.status_code in [400, 503, 504], \
+                f"Expected error status code, got {response.status_code}"
+
+            data = response.json()
+            assert "error" in data, "Error response must include 'error' field"
+
+            error_msg = data["error"].lower()
+
+            # CRITICAL: Must NOT expose API keys
+            assert "sk-" not in data["error"], \
+                f"Error must not expose API keys: {description}"
+
+            # CRITICAL: Must NOT expose organization IDs
+            assert "org-" not in data["error"], \
+                f"Error must not expose org IDs: {description}"
+
+            # CRITICAL: Must NOT expose raw URLs
+            assert "https://" not in error_msg, \
+                f"Error must not expose API URLs: {description}"
+
+            # CRITICAL: Must NOT expose raw exception messages
+            assert "exception" not in error_msg, \
+                f"Error must not expose raw exceptions: {description}"
+
+            # Verify message is user-friendly (not technical)
+            assert any(word in error_msg for word in [
+                "service", "unavailable", "error", "busy", "configuration", "timeout"
+            ]), f"Error message should be user-friendly: {data['error']}"
