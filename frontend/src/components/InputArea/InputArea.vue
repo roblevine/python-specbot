@@ -8,7 +8,13 @@
       @keydown.enter.exact="handleEnter"
       @keydown.enter.shift.exact="handleShiftEnter"
     />
-    <button class="send-button" :disabled="disabled || !canSend" @click="handleSend">Send</button>
+    <button
+      class="send-button"
+      :disabled="disabled || !canSend"
+      @click="handleSend"
+    >
+      Send
+    </button>
   </div>
 </template>
 

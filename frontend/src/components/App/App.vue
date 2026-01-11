@@ -1,6 +1,9 @@
 <template>
   <div class="app">
-    <StatusBar :status="status" :status-type="statusType" />
+    <StatusBar
+      :status="status"
+      :status-type="statusType"
+    />
     <div class="app-main">
       <HistoryBar
         :conversations="conversations"
@@ -11,8 +14,15 @@
         @toggle-sidebar="toggleSidebar"
       />
       <div class="chat-container">
-        <ChatArea :messages="currentMessages" :is-processing="isProcessing" />
-        <InputArea ref="inputAreaRef" :disabled="isProcessing" @send-message="handleSendMessage" />
+        <ChatArea
+          :messages="currentMessages"
+          :is-processing="isProcessing"
+        />
+        <InputArea
+          ref="inputAreaRef"
+          :disabled="isProcessing"
+          @send-message="handleSendMessage"
+        />
       </div>
     </div>
   </div>

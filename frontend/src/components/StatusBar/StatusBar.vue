@@ -1,6 +1,12 @@
 <template>
-  <div class="status-bar" :class="statusClass">
-    <div class="status-indicator" :class="`indicator-${statusType}`" />
+  <div
+    class="status-bar"
+    :class="statusClass"
+  >
+    <div
+      class="status-indicator"
+      :class="`indicator-${statusType}`"
+    />
     <span class="status-text">{{ status }}</span>
   </div>
 </template>

@@ -1,17 +1,25 @@
 <template>
-  <div class="history-bar" :class="{ collapsed: isCollapsed }">
+  <div
+    class="history-bar"
+    :class="{ collapsed: isCollapsed }"
+  >
     <div class="history-header">
-      <h2 v-if="!isCollapsed">Conversations</h2>
+      <h2 v-if="!isCollapsed">
+        Conversations
+      </h2>
       <button
         class="collapse-button"
-        @click="$emit('toggle-sidebar')"
         :aria-label="isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
         :aria-expanded="!isCollapsed"
+        @click="$emit('toggle-sidebar')"
       >
         <span class="icon">{{ isCollapsed ? '→' : '←' }}</span>
       </button>
     </div>
-    <div v-if="!isCollapsed" class="button-container">
+    <div
+      v-if="!isCollapsed"
+      class="button-container"
+    >
       <button
         class="new-conversation-btn"
         aria-label="Start new conversation"
@@ -20,7 +28,10 @@
         New Conversation
       </button>
     </div>
-    <div v-if="!isCollapsed" class="conversations-list">
+    <div
+      v-if="!isCollapsed"
+      class="conversations-list"
+    >
       <div
         v-for="conversation in conversations"
         :key="conversation.id"
@@ -35,7 +46,12 @@
           {{ getPreview(conversation) }}
         </div>
       </div>
-      <div v-if="conversations.length === 0" class="empty-history">No conversations yet</div>
+      <div
+        v-if="conversations.length === 0"
+        class="empty-history"
+      >
+        No conversations yet
+      </div>
     </div>
   </div>
 </template>
