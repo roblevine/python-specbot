@@ -18,6 +18,7 @@
           :messages="currentMessages"
           :is-processing="isProcessing"
         />
+        <ModelSelector />
         <InputArea
           ref="inputAreaRef"
           :disabled="isProcessing"
@@ -34,6 +35,7 @@ import StatusBar from '../StatusBar/StatusBar.vue'
 import HistoryBar from '../HistoryBar/HistoryBar.vue'
 import ChatArea from '../ChatArea/ChatArea.vue'
 import InputArea from '../InputArea/InputArea.vue'
+import ModelSelector from '../ModelSelector/ModelSelector.vue'
 import { useConversations } from '../../state/useConversations.js'
 import { useMessages } from '../../state/useMessages.js'
 import { useAppState } from '../../state/useAppState.js'
@@ -47,6 +49,7 @@ export default {
     HistoryBar,
     ChatArea,
     InputArea,
+    ModelSelector,
   },
   setup() {
     // Template refs

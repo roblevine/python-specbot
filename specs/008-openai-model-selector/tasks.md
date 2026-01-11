@@ -70,26 +70,26 @@
 
 ### Backend Implementation for User Story 1
 
-- [ ] T019 [US1] Extend MessageRequest schema to add optional model field in backend/src/schemas.py
-- [ ] T020 [US1] Extend MessageResponse schema to add required model field in backend/src/schemas.py
-- [ ] T021 [US1] Update llm_service.get_ai_response() to accept model parameter in backend/src/services/llm_service.py
-- [ ] T022 [US1] Update llm_service to validate model against configuration in backend/src/services/llm_service.py
-- [ ] T023 [US1] Update llm_service to create per-request ChatOpenAI instance with specified model in backend/src/services/llm_service.py
-- [ ] T024 [US1] Update POST /api/v1/messages endpoint to accept model parameter in backend/src/api/routes/messages.py
-- [ ] T025 [US1] Update POST /api/v1/messages endpoint to return model in response in backend/src/api/routes/messages.py
-- [ ] T026 [US1] Add error handling for invalid model selection (400 Bad Request) in backend/src/api/routes/messages.py
+- [X] T019 [US1] Extend MessageRequest schema to add optional model field in backend/src/schemas.py
+- [X] T020 [US1] Extend MessageResponse schema to add required model field in backend/src/schemas.py
+- [X] T021 [US1] Update llm_service.get_ai_response() to accept model parameter in backend/src/services/llm_service.py
+- [X] T022 [US1] Update llm_service to validate model against configuration in backend/src/services/llm_service.py
+- [X] T023 [US1] Update llm_service to create per-request ChatOpenAI instance with specified model in backend/src/services/llm_service.py
+- [X] T024 [US1] Update POST /api/v1/messages endpoint to accept model parameter in backend/src/api/routes/messages.py
+- [X] T025 [US1] Update POST /api/v1/messages endpoint to return model in response in backend/src/api/routes/messages.py
+- [X] T026 [US1] Add error handling for invalid model selection (400 Bad Request) in backend/src/api/routes/messages.py
 
 ### Frontend Implementation for User Story 1
 
-- [ ] T027 [P] [US1] Create useModels composable for model state management in frontend/src/state/useModels.js
-- [ ] T028 [P] [US1] Create ModelSelector.vue component with dropdown UI in frontend/src/components/ModelSelector/ModelSelector.vue
-- [ ] T029 [US1] Update useAppState to integrate selectedModel state in frontend/src/state/useAppState.js
-- [ ] T030 [US1] Update apiClient.sendMessage() to pass model parameter in frontend/src/services/apiClient.js
-- [ ] T031 [US1] Create fetchModels() function in apiClient to call GET /api/v1/models in frontend/src/services/apiClient.js
-- [ ] T032 [US1] Update App.vue to include ModelSelector component above input area in frontend/src/components/App/App.vue
-- [ ] T033 [US1] Update Message entity/type to include model field in frontend/src/types/ or relevant location
-- [ ] T034 [US1] Implement model selection persistence to localStorage in useModels composable
-- [ ] T035 [US1] Implement model validation on app load (clear if invalid) in useModels composable
+- [X] T027 [P] [US1] Create useModels composable for model state management in frontend/src/state/useModels.js
+- [X] T028 [P] [US1] Create ModelSelector.vue component with dropdown UI in frontend/src/components/ModelSelector/ModelSelector.vue
+- [X] T029 [US1] Update useAppState to integrate selectedModel state in frontend/src/state/useAppState.js
+- [X] T030 [US1] Update apiClient.sendMessage() to pass model parameter in frontend/src/services/apiClient.js
+- [X] T031 [US1] Create fetchModels() function in apiClient to call GET /api/v1/models in frontend/src/services/apiClient.js
+- [X] T032 [US1] Update App.vue to include ModelSelector component above input area in frontend/src/components/App/App.vue
+- [X] T033 [US1] Update Message entity/type to include model field in frontend/src/types/ or relevant location
+- [X] T034 [US1] Implement model selection persistence to localStorage in useModels composable
+- [X] T035 [US1] Implement model validation on app load (clear if invalid) in useModels composable
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
