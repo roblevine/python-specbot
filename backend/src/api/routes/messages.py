@@ -14,11 +14,21 @@ from datetime import datetime
 from typing import Union
 
 from fastapi import APIRouter, HTTPException, status
+from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
 from src.schemas import MessageRequest, MessageResponse, ErrorResponse
 from src.services.message_service import validate_message
-from src.services.llm_service import get_ai_response, load_config
+from src.services.llm_service import (
+    get_ai_response,
+    load_config,
+    LLMServiceError,
+    LLMAuthenticationError,
+    LLMRateLimitError,
+    LLMConnectionError,
+    LLMTimeoutError,
+    LLMBadRequestError
+)
 from src.utils.logger import get_logger, llm_request_start, llm_request_complete, llm_request_error
 
 logger = get_logger(__name__)
@@ -143,6 +153,45 @@ async def send_message(request: MessageRequest) -> MessageResponse:
                 "status": "error",
                 "error": "Invalid request format",
                 "detail": e.errors(),
+                "timestamp": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
+            }
+        )
+
+    except LLMTimeoutError as e:
+        # T039: Handle LLM timeout errors (504 Gateway Timeout)
+        logger.warning(f"LLM timeout: {e.message}")
+
+        return JSONResponse(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            content={
+                "status": "error",
+                "error": e.message,
+                "timestamp": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
+            }
+        )
+
+    except LLMBadRequestError as e:
+        # T039: Handle LLM bad request errors (400 Bad Request)
+        logger.warning(f"LLM bad request: {e.message}")
+
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={
+                "status": "error",
+                "error": e.message,
+                "timestamp": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
+            }
+        )
+
+    except (LLMAuthenticationError, LLMRateLimitError, LLMConnectionError, LLMServiceError) as e:
+        # T039: Handle LLM service errors (503 Service Unavailable)
+        logger.warning(f"LLM service error: {e.message}")
+
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={
+                "status": "error",
+                "error": e.message,
                 "timestamp": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
             }
         )
