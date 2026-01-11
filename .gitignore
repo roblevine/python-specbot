@@ -48,6 +48,11 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 
+# Playwright test artifacts
+test-results/
+playwright-report/
+playwright/.cache/
+
 # mypy
 .mypy_cache/
 .dmypy.json
