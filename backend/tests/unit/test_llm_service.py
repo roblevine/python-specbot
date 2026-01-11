@@ -234,10 +234,10 @@ async def test_authentication_error_mapping():
     T030: Unit test for AuthenticationError → 503 error mapping.
 
     Validates that OpenAI AuthenticationError exceptions are caught
-    and mapped to 503 status with user-friendly message.
+    and mapped to LLMAuthenticationError with user-friendly message.
     """
     import src.services.llm_service as llm_service
-    from src.services.llm_service import get_ai_response
+    from src.services.llm_service import get_ai_response, LLMAuthenticationError
     from openai import AuthenticationError
 
     # Clear cached instance
@@ -252,14 +252,27 @@ async def test_authentication_error_mapping():
             mock_llm = Mock()
             mock_chat.return_value = mock_llm
 
+            # Create mock response for AuthenticationError
+            mock_response = Mock()
+            mock_response.status_code = 401
+            mock_body = {"error": {"message": "Invalid API key"}}
+
             # Mock ainvoke to raise AuthenticationError
             mock_llm.ainvoke = AsyncMock(
-                side_effect=AuthenticationError("Invalid API key provided")
+                side_effect=AuthenticationError(
+                    "Invalid API key provided",
+                    response=mock_response,
+                    body=mock_body
+                )
             )
 
-            # Call should raise exception that will be caught by route handler
-            with pytest.raises(AuthenticationError):
+            # Call should raise our custom LLMAuthenticationError
+            with pytest.raises(LLMAuthenticationError) as exc_info:
                 await get_ai_response("Hello")
+
+            # Verify error message is sanitized
+            assert exc_info.value.message == "AI service configuration error"
+            assert exc_info.value.status_code == 503
 
     # Clean up
     llm_service._llm_instance = None
@@ -272,10 +285,10 @@ async def test_rate_limit_error_mapping():
     T031: Unit test for RateLimitError → 503 error mapping.
 
     Validates that OpenAI RateLimitError exceptions are caught
-    and mapped to 503 status with user-friendly message.
+    and mapped to LLMRateLimitError with user-friendly message.
     """
     import src.services.llm_service as llm_service
-    from src.services.llm_service import get_ai_response
+    from src.services.llm_service import get_ai_response, LLMRateLimitError
     from openai import RateLimitError
 
     # Clear cached instance
@@ -290,14 +303,27 @@ async def test_rate_limit_error_mapping():
             mock_llm = Mock()
             mock_chat.return_value = mock_llm
 
+            # Create mock response for RateLimitError
+            mock_response = Mock()
+            mock_response.status_code = 429
+            mock_body = {"error": {"message": "Rate limit exceeded"}}
+
             # Mock ainvoke to raise RateLimitError
             mock_llm.ainvoke = AsyncMock(
-                side_effect=RateLimitError("Rate limit exceeded")
+                side_effect=RateLimitError(
+                    "Rate limit exceeded",
+                    response=mock_response,
+                    body=mock_body
+                )
             )
 
-            # Call should raise exception that will be caught by route handler
-            with pytest.raises(RateLimitError):
+            # Call should raise our custom LLMRateLimitError
+            with pytest.raises(LLMRateLimitError) as exc_info:
                 await get_ai_response("Hello")
+
+            # Verify error message is sanitized
+            assert exc_info.value.message == "AI service is busy"
+            assert exc_info.value.status_code == 503
 
     # Clean up
     llm_service._llm_instance = None
@@ -310,10 +336,10 @@ async def test_timeout_error_mapping():
     T032: Unit test for TimeoutError → 504 error mapping.
 
     Validates that timeout exceptions are caught
-    and mapped to 504 status with user-friendly message.
+    and mapped to LLMTimeoutError with user-friendly message.
     """
     import src.services.llm_service as llm_service
-    from src.services.llm_service import get_ai_response
+    from src.services.llm_service import get_ai_response, LLMTimeoutError
     import asyncio
 
     # Clear cached instance
@@ -333,9 +359,13 @@ async def test_timeout_error_mapping():
                 side_effect=asyncio.TimeoutError("Request timed out")
             )
 
-            # Call should raise exception that will be caught by route handler
-            with pytest.raises(asyncio.TimeoutError):
+            # Call should raise our custom LLMTimeoutError
+            with pytest.raises(LLMTimeoutError) as exc_info:
                 await get_ai_response("Hello")
+
+            # Verify error message is sanitized
+            assert exc_info.value.message == "Request timed out"
+            assert exc_info.value.status_code == 504
 
     # Clean up
     llm_service._llm_instance = None

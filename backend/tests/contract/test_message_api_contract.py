@@ -467,17 +467,17 @@ def test_503_error_response_matches_contract(
     """
     from unittest.mock import patch, AsyncMock
     import json
-    from openai import AuthenticationError
+    from src.services.llm_service import LLMAuthenticationError
 
-    # Mock the LLM service to raise AuthenticationError
+    # Mock the LLM service to raise LLMAuthenticationError
     with patch('src.api.routes.messages.load_config') as mock_load_config, \
          patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
 
         # Mock config
         mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
 
-        # Mock AI service to raise AuthenticationError
-        mock_get_ai.side_effect = AuthenticationError("Invalid API key")
+        # Mock AI service to raise LLMAuthenticationError
+        mock_get_ai.side_effect = LLMAuthenticationError("AI service configuration error")
 
         # Prepare request
         request_data = {"message": "Hello"}
@@ -534,17 +534,17 @@ def test_504_timeout_response_matches_contract(
     """
     from unittest.mock import patch, AsyncMock
     import json
-    import asyncio
+    from src.services.llm_service import LLMTimeoutError
 
-    # Mock the LLM service to raise timeout
+    # Mock the LLM service to raise LLMTimeoutError
     with patch('src.api.routes.messages.load_config') as mock_load_config, \
          patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
 
         # Mock config
         mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
 
-        # Mock AI service to raise timeout
-        mock_get_ai.side_effect = asyncio.TimeoutError("Request timed out")
+        # Mock AI service to raise LLMTimeoutError
+        mock_get_ai.side_effect = LLMTimeoutError("Request timed out")
 
         # Prepare request
         request_data = {"message": "Hello"}

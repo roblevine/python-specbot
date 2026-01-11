@@ -8,14 +8,61 @@ Tasks: T006, T007
 """
 
 import os
+import asyncio
 from typing import Dict, Optional
 from langchain_openai import ChatOpenAI
+from openai import (
+    AuthenticationError,
+    RateLimitError,
+    APIConnectionError,
+    BadRequestError,
+    APITimeoutError
+)
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 # Module-level cache for LLM instance (singleton pattern)
 _llm_instance: Optional[ChatOpenAI] = None
+
+
+# Custom exception classes for LLM errors (T034-T038)
+class LLMServiceError(Exception):
+    """Base exception for LLM service errors"""
+    def __init__(self, message: str, status_code: int = 503):
+        self.message = message
+        self.status_code = status_code
+        super().__init__(self.message)
+
+
+class LLMAuthenticationError(LLMServiceError):
+    """T034: Authentication/configuration error → 503"""
+    def __init__(self, message: str = "AI service configuration error"):
+        super().__init__(message, status_code=503)
+
+
+class LLMRateLimitError(LLMServiceError):
+    """T035: Rate limit error → 503"""
+    def __init__(self, message: str = "AI service is busy"):
+        super().__init__(message, status_code=503)
+
+
+class LLMConnectionError(LLMServiceError):
+    """T036: Connection error → 503"""
+    def __init__(self, message: str = "Unable to reach AI service"):
+        super().__init__(message, status_code=503)
+
+
+class LLMTimeoutError(LLMServiceError):
+    """T037: Timeout error → 504"""
+    def __init__(self, message: str = "Request timed out"):
+        super().__init__(message, status_code=504)
+
+
+class LLMBadRequestError(LLMServiceError):
+    """T038: Bad request error → 400"""
+    def __init__(self, message: str = "Message could not be processed"):
+        super().__init__(message, status_code=400)
 
 
 def load_config() -> Dict[str, str]:
@@ -157,10 +204,10 @@ def convert_to_langchain_messages(message: str) -> list:
 
 async def get_ai_response(message: str) -> str:
     """
-    T013: Get AI response for a user message.
+    T013, T034-T040: Get AI response for a user message with error handling.
 
     Sends the user message to OpenAI ChatGPT via LangChain and returns
-    the AI-generated response.
+    the AI-generated response. Maps OpenAI exceptions to user-friendly errors.
 
     Args:
         message: User message text
@@ -169,8 +216,12 @@ async def get_ai_response(message: str) -> str:
         AI-generated response text
 
     Raises:
-        ValueError: If message is empty or configuration is invalid
-        Exception: If AI service call fails
+        LLMAuthenticationError: If API key is invalid (T034) → 503
+        LLMRateLimitError: If rate limit exceeded (T035) → 503
+        LLMConnectionError: If cannot reach API (T036) → 503
+        LLMTimeoutError: If request times out (T037) → 504
+        LLMBadRequestError: If request is malformed (T038) → 400
+        ValueError: If message is empty
 
     Examples:
         >>> import asyncio
@@ -183,19 +234,51 @@ async def get_ai_response(message: str) -> str:
 
     logger.info(f"Processing AI request for message: {message[:50]}...")
 
-    # Get LLM instance
-    llm = get_llm_instance()
+    try:
+        # Get LLM instance
+        llm = get_llm_instance()
 
-    # Convert message to LangChain format
-    langchain_messages = convert_to_langchain_messages(message)
+        # Convert message to LangChain format
+        langchain_messages = convert_to_langchain_messages(message)
 
-    # Call LLM service
-    logger.debug(f"Invoking ChatOpenAI with {len(langchain_messages)} message(s)")
-    response = await llm.ainvoke(langchain_messages)
+        # Call LLM service
+        logger.debug(f"Invoking ChatOpenAI with {len(langchain_messages)} message(s)")
+        response = await llm.ainvoke(langchain_messages)
 
-    # Extract content from response
-    ai_response = response.content
-    logger.info(f"AI response received: {len(ai_response)} characters")
-    logger.debug(f"AI response preview: {ai_response[:100]}...")
+        # Extract content from response
+        ai_response = response.content
+        logger.info(f"AI response received: {len(ai_response)} characters")
+        logger.debug(f"AI response preview: {ai_response[:100]}...")
 
-    return ai_response
+        return ai_response
+
+    except AuthenticationError as e:
+        # T034, T040: Map AuthenticationError → 503 with sanitized message
+        logger.error(f"LLM authentication failed: {type(e).__name__}")
+        raise LLMAuthenticationError()
+
+    except RateLimitError as e:
+        # T035, T040: Map RateLimitError → 503 with sanitized message
+        logger.error(f"LLM rate limit exceeded: {type(e).__name__}")
+        raise LLMRateLimitError()
+
+    except APIConnectionError as e:
+        # T036, T040: Map APIConnectionError → 503 with sanitized message
+        logger.error(f"LLM connection failed: {type(e).__name__}")
+        raise LLMConnectionError()
+
+    except (APITimeoutError, asyncio.TimeoutError) as e:
+        # T037, T040: Map timeout errors → 504 with sanitized message
+        logger.error(f"LLM request timed out: {type(e).__name__}")
+        raise LLMTimeoutError()
+
+    except BadRequestError as e:
+        # T038, T040: Map BadRequestError → 400 with sanitized message
+        logger.error(f"LLM bad request: {type(e).__name__}")
+        raise LLMBadRequestError()
+
+    except Exception as e:
+        # T040: Log unexpected errors (sanitized)
+        logger.error(f"Unexpected LLM error: {type(e).__name__}")
+        # Re-raise as generic LLM error
+        raise LLMServiceError("AI service error occurred")

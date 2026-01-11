@@ -264,7 +264,7 @@ async def test_no_sensitive_data_in_error_responses():
     """
     T033: Integration test verifying no sensitive data in error responses.
 
-    Validates that OpenAI errors are sanitized and don't expose:
+    Validates that LLM errors are sanitized and don't expose:
     - API keys
     - Raw exception messages
     - Stack traces
@@ -274,18 +274,21 @@ async def test_no_sensitive_data_in_error_responses():
     """
     from fastapi.testclient import TestClient
     from main import app
-    from openai import AuthenticationError, RateLimitError, APIConnectionError
-    import asyncio
+    from src.services.llm_service import (
+        LLMAuthenticationError,
+        LLMRateLimitError,
+        LLMConnectionError
+    )
 
     client = TestClient(app)
 
     # Test scenarios that should NOT expose sensitive data
     error_scenarios = [
-        (AuthenticationError("Incorrect API key provided: sk-test123"),
+        (LLMAuthenticationError("AI service configuration error"),
          "authentication error should be sanitized"),
-        (RateLimitError("Rate limit exceeded for organization org-xyz"),
+        (LLMRateLimitError("AI service is busy"),
          "rate limit error should be sanitized"),
-        (APIConnectionError("Connection failed to https://api.openai.com"),
+        (LLMConnectionError("Unable to reach AI service"),
          "connection error should be sanitized"),
     ]
 
@@ -313,7 +316,10 @@ async def test_no_sensitive_data_in_error_responses():
                 f"Expected error status code, got {response.status_code}"
 
             data = response.json()
-            assert "error" in data, "Error response must include 'error' field"
+            # Error fields should be at top level, not wrapped in "detail"
+            assert "error" in data, f"Error response must include 'error' field at top level. Got: {data}"
+            assert "status" in data, f"Error response must include 'status' field. Got: {data}"
+            assert data["status"] == "error", f"Status should be 'error'. Got: {data['status']}"
 
             error_msg = data["error"].lower()
 
