@@ -85,9 +85,9 @@ describe('ModelSelector Component', () => {
     const modelOptions = options.filter(opt => opt.element.value !== '')
 
     expect(modelOptions.length).toBe(2)
-    expect(modelOptions[0].text()).toBe('GPT-4')
+    expect(modelOptions[0].text()).toBe('GPT-4 — Most capable')
     expect(modelOptions[0].element.value).toBe('gpt-4')
-    expect(modelOptions[1].text()).toBe('GPT-3.5 Turbo')
+    expect(modelOptions[1].text()).toBe('GPT-3.5 Turbo — Fast')
     expect(modelOptions[1].element.value).toBe('gpt-3.5-turbo')
   })
 
@@ -230,5 +230,47 @@ describe('ModelSelector Component', () => {
 
     // setSelectedModel should still be called (the composable will handle validation)
     expect(mockUseModels.setSelectedModel).toHaveBeenCalledWith('')
+  })
+
+  it('T036: should display model descriptions in dropdown options', async () => {
+    mockUseModels.availableModels.value = [
+      { id: 'gpt-4', name: 'GPT-4', description: 'Most capable model, best for complex tasks', default: false },
+      { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', description: 'Fast and efficient for most tasks', default: true }
+    ]
+
+    const wrapper = mount(ModelSelector)
+    await nextTick()
+
+    const options = wrapper.findAll('option').filter(opt => opt.element.value !== '')
+
+    // Verify model descriptions are displayed along with names
+    expect(options.length).toBe(2)
+
+    // First model: GPT-4
+    const option1Text = options[0].text()
+    expect(option1Text).toContain('GPT-4')
+    expect(option1Text).toContain('Most capable model, best for complex tasks')
+
+    // Second model: GPT-3.5 Turbo
+    const option2Text = options[1].text()
+    expect(option2Text).toContain('GPT-3.5 Turbo')
+    expect(option2Text).toContain('Fast and efficient for most tasks')
+  })
+
+  it('T036: should format model descriptions clearly', async () => {
+    mockUseModels.availableModels.value = [
+      { id: 'gpt-4', name: 'GPT-4', description: 'Most capable', default: false },
+      { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', description: 'Fast and efficient', default: true }
+    ]
+
+    const wrapper = mount(ModelSelector)
+    await nextTick()
+
+    const options = wrapper.findAll('option').filter(opt => opt.element.value !== '')
+
+    // Verify descriptions are formatted with proper separator (em dash)
+    // Expected format: "Name — Description"
+    expect(options[0].text()).toMatch(/GPT-4\s+—\s+Most capable/)
+    expect(options[1].text()).toMatch(/GPT-3\.5 Turbo\s+—\s+Fast and efficient/)
   })
 })

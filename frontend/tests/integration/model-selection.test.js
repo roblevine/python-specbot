@@ -72,11 +72,11 @@ describe('Model Selection Integration', () => {
     // Verify API was called
     expect(apiClient.fetchModels).toHaveBeenCalled()
 
-    // Verify models are displayed
+    // Verify models are displayed with descriptions
     const options = wrapper.findAll('option').filter(opt => opt.element.value !== '')
     expect(options.length).toBe(2)
-    expect(options[0].text()).toBe('GPT-4')
-    expect(options[1].text()).toBe('GPT-3.5 Turbo')
+    expect(options[0].text()).toBe('GPT-4 — Most capable')
+    expect(options[1].text()).toBe('GPT-3.5 Turbo — Fast and efficient')
   })
 
   it('T018: should persist model selection to localStorage', async () => {

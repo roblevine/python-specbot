@@ -33,7 +33,7 @@ def test_backend_handles_frontend_snapshots(client, snapshot):
          patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
 
         mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
-        mock_get_ai.return_value = "AI response from snapshot replay."
+        mock_get_ai.return_value = ("AI response from snapshot replay.", "gpt-3.5-turbo")
 
         # Replay the snapshot request to the backend
         response = replay_snapshot(client, snapshot)

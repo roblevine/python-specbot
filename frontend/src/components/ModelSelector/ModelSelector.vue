@@ -17,8 +17,9 @@
         v-for="model in availableModels"
         :key="model.id"
         :value="model.id"
+        class="model-selector__option"
       >
-        {{ model.name }}
+        {{ model.name }} — {{ model.description }}
       </option>
     </select>
     <div v-if="error" class="model-selector__error">
@@ -94,6 +95,8 @@ onMounted(async () => {
   color: var(--text-primary);
   cursor: pointer;
   transition: border-color 0.2s;
+  min-width: 300px;
+  max-width: 500px;
 }
 
 .model-selector__select:hover:not(:disabled) {
@@ -109,6 +112,11 @@ onMounted(async () => {
 .model-selector__select:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.model-selector__option {
+  padding: 0.5rem;
+  line-height: 1.5;
 }
 
 .model-selector__error {

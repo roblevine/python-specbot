@@ -162,7 +162,7 @@ def test_exactly_10000_chars_accepted(client: TestClient):
          patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
 
         mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
-        mock_get_ai.return_value = "AI response to 10,000 character message."
+        mock_get_ai.return_value = ("AI response to 10,000 character message.", "gpt-3.5-turbo")
 
         message = "a" * 10000
 

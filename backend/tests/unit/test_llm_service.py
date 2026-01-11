@@ -172,10 +172,11 @@ async def test_get_ai_response_basic_invocation():
             mock_llm.ainvoke = AsyncMock(return_value=mock_response)
 
             # Call get_ai_response
-            result = await get_ai_response("Hello")
+            result, model_used = await get_ai_response("Hello")
 
             # Verify result
             assert result == "This is an AI response."
+            assert model_used == "gpt-3.5-turbo"
 
             # Verify ainvoke was called
             mock_llm.ainvoke.assert_called_once()
@@ -217,11 +218,12 @@ async def test_get_ai_response_preserves_special_characters():
             mock_llm.ainvoke = AsyncMock(return_value=mock_response)
 
             # Call with message containing special characters
-            result = await get_ai_response("What does 🚀 mean?")
+            result, model_used = await get_ai_response("What does 🚀 mean?")
 
             # Verify special characters preserved
             assert "🚀" in result
             assert "世界" in result
+            assert model_used == "gpt-3.5-turbo"
 
     # Clean up
     llm_service._llm_instance = None

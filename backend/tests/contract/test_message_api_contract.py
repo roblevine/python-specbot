@@ -145,7 +145,7 @@ def test_loopback_response_matches_contract(
         mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
 
         # Mock AI response
-        mock_get_ai.return_value = "This is an AI response."
+        mock_get_ai.return_value = ("This is an AI response.", "gpt-3.5-turbo")
 
         # Prepare request body
         body = json.dumps(sample_message_request).encode('utf-8')
@@ -351,7 +351,7 @@ def test_all_message_fields_validated(
         mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
 
         # Mock AI response
-        mock_get_ai.return_value = "This is an AI response to your test message."
+        mock_get_ai.return_value = ("This is an AI response to your test message.", "gpt-3.5-turbo")
 
         # Test comprehensive valid request with ALL fields
         full_request = {
@@ -411,7 +411,7 @@ def test_ai_response_matches_contract(
         mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
 
         # Mock AI response
-        mock_get_ai.return_value = "Hello! I'm doing well, thank you for asking."
+        mock_get_ai.return_value = ("Hello! I'm doing well, thank you for asking.", "gpt-3.5-turbo")
 
         # Prepare request
         request_data = {"message": "Hello, how are you?"}
