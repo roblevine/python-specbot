@@ -1,18 +1,24 @@
 openapi: 3.1.0
 info:
   title: SpecBot Backend API
-  version: 1.0.0
+  version: 2.0.0
   description: |
-    Backend API for SpecBot chat interface with message loopback functionality.
+    Backend API for SpecBot chat interface with OpenAI ChatGPT integration via LangChain.
 
     ## Overview
-    This API provides a simple loopback endpoint that echoes user messages with an "api says: " prefix.
-    This is Phase 1 (P1 MVP) - establishing the client-server architecture before adding LLM integrations.
+    This API routes user messages to OpenAI's ChatGPT model and returns AI-generated responses.
+    Conversation history is included for context-aware conversations.
 
     ## Feature
-    - **Feature ID**: 003-backend-api-loopback
-    - **Spec**: `specs/003-backend-api-loopback/spec.md`
-    - **Status**: P1 Implementation
+    - **Feature ID**: 006-openai-langchain-chat
+    - **Spec**: `specs/006-openai-langchain-chat/spec.md`
+    - **Status**: Implementation
+
+    ## Changes from v1.0.0
+    - Response `message` field now contains AI response (no "api says: " prefix)
+    - Added optional `history` field to request for conversation context
+    - Added 504 Gateway Timeout for LLM timeouts
+    - Updated 503 errors for AI service issues
 
   contact:
     name: SpecBot Development Team
@@ -27,24 +33,28 @@ servers:
 
 tags:
   - name: messages
-    description: Message sending and loopback operations
+    description: Message sending and AI response operations
+  - name: monitoring
+    description: Health and status endpoints
 
 paths:
   /api/v1/messages:
     post:
       tags:
         - messages
-      summary: Send message and receive loopback response
+      summary: Send message and receive AI response
       description: |
-        Accepts a user message and returns a loopback response with "api says: " prefix.
+        Accepts a user message with optional conversation history and returns an AI-generated response
+        from OpenAI's ChatGPT via LangChain.
 
-        **Implements**: spec.md User Story 1 - Backend API Loopback
+        **Implements**: spec.md User Stories 1-3
 
         **Acceptance Criteria**:
-        - Response contains user message prefixed with "api says: "
-        - Special characters and emoji are preserved
-        - Response time under 2 seconds (per FR-006)
-        - Empty messages are rejected with 400 error
+        - Response contains AI-generated reply (FR-001, FR-002)
+        - Conversation history included for context (FR-003)
+        - Loading state indicated during processing (FR-004)
+        - Errors handled gracefully with user-friendly messages (FR-005, FR-006)
+        - Response time under 10 seconds under normal conditions (SC-001)
 
       operationId: sendMessage
       requestBody:
@@ -54,48 +64,49 @@ paths:
             schema:
               $ref: '#/components/schemas/MessageRequest'
             examples:
-              basicMessage:
-                summary: Basic message
+              simpleMessage:
+                summary: Simple message without history
                 value:
-                  message: "Hello world"
-              messageWithConversationId:
-                summary: Message with conversation ID
+                  message: "Hello, how are you?"
+              messageWithHistory:
+                summary: Message with conversation context
                 value:
-                  message: "Hello world"
+                  message: "What is my name?"
                   conversationId: "conv-a1b2c3d4-5678-90ab-cdef-123456789abc"
-                  timestamp: "2025-12-28T10:00:00.000Z"
+                  timestamp: "2026-01-10T12:00:00.000Z"
+                  history:
+                    - sender: "user"
+                      text: "My name is Alice"
+                    - sender: "system"
+                      text: "Nice to meet you, Alice! How can I help you today?"
               specialCharacters:
                 summary: Message with emoji and special characters
                 value:
-                  message: "Hello 🚀 World!\nNew line here."
-              multiline:
-                summary: Multiline message
-                value:
-                  message: "Line 1\nLine 2\nLine 3"
+                  message: "What does 🚀 mean?"
 
       responses:
         '200':
-          description: Success - Message processed and loopback response generated
+          description: Success - AI response generated
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
               examples:
-                basicResponse:
-                  summary: Basic loopback response
+                simpleResponse:
+                  summary: AI response to greeting
                   value:
                     status: "success"
-                    message: "api says: Hello world"
-                    timestamp: "2025-12-28T10:00:01.234Z"
-                specialCharactersResponse:
-                  summary: Response with special characters preserved
+                    message: "Hello! I'm doing well, thank you for asking. How can I assist you today?"
+                    timestamp: "2026-01-10T12:00:01.234Z"
+                contextualResponse:
+                  summary: AI response using conversation context
                   value:
                     status: "success"
-                    message: "api says: Hello 🚀 World!\nNew line here."
-                    timestamp: "2025-12-28T10:00:01.234Z"
+                    message: "Your name is Alice, as you mentioned earlier."
+                    timestamp: "2026-01-10T12:00:01.234Z"
 
         '400':
-          description: Bad Request - Invalid message (empty, too long, malformed)
+          description: Bad Request - Invalid message or content issue
           content:
             application/json:
               schema:
@@ -106,19 +117,13 @@ paths:
                   value:
                     status: "error"
                     error: "Message cannot be empty"
-                    timestamp: "2025-12-28T10:00:01.234Z"
-                tooLong:
-                  summary: Message too long error
+                    timestamp: "2026-01-10T12:00:01.234Z"
+                contentFiltered:
+                  summary: Content filtered by AI
                   value:
                     status: "error"
-                    error: "Message exceeds maximum length of 10,000 characters"
-                    timestamp: "2025-12-28T10:00:01.234Z"
-                whitespaceOnly:
-                  summary: Whitespace-only message error
-                  value:
-                    status: "error"
-                    error: "Message cannot be only whitespace"
-                    timestamp: "2025-12-28T10:00:01.234Z"
+                    error: "Message could not be processed. Please try rephrasing."
+                    timestamp: "2026-01-10T12:00:01.234Z"
 
         '422':
           description: Unprocessable Entity - Schema validation failure
@@ -135,13 +140,7 @@ paths:
                     detail:
                       field: "message"
                       issue: "Field required"
-                    timestamp: "2025-12-28T10:00:01.234Z"
-                invalidJson:
-                  summary: Malformed JSON
-                  value:
-                    status: "error"
-                    error: "Invalid JSON format"
-                    timestamp: "2025-12-28T10:00:01.234Z"
+                    timestamp: "2026-01-10T12:00:01.234Z"
 
         '500':
           description: Internal Server Error - Unexpected server error
@@ -155,21 +154,47 @@ paths:
                   value:
                     status: "error"
                     error: "Internal server error occurred"
-                    timestamp: "2025-12-28T10:00:01.234Z"
+                    timestamp: "2026-01-10T12:00:01.234Z"
 
         '503':
-          description: Service Unavailable - Server overloaded or maintenance
+          description: Service Unavailable - AI service issues
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               examples:
-                serviceUnavailable:
-                  summary: Service unavailable
+                configError:
+                  summary: AI configuration error (invalid API key)
                   value:
                     status: "error"
-                    error: "Service temporarily unavailable"
-                    timestamp: "2025-12-28T10:00:01.234Z"
+                    error: "AI service configuration error. Please contact support."
+                    timestamp: "2026-01-10T12:00:01.234Z"
+                rateLimited:
+                  summary: AI service rate limited
+                  value:
+                    status: "error"
+                    error: "AI service is busy. Please try again in a moment."
+                    timestamp: "2026-01-10T12:00:01.234Z"
+                connectionError:
+                  summary: Cannot reach AI service
+                  value:
+                    status: "error"
+                    error: "Unable to reach AI service. Please check your connection."
+                    timestamp: "2026-01-10T12:00:01.234Z"
+
+        '504':
+          description: Gateway Timeout - AI request timed out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                timeout:
+                  summary: AI request timeout
+                  value:
+                    status: "error"
+                    error: "Request timed out. Please try again."
+                    timestamp: "2026-01-10T12:00:01.234Z"
 
   /health:
     get:
@@ -205,25 +230,23 @@ components:
           minLength: 1
           maxLength: 10000
           description: |
-            User message text to be processed by the backend.
+            User message text to be processed by the AI.
 
             **Validation**:
-            - Cannot be empty or only whitespace (per FR-012)
-            - Maximum 10,000 characters (per FR-007)
-            - Preserves special characters, emoji, multi-byte characters (per FR-010)
+            - Cannot be empty or only whitespace
+            - Maximum 10,000 characters
+            - Preserves special characters, emoji, multi-byte characters
             - Supports line breaks and formatting
 
           examples:
-            - "Hello world"
-            - "Test message 🚀"
-            - "Line 1\nLine 2"
+            - "Hello, how are you?"
+            - "What is the capital of France?"
+            - "Explain quantum computing in simple terms"
 
         conversationId:
           type: string
           description: |
-            Optional conversation ID with 'conv-' prefix (frontend format).
-            When backend adds conversation persistence, this will become required.
-
+            Optional conversation ID for tracking.
             Format: conv-{uuid} where {uuid} is a standard UUID v4.
 
           pattern: '^conv-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$'
@@ -233,18 +256,36 @@ components:
         timestamp:
           type: string
           format: date-time
-          description: |
-            Optional client-side timestamp of message creation (ISO-8601 format).
-            Used for client-side tracking and debugging.
-
+          description: Client-side timestamp of message creation (ISO-8601 format)
           examples:
-            - "2025-12-28T10:00:00.000Z"
+            - "2026-01-10T12:00:00.000Z"
 
-      examples:
-        - message: "Hello world"
-        - message: "Hello world"
-          conversationId: "conv-a1b2c3d4-5678-90ab-cdef-123456789abc"
-          timestamp: "2025-12-28T10:00:00.000Z"
+        history:
+          type: array
+          description: |
+            Optional conversation history for context.
+            Include previous messages to enable multi-turn conversations.
+            The current message should NOT be included in history.
+
+          items:
+            type: object
+            required:
+              - sender
+              - text
+            properties:
+              sender:
+                type: string
+                enum: [user, system]
+                description: Message sender type
+              text:
+                type: string
+                minLength: 1
+                description: Message content
+          examples:
+            - - sender: "user"
+                text: "My name is Alice"
+              - sender: "system"
+                text: "Nice to meet you, Alice!"
 
     MessageResponse:
       type: object
@@ -256,39 +297,30 @@ components:
         status:
           type: string
           enum: [success]
-          description: Response status indicator (always "success" for 200 responses)
+          description: Response status indicator
           example: "success"
 
         message:
           type: string
           description: |
-            Loopback message with "api says: " prefix.
+            AI-generated response to the user's message.
 
-            **Requirements** (per FR-002, FR-011):
-            - MUST start with "api says: " (exact prefix)
-            - MUST preserve all characters from request message (no truncation)
-            - MUST preserve emoji, special characters, line breaks, formatting
+            **Characteristics**:
+            - Generated by OpenAI ChatGPT via LangChain
+            - Context-aware when conversation history provided
+            - May include formatting, lists, code blocks
 
-          pattern: '^api says: '
           examples:
-            - "api says: Hello world"
-            - "api says: Test 🚀"
-            - "api says: Line 1\nLine 2"
+            - "Hello! I'm doing well, thank you for asking."
+            - "The capital of France is Paris."
+            - "Your name is Alice, as you mentioned earlier."
 
         timestamp:
           type: string
           format: date-time
-          description: |
-            Server-side timestamp of response creation (ISO-8601 format).
-            Used for latency measurement and debugging.
-
+          description: Server-side timestamp of response creation (ISO-8601)
           examples:
-            - "2025-12-28T10:00:01.234Z"
-
-      examples:
-        - status: "success"
-          message: "api says: Hello world"
-          timestamp: "2025-12-28T10:00:01.234Z"
+            - "2026-01-10T12:00:01.234Z"
 
     ErrorResponse:
       type: object
@@ -300,7 +332,7 @@ components:
         status:
           type: string
           enum: [error]
-          description: Response status indicator (always "error" for error responses)
+          description: Response status indicator
           example: "error"
 
         error:
@@ -308,26 +340,16 @@ components:
           description: |
             Human-readable error message.
 
-            **Requirements** (per FR-008, FR-012):
-            - MUST be descriptive and actionable
-            - MUST indicate what went wrong and how to fix it
-            - Common messages:
-              - "Message cannot be empty"
-              - "Message exceeds maximum length of 10,000 characters"
-              - "Invalid request format"
-              - "Internal server error occurred"
+            **Security**: Never exposes internal details, API keys, or raw error messages.
 
           examples:
             - "Message cannot be empty"
-            - "Message exceeds maximum length of 10,000 characters"
-            - "Invalid request format"
+            - "AI service is busy. Please try again in a moment."
+            - "Request timed out. Please try again."
 
         detail:
           type: object
-          description: |
-            Optional additional error context for debugging.
-            Typically includes field-level validation errors.
-
+          description: Optional additional error context for validation errors
           additionalProperties: true
           examples:
             - field: "message"
@@ -336,37 +358,22 @@ components:
         timestamp:
           type: string
           format: date-time
-          description: Server-side timestamp of error occurrence (ISO-8601 format)
+          description: Server-side timestamp of error occurrence
           examples:
-            - "2025-12-28T10:00:01.234Z"
-
-      examples:
-        - status: "error"
-          error: "Message cannot be empty"
-          timestamp: "2025-12-28T10:00:01.234Z"
-        - status: "error"
-          error: "Invalid request format"
-          detail:
-            field: "message"
-            issue: "Field required"
-          timestamp: "2025-12-28T10:00:01.234Z"
+            - "2026-01-10T12:00:01.234Z"
 
   securitySchemes: {}
 
 security: []
 
 x-requirements-mapping:
-  FR-001: "Backend API server accepts message requests (POST /api/v1/messages)"
-  FR-002: "Backend echoes messages with 'api says: ' prefix (MessageResponse.message)"
-  FR-003: "Frontend sends messages to backend API (client responsibility)"
-  FR-004: "Frontend displays backend responses (client responsibility)"
-  FR-005: "System maintains message order (not applicable for stateless loopback)"
-  FR-006: "Backend responds within 2 seconds (performance requirement, not schema)"
-  FR-007: "Backend rejects messages >10,000 chars (MessageRequest.message maxLength)"
-  FR-008: "Frontend handles connection failures (client responsibility)"
-  FR-009: "Frontend implements 10s timeout (client responsibility)"
-  FR-010: "Backend accepts special characters (MessageRequest.message validation)"
-  FR-011: "System preserves message content (MessageResponse.message requirement)"
-  FR-012: "Backend validates and rejects malformed requests (400/422 error responses)"
-  FR-013: "Frontend shows loading indicator (client responsibility)"
-  FR-014: "Backend logs requests/responses (implementation detail, not schema)"
+  FR-001: "System sends user messages to OpenAI ChatGPT (POST /api/v1/messages)"
+  FR-002: "System displays AI responses (MessageResponse.message)"
+  FR-003: "System includes conversation history (MessageRequest.history)"
+  FR-004: "System displays loading indicator (client responsibility)"
+  FR-005: "System handles API errors (503/504 responses)"
+  FR-006: "System does NOT expose sensitive information (ErrorResponse sanitized)"
+  FR-007: "System uses LangChain (implementation detail)"
+  FR-008: "System supports API key configuration (server-side env var)"
+  FR-009: "System distinguishes user/AI messages (client responsibility)"
+  FR-010: "System preserves message order (client responsibility)"
