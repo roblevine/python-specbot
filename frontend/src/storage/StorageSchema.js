@@ -5,7 +5,7 @@
 
 import { validateConversation } from '../utils/validators.js'
 
-export const SCHEMA_VERSION = '1.0.0'
+export const SCHEMA_VERSION = '1.1.0'
 export const STORAGE_KEY = 'chatInterface:v1:data'
 
 /**
@@ -17,6 +17,9 @@ export function createEmptySchema() {
     version: SCHEMA_VERSION,
     conversations: [],
     activeConversationId: null,
+    preferences: {
+      sidebarCollapsed: false,
+    },
   }
 }
 
@@ -70,6 +73,14 @@ export function validateSchema(data) {
     activeId = null
   }
 
+  // Validate preferences (optional field, defaults if missing or invalid)
+  let preferences = { sidebarCollapsed: false }
+  if (data.preferences && typeof data.preferences === 'object') {
+    if (typeof data.preferences.sidebarCollapsed === 'boolean') {
+      preferences.sidebarCollapsed = data.preferences.sidebarCollapsed
+    }
+  }
+
   return {
     isValid: true,
     error: null,
@@ -77,21 +88,32 @@ export function validateSchema(data) {
       version: SCHEMA_VERSION,
       conversations: validConversations,
       activeConversationId: activeId,
+      preferences,
     },
   }
 }
 
 /**
- * Migrates data from older schema versions (future enhancement)
+ * Migrates data from older schema versions
  * @param {Object} data - Data to migrate
  * @returns {Object} Migrated data
  */
 export function migrateSchema(data) {
-  // Currently only v1.0.0 exists
-  // Future migrations would go here
   if (!data.version) {
     // Assume very old format, create empty schema
     return createEmptySchema()
+  }
+
+  // Migrate from v1.0.0 to v1.1.0
+  if (data.version === '1.0.0') {
+    console.info('Migrating schema from v1.0.0 to v1.1.0')
+    return {
+      ...data,
+      version: '1.1.0',
+      preferences: {
+        sidebarCollapsed: false,
+      },
+    }
   }
 
   if (data.version === SCHEMA_VERSION) {

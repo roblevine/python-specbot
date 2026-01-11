@@ -1,12 +1,28 @@
 <template>
-  <div ref="chatArea" class="chat-area">
-    <div v-if="messages.length === 0" class="empty-state">
+  <div
+    ref="chatArea"
+    class="chat-area"
+  >
+    <div
+      v-if="messages.length === 0"
+      class="empty-state"
+    >
       <p>No messages yet. Start typing below!</p>
     </div>
-    <div v-else class="messages-container">
-      <MessageBubble v-for="message in messages" :key="message.id" :message="message" />
+    <div
+      v-else
+      class="messages-container"
+    >
+      <MessageBubble
+        v-for="message in messages"
+        :key="message.id"
+        :message="message"
+      />
     </div>
-    <div v-if="isProcessing" class="loading-indicator">
+    <div
+      v-if="isProcessing"
+      class="loading-indicator"
+    >
       <span class="loading-dots">Processing...</span>
     </div>
   </div>

@@ -1,16 +1,28 @@
 <template>
   <div class="app">
-    <StatusBar :status="status" :status-type="statusType" />
+    <StatusBar
+      :status="status"
+      :status-type="statusType"
+    />
     <div class="app-main">
       <HistoryBar
         :conversations="conversations"
         :active-conversation-id="activeConversationId"
+        :is-collapsed="sidebarCollapsed"
         @select-conversation="handleSelectConversation"
         @new-conversation="handleNewConversation"
+        @toggle-sidebar="toggleSidebar"
       />
       <div class="chat-container">
-        <ChatArea :messages="currentMessages" :is-processing="isProcessing" />
-        <InputArea ref="inputAreaRef" :disabled="isProcessing" @send-message="handleSendMessage" />
+        <ChatArea
+          :messages="currentMessages"
+          :is-processing="isProcessing"
+        />
+        <InputArea
+          ref="inputAreaRef"
+          :disabled="isProcessing"
+          @send-message="handleSendMessage"
+        />
       </div>
     </div>
   </div>
@@ -25,6 +37,7 @@ import InputArea from '../InputArea/InputArea.vue'
 import { useConversations } from '../../state/useConversations.js'
 import { useMessages } from '../../state/useMessages.js'
 import { useAppState } from '../../state/useAppState.js'
+import { useSidebarCollapse } from '../../composables/useSidebarCollapse.js'
 import * as logger from '../../utils/logger.js'
 
 export default {
@@ -52,11 +65,16 @@ export default {
 
     const { isProcessing, status, statusType, setStatus, setError } = useAppState()
 
+    // Sidebar collapse state
+    const { isCollapsed: sidebarCollapsed, toggle: toggleSidebar, loadFromStorage: loadSidebarState } =
+      useSidebarCollapse()
+
     // Initialize app on mount
     onMounted(() => {
       try {
         logger.info('Initializing app...')
         loadFromStorage()
+        loadSidebarState()
         setStatus('Ready', 'ready')
         logger.info('App initialized successfully')
       } catch (error) {
@@ -109,9 +127,11 @@ export default {
       isProcessing,
       status,
       statusType,
+      sidebarCollapsed,
       handleSendMessage,
       handleSelectConversation,
       handleNewConversation,
+      toggleSidebar,
     }
   },
 }
