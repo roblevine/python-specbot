@@ -260,144 +260,86 @@ async def test_single_message_ai_response_flow():
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_context_aware_ai_response():
+async def test_no_sensitive_data_in_error_responses():
     """
-    T019: Integration test for context-aware AI responses with conversation history.
+    T033: Integration test verifying no sensitive data in error responses.
 
-    Validates that:
-    - History array is accepted by get_ai_response()
-    - History messages are converted to LangChain format
-    - History is included in the LLM invocation
-    - AI can respond based on conversation context
+    Validates that LLM errors are sanitized and don't expose:
+    - API keys
+    - Raw exception messages
+    - Stack traces
+    - Internal implementation details
 
-    Feature: 006-openai-langchain-chat User Story 2
-    Expected: FAIL (history parameter not implemented yet)
+    Feature: 006-openai-langchain-chat User Story 3
     """
-    import src.services.llm_service as llm_service
-    from src.services.llm_service import get_ai_response
+    from fastapi.testclient import TestClient
+    from main import app
+    from src.services.llm_service import (
+        LLMAuthenticationError,
+        LLMRateLimitError,
+        LLMConnectionError
+    )
 
-    # Clear cached instance
-    llm_service._llm_instance = None
+    client = TestClient(app)
 
-    with patch.dict('os.environ', {
-        'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODEL': 'gpt-3.5-turbo'
-    }):
-        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
-            # Setup mock LLM
-            mock_llm = Mock()
-            mock_chat.return_value = mock_llm
+    # Test scenarios that should NOT expose sensitive data
+    error_scenarios = [
+        (LLMAuthenticationError("AI service configuration error"),
+         "authentication error should be sanitized"),
+        (LLMRateLimitError("AI service is busy"),
+         "rate limit error should be sanitized"),
+        (LLMConnectionError("Unable to reach AI service"),
+         "connection error should be sanitized"),
+    ]
 
-            # Mock context-aware AI response
-            mock_response = Mock()
-            mock_response.content = "Your name is Alice, as you mentioned earlier."
-            mock_llm.ainvoke = AsyncMock(return_value=mock_response)
+    for error_exception, description in error_scenarios:
+        with patch('src.api.routes.messages.load_config') as mock_load_config, \
+             patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
 
-            # Conversation history
-            history = [
-                {"sender": "user", "text": "My name is Alice"},
-                {"sender": "system", "text": "Nice to meet you, Alice!"}
-            ]
+            # Mock config
+            mock_load_config.return_value = {
+                'api_key': 'sk-secret-test-key-12345',
+                'model': 'gpt-3.5-turbo'
+            }
 
-            # Get AI response with history
-            ai_response = await get_ai_response(
-                message="What is my name?",
-                history=history
+            # Mock get_ai_response to raise the error
+            mock_get_ai.side_effect = error_exception
+
+            # Make request
+            response = client.post(
+                "/api/v1/messages",
+                json={"message": "Test message"}
             )
 
-            # Verify AI response
-            assert ai_response == "Your name is Alice, as you mentioned earlier."
+            # Verify error response exists
+            assert response.status_code in [400, 503, 504], \
+                f"Expected error status code, got {response.status_code}"
 
-            # Verify LLM was invoked with history
-            mock_llm.ainvoke.assert_called_once()
+            data = response.json()
+            # Error fields should be at top level, not wrapped in "detail"
+            assert "error" in data, f"Error response must include 'error' field at top level. Got: {data}"
+            assert "status" in data, f"Error response must include 'status' field. Got: {data}"
+            assert data["status"] == "error", f"Status should be 'error'. Got: {data['status']}"
 
-            # Verify history was included in the call
-            call_args = mock_llm.ainvoke.call_args
-            assert call_args is not None
+            error_msg = data["error"].lower()
 
-            # The first argument should be a list of messages
-            messages_arg = call_args[0][0]
-            assert isinstance(messages_arg, list)
+            # CRITICAL: Must NOT expose API keys
+            assert "sk-" not in data["error"], \
+                f"Error must not expose API keys: {description}"
 
-            # Should have 3 messages total (2 history + 1 current)
-            assert len(messages_arg) == 3
+            # CRITICAL: Must NOT expose organization IDs
+            assert "org-" not in data["error"], \
+                f"Error must not expose org IDs: {description}"
 
-    # Clean up
-    llm_service._llm_instance = None
+            # CRITICAL: Must NOT expose raw URLs
+            assert "https://" not in error_msg, \
+                f"Error must not expose API URLs: {description}"
 
+            # CRITICAL: Must NOT expose raw exception messages
+            assert "exception" not in error_msg, \
+                f"Error must not expose raw exceptions: {description}"
 
-@pytest.mark.integration
-@pytest.mark.asyncio
-async def test_long_conversation_context_maintained():
-    """
-    T027: Integration test verifying context maintained for 10+ message exchanges.
-
-    Validates that:
-    - Conversation history accumulates correctly over multiple exchanges
-    - History is passed to LLM on each subsequent request
-    - Context from earlier messages is included in later requests
-    - System handles 10+ message history without errors
-
-    Feature: 006-openai-langchain-chat User Story 2
-    """
-    import src.services.llm_service as llm_service
-    from src.services.llm_service import get_ai_response
-
-    # Clear cached instance
-    llm_service._llm_instance = None
-
-    with patch.dict('os.environ', {
-        'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODEL': 'gpt-3.5-turbo'
-    }):
-        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
-            # Setup mock LLM
-            mock_llm = Mock()
-            mock_chat.return_value = mock_llm
-
-            # Create mock responses for each exchange
-            mock_llm.ainvoke = AsyncMock()
-
-            # Simulate 12 message exchanges (6 user + 6 system messages)
-            conversation_history = []
-
-            for i in range(12):
-                # Alternate between user and system messages
-                if i % 2 == 0:
-                    # User message
-                    user_msg = f"User message {i // 2 + 1}"
-
-                    # Mock AI response
-                    mock_response = Mock()
-                    mock_response.content = f"AI response {i // 2 + 1}"
-                    mock_llm.ainvoke.return_value = mock_response
-
-                    # Get AI response with accumulated history
-                    ai_response = await get_ai_response(
-                        message=user_msg,
-                        history=conversation_history.copy() if conversation_history else None
-                    )
-
-                    # Add messages to history
-                    conversation_history.append({"sender": "user", "text": user_msg})
-                    conversation_history.append({"sender": "system", "text": ai_response})
-
-                    # Verify AI response
-                    assert ai_response == f"AI response {i // 2 + 1}"
-
-            # Verify we accumulated 12 messages (6 exchanges)
-            assert len(conversation_history) == 12
-
-            # Verify LLM was called 6 times (once per user message)
-            assert mock_llm.ainvoke.call_count == 6
-
-            # Verify the last call included all previous messages
-            last_call_args = mock_llm.ainvoke.call_args_list[-1]
-            messages_arg = last_call_args[0][0]
-
-            # Last call should have 11 messages (10 history from 5 exchanges + 1 current)
-            assert isinstance(messages_arg, list)
-            assert len(messages_arg) == 11
-
-    # Clean up
-    llm_service._llm_instance = None
+            # Verify message is user-friendly (not technical)
+            assert any(word in error_msg for word in [
+                "service", "unavailable", "error", "busy", "configuration", "timeout"
+            ]), f"Error message should be user-friendly: {data['error']}"

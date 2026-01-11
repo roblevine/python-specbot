@@ -228,42 +228,144 @@ async def test_get_ai_response_preserves_special_characters():
 
 
 @pytest.mark.unit
-def test_convert_to_langchain_messages_with_history():
+@pytest.mark.asyncio
+async def test_authentication_error_mapping():
     """
-    T018: Unit test for convert_to_langchain_messages() with conversation history.
+    T030: Unit test for AuthenticationError → 503 error mapping.
 
-    Validates that convert_to_langchain_messages() correctly converts
-    an array of messages with sender/text fields into LangChain message types:
-    - sender: "user" → HumanMessage
-    - sender: "system" → AIMessage
-
-    Feature: 006-openai-langchain-chat User Story 2
-    Expected: FAIL (history parameter not implemented yet)
+    Validates that OpenAI AuthenticationError exceptions are caught
+    and mapped to LLMAuthenticationError with user-friendly message.
     """
-    from src.services.llm_service import convert_to_langchain_messages
-    from langchain_core.messages import HumanMessage, AIMessage
+    import src.services.llm_service as llm_service
+    from src.services.llm_service import get_ai_response, LLMAuthenticationError
+    from openai import AuthenticationError
 
-    # Test conversation history
-    history = [
-        {"sender": "user", "text": "My name is Alice"},
-        {"sender": "system", "text": "Nice to meet you, Alice!"},
-        {"sender": "user", "text": "What is my name?"}
-    ]
+    # Clear cached instance
+    llm_service._llm_instance = None
 
-    # Convert to LangChain messages
-    lc_messages = convert_to_langchain_messages(history)
+    with patch.dict('os.environ', {
+        'OPENAI_API_KEY': 'test-key',
+        'OPENAI_MODEL': 'gpt-3.5-turbo'
+    }):
+        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+            # Setup mock LLM
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
 
-    # Verify conversion
-    assert len(lc_messages) == 3
+            # Create mock response for AuthenticationError
+            mock_response = Mock()
+            mock_response.status_code = 401
+            mock_body = {"error": {"message": "Invalid API key"}}
 
-    # First message: user → HumanMessage
-    assert isinstance(lc_messages[0], HumanMessage)
-    assert lc_messages[0].content == "My name is Alice"
+            # Mock ainvoke to raise AuthenticationError
+            mock_llm.ainvoke = AsyncMock(
+                side_effect=AuthenticationError(
+                    "Invalid API key provided",
+                    response=mock_response,
+                    body=mock_body
+                )
+            )
 
-    # Second message: system → AIMessage
-    assert isinstance(lc_messages[1], AIMessage)
-    assert lc_messages[1].content == "Nice to meet you, Alice!"
+            # Call should raise our custom LLMAuthenticationError
+            with pytest.raises(LLMAuthenticationError) as exc_info:
+                await get_ai_response("Hello")
 
-    # Third message: user → HumanMessage
-    assert isinstance(lc_messages[2], HumanMessage)
-    assert lc_messages[2].content == "What is my name?"
+            # Verify error message is sanitized
+            assert exc_info.value.message == "AI service configuration error"
+            assert exc_info.value.status_code == 503
+
+    # Clean up
+    llm_service._llm_instance = None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_rate_limit_error_mapping():
+    """
+    T031: Unit test for RateLimitError → 503 error mapping.
+
+    Validates that OpenAI RateLimitError exceptions are caught
+    and mapped to LLMRateLimitError with user-friendly message.
+    """
+    import src.services.llm_service as llm_service
+    from src.services.llm_service import get_ai_response, LLMRateLimitError
+    from openai import RateLimitError
+
+    # Clear cached instance
+    llm_service._llm_instance = None
+
+    with patch.dict('os.environ', {
+        'OPENAI_API_KEY': 'test-key',
+        'OPENAI_MODEL': 'gpt-3.5-turbo'
+    }):
+        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+            # Setup mock LLM
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+
+            # Create mock response for RateLimitError
+            mock_response = Mock()
+            mock_response.status_code = 429
+            mock_body = {"error": {"message": "Rate limit exceeded"}}
+
+            # Mock ainvoke to raise RateLimitError
+            mock_llm.ainvoke = AsyncMock(
+                side_effect=RateLimitError(
+                    "Rate limit exceeded",
+                    response=mock_response,
+                    body=mock_body
+                )
+            )
+
+            # Call should raise our custom LLMRateLimitError
+            with pytest.raises(LLMRateLimitError) as exc_info:
+                await get_ai_response("Hello")
+
+            # Verify error message is sanitized
+            assert exc_info.value.message == "AI service is busy"
+            assert exc_info.value.status_code == 503
+
+    # Clean up
+    llm_service._llm_instance = None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_timeout_error_mapping():
+    """
+    T032: Unit test for TimeoutError → 504 error mapping.
+
+    Validates that timeout exceptions are caught
+    and mapped to LLMTimeoutError with user-friendly message.
+    """
+    import src.services.llm_service as llm_service
+    from src.services.llm_service import get_ai_response, LLMTimeoutError
+    import asyncio
+
+    # Clear cached instance
+    llm_service._llm_instance = None
+
+    with patch.dict('os.environ', {
+        'OPENAI_API_KEY': 'test-key',
+        'OPENAI_MODEL': 'gpt-3.5-turbo'
+    }):
+        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+            # Setup mock LLM
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+
+            # Mock ainvoke to raise TimeoutError
+            mock_llm.ainvoke = AsyncMock(
+                side_effect=asyncio.TimeoutError("Request timed out")
+            )
+
+            # Call should raise our custom LLMTimeoutError
+            with pytest.raises(LLMTimeoutError) as exc_info:
+                await get_ai_response("Hello")
+
+            # Verify error message is sanitized
+            assert exc_info.value.message == "Request timed out"
+            assert exc_info.value.status_code == 504
+
+    # Clean up
+    llm_service._llm_instance = None

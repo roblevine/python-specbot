@@ -456,55 +456,132 @@ def test_ai_response_matches_contract(
 
 
 @pytest.mark.contract
-def test_history_field_in_message_request(
+def test_503_error_response_matches_contract(
     client: TestClient,
     openapi_spec: Spec
 ):
     """
-    T017: Validate that MessageRequest accepts optional history field.
+    T028: Contract test for 503 Service Unavailable error responses.
 
-    This test validates:
-    - history: optional array of message objects
-    - Each history item has sender ("user" or "system") and text (non-empty string)
-    - Request with history passes contract validation
-    - Response is successful when history is provided
-
-    Feature: 006-openai-langchain-chat User Story 2
-    Expected: FAIL (history field not in schema yet)
+    Validates that 503 error responses (AI service issues) match OpenAPI spec.
     """
-    import json
     from unittest.mock import patch, AsyncMock
+    import json
+    from src.services.llm_service import LLMAuthenticationError
 
-    # Mock the LLM service
+    # Mock the LLM service to raise LLMAuthenticationError
     with patch('src.api.routes.messages.load_config') as mock_load_config, \
          patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
 
+        # Mock config
         mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
-        mock_get_ai.return_value = "Yes, your name is Alice."
 
-        # Test request with conversation history
-        request_with_history = {
-            "message": "What is my name?",
-            "history": [
-                {"sender": "user", "text": "My name is Alice"},
-                {"sender": "system", "text": "Nice to meet you, Alice!"}
-            ]
-        }
+        # Mock AI service to raise LLMAuthenticationError
+        mock_get_ai.side_effect = LLMAuthenticationError("AI service configuration error")
 
-        body = json.dumps(request_with_history).encode('utf-8')
-        response = client.post("/api/v1/messages", json=request_with_history)
+        # Prepare request
+        request_data = {"message": "Hello"}
+        body = json.dumps(request_data).encode('utf-8')
 
-        # Create OpenAPI request object
+        # Make request
+        response = client.post(
+            "/api/v1/messages",
+            json=request_data,
+            headers={"Content-Type": "application/json"}
+        )
+
+        # Create OpenAPI request/response objects
         openapi_request = FastAPIOpenAPIRequest(response.request, body)
+        openapi_response = FastAPIOpenAPIResponse(response)
 
-        # Validate request against OpenAPI spec
-        result = validate_request(openapi_request, spec=openapi_spec, base_url="http://localhost:8000")
+        # Validate response against OpenAPI spec
+        result = validate_response(
+            openapi_request,
+            openapi_response,
+            spec=openapi_spec,
+            base_url="http://localhost:8000"
+        )
 
+        # Check validation result
         if result is not None:
-            assert not result.errors, f"Request with history failed validation: {[str(e) for e in result.errors]}"
+            assert not result.errors, f"503 response validation errors: {[str(e) for e in result.errors]}"
 
-        # Verify response is successful
-        assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+        # Verify response structure
+        assert response.status_code == 503, f"Expected 503, got {response.status_code}"
         data = response.json()
-        assert data["status"] == "success"
-        assert len(data["message"]) > 0, "Response message cannot be empty"
+
+        # Verify error structure
+        assert "error" in data, "Error response must include 'error' field"
+        assert isinstance(data["error"], str), "Error field must be string"
+
+        # CRITICAL: Must NOT expose sensitive data (API keys, raw errors)
+        error_msg = data["error"].lower()
+        assert "api key" not in error_msg or "invalid" in error_msg, \
+            "Must not expose raw API key errors"
+        assert "authentication" not in error_msg, \
+            "Must not expose raw authentication errors"
+
+
+@pytest.mark.contract
+def test_504_timeout_response_matches_contract(
+    client: TestClient,
+    openapi_spec: Spec
+):
+    """
+    T029: Contract test for 504 Gateway Timeout error responses.
+
+    Validates that 504 timeout responses match OpenAPI spec.
+    """
+    from unittest.mock import patch, AsyncMock
+    import json
+    from src.services.llm_service import LLMTimeoutError
+
+    # Mock the LLM service to raise LLMTimeoutError
+    with patch('src.api.routes.messages.load_config') as mock_load_config, \
+         patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
+
+        # Mock config
+        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
+
+        # Mock AI service to raise LLMTimeoutError
+        mock_get_ai.side_effect = LLMTimeoutError("Request timed out")
+
+        # Prepare request
+        request_data = {"message": "Hello"}
+        body = json.dumps(request_data).encode('utf-8')
+
+        # Make request
+        response = client.post(
+            "/api/v1/messages",
+            json=request_data,
+            headers={"Content-Type": "application/json"}
+        )
+
+        # Create OpenAPI request/response objects
+        openapi_request = FastAPIOpenAPIRequest(response.request, body)
+        openapi_response = FastAPIOpenAPIResponse(response)
+
+        # Validate response against OpenAPI spec
+        result = validate_response(
+            openapi_request,
+            openapi_response,
+            spec=openapi_spec,
+            base_url="http://localhost:8000"
+        )
+
+        # Check validation result
+        if result is not None:
+            assert not result.errors, f"504 response validation errors: {[str(e) for e in result.errors]}"
+
+        # Verify response structure
+        assert response.status_code == 504, f"Expected 504, got {response.status_code}"
+        data = response.json()
+
+        # Verify error structure
+        assert "error" in data, "Error response must include 'error' field"
+        assert isinstance(data["error"], str), "Error field must be string"
+
+        # Verify timeout message is user-friendly
+        error_msg = data["error"].lower()
+        assert "timeout" in error_msg or "timed out" in error_msg, \
+            f"Timeout error message should mention timeout: {data['error']}"

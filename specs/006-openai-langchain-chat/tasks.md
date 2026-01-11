@@ -117,23 +117,23 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T028 [P] [US3] Contract test for 503 error responses in backend/tests/contract/test_message_api_contract.py
-- [ ] T029 [P] [US3] Contract test for 504 timeout response in backend/tests/contract/test_message_api_contract.py
-- [ ] T030 [P] [US3] Unit test for error mapping (AuthenticationError → 503) in backend/tests/unit/test_llm_service.py
-- [ ] T031 [P] [US3] Unit test for error mapping (RateLimitError → 503) in backend/tests/unit/test_llm_service.py
-- [ ] T032 [P] [US3] Unit test for error mapping (Timeout → 504) in backend/tests/unit/test_llm_service.py
-- [ ] T033 [P] [US3] Integration test verifying no sensitive data in error responses in backend/tests/integration/test_openai_integration.py
+- [x] T028 [P] [US3] Contract test for 503 error responses in backend/tests/contract/test_message_api_contract.py
+- [x] T029 [P] [US3] Contract test for 504 timeout response in backend/tests/contract/test_message_api_contract.py
+- [x] T030 [P] [US3] Unit test for error mapping (AuthenticationError → 503) in backend/tests/unit/test_llm_service.py
+- [x] T031 [P] [US3] Unit test for error mapping (RateLimitError → 503) in backend/tests/unit/test_llm_service.py
+- [x] T032 [P] [US3] Unit test for error mapping (Timeout → 504) in backend/tests/unit/test_llm_service.py
+- [x] T033 [P] [US3] Integration test verifying no sensitive data in error responses in backend/tests/integration/test_openai_integration.py
 
 ### Implementation for User Story 3
 
-- [ ] T034 [US3] Implement error handler for AuthenticationError → 503 "AI service configuration error" in backend/src/services/llm_service.py
-- [ ] T035 [US3] Implement error handler for RateLimitError → 503 "AI service is busy" in backend/src/services/llm_service.py
-- [ ] T036 [US3] Implement error handler for APIConnectionError → 503 "Unable to reach AI service" in backend/src/services/llm_service.py
-- [ ] T037 [US3] Implement error handler for timeout → 504 "Request timed out" in backend/src/services/llm_service.py
-- [ ] T038 [US3] Implement error handler for BadRequestError → 400 "Message could not be processed" in backend/src/services/llm_service.py
-- [ ] T039 [US3] Add try/catch in send_message() to catch and re-raise LLM errors as HTTPException in backend/src/api/routes/messages.py
-- [ ] T040 [US3] Add ERROR level logging for all LLM failures (sanitized) in backend/src/services/llm_service.py
-- [ ] T041 [US3] Verify no API keys or raw errors exposed in any error response (SC-003)
+- [x] T034 [US3] Implement error handler for AuthenticationError → 503 "AI service configuration error" in backend/src/services/llm_service.py
+- [x] T035 [US3] Implement error handler for RateLimitError → 503 "AI service is busy" in backend/src/services/llm_service.py
+- [x] T036 [US3] Implement error handler for APIConnectionError → 503 "Unable to reach AI service" in backend/src/services/llm_service.py
+- [x] T037 [US3] Implement error handler for timeout → 504 "Request timed out" in backend/src/services/llm_service.py
+- [x] T038 [US3] Implement error handler for BadRequestError → 400 "Message could not be processed" in backend/src/services/llm_service.py
+- [x] T039 [US3] Add try/catch in send_message() to catch and re-raise LLM errors as HTTPException in backend/src/api/routes/messages.py
+- [x] T040 [US3] Add ERROR level logging for all LLM failures (sanitized) in backend/src/services/llm_service.py
+- [x] T041 [US3] Verify no API keys or raw errors exposed in any error response (SC-003)
 
 **Checkpoint**: All error scenarios handled gracefully - All user stories complete
 
@@ -143,11 +143,11 @@
 
 **Purpose**: Documentation, cleanup, and architecture updates
 
-- [ ] T042 [P] Update architecture.md with LLM service layer diagram and data flow
-- [ ] T043 [P] Update contract snapshots in contract-snapshots/ directory
-- [ ] T044 [P] Run all tests and verify 100% pass rate
+- [x] T042 [P] Update architecture.md with LLM service layer diagram and data flow
+- [x] T043 [P] Update contract snapshots in contract-snapshots/ directory
+- [x] T044 [P] Run all tests and verify 100% pass rate
 - [ ] T045 [P] Run quickstart.md validation (manual test with real API key)
-- [ ] T046 Review and update CLAUDE.md if needed
+- [x] T046 Review and update CLAUDE.md if needed
 
 ---
 

@@ -1,7 +1,7 @@
 # SpecBot Architecture
 
-**Last Updated**: 2025-12-28
-**Current Version**: P1 + Backend API (Feature 003 Complete)
+**Last Updated**: 2026-01-11
+**Current Version**: P1 + Backend API + OpenAI LangChain Chat (Feature 006 Complete)
 
 This document describes the current implemented architecture and planned future architecture for SpecBot.
 
@@ -11,9 +11,9 @@ This document describes the current implemented architecture and planned future 
 
 ### Overview
 
-SpecBot is a **full-stack chat application** with a Vue.js frontend and Python FastAPI backend. The backend provides a message loopback API that echoes messages with "api says: " prefix, establishing the foundation for future LLM integrations.
+SpecBot is a **full-stack AI chat application** with a Vue.js frontend and Python FastAPI backend. The backend integrates with OpenAI ChatGPT via LangChain, providing AI-powered conversations with context retention and graceful error handling.
 
-**Status**: ✅ **IMPLEMENTED** (Frontend P1 + Backend API 003 Complete)
+**Status**: ✅ **IMPLEMENTED** (Frontend P1 + Backend API 003 + OpenAI LangChain Chat 006 Complete)
 
 ### Architecture Diagram
 
@@ -60,23 +60,37 @@ SpecBot is a **full-stack chat application** with a Vue.js frontend and Python F
 │                                                              │
 │  ┌────────────────────────────────────────────────────────┐ │
 │  │                  API Routes Layer                       │ │
-│  │         POST /api/v1/messages (loopback)                │ │
+│  │         POST /api/v1/messages (AI chat)                 │ │
 │  │         GET /health (health check)                      │ │
 │  └──────────────────────┬─────────────────────────────────┘ │
 │                         │                                    │
 │  ┌──────────────────────▼───────────────────────────────┐   │
 │  │              Message Service Layer                    │   │
-│  │   - create_loopback_message(text)                     │   │
 │  │   - validate_message(text)                            │   │
+│  └──────────────────────┬───────────────────────────────┘   │
+│                         │                                    │
+│  ┌──────────────────────▼───────────────────────────────┐   │
+│  │                LLM Service Layer                      │   │
+│  │   - get_ai_response(message, history)                 │   │
+│  │   - Error mapping & sanitization                      │   │
+│  │   - ChatOpenAI via LangChain                          │   │
 │  └──────────────────────┬───────────────────────────────┘   │
 │                         │                                    │
 │  ┌──────────────────────▼───────────────────────────────┐   │
 │  │               Middleware Layer                        │   │
 │  │   - CORS (allows localhost:5173)                      │   │
 │  │   - Logging (request/response)                        │   │
-│  │   - Error handling                                    │   │
-│  └───────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
+│  │   - Error handling (sanitized 503/504)                │   │
+│  └──────────────────────┬───────────────────────────────┘   │
+└────────────────────────┼────────────────────────────────────┘
+                         │
+                 OpenAI API (ChatGPT)
+                         │
+                    ┌────▼────┐
+                    │ OpenAI  │
+                    │ ChatGPT │
+                    │  API    │
+                    └─────────┘
 ```
 
 ### Component Structure
@@ -125,26 +139,27 @@ backend/
 ├── src/
 │   ├── api/
 │   │   └── routes/
-│   │       └── messages.py  # POST /api/v1/messages endpoint
+│   │       └── messages.py  # POST /api/v1/messages endpoint (AI chat)
 │   │
 │   ├── services/
-│   │   └── message_service.py  # Business logic (loopback, validation)
+│   │   ├── message_service.py  # Message validation
+│   │   └── llm_service.py      # LLM integration (ChatOpenAI via LangChain)
 │   │
 │   ├── middleware/
 │   │   └── logging_middleware.py  # Request/response logging
 │   │
 │   ├── utils/
-│   │   └── logger.py        # Structured logging setup
+│   │   └── logger.py        # Structured logging setup (with LLM logging)
 │   │
 │   └── schemas.py           # Pydantic models (MessageRequest, MessageResponse)
 │
 ├── tests/
-│   ├── contract/            # OpenAPI schema validation tests
+│   ├── contract/            # OpenAPI schema validation tests (51 tests)
 │   ├── integration/         # Full request-response cycle tests
 │   └── unit/                # Service and utility tests
 │
 ├── main.py                  # FastAPI application entry point
-├── requirements.txt         # Python dependencies
+├── requirements.txt         # Python dependencies (includes langchain, langchain-openai)
 └── pytest.ini              # Test configuration
 ```
 
@@ -161,6 +176,8 @@ backend/
 | **Backend Framework** | FastAPI | 0.115.0 | ✅ In Use |
 | **ASGI Server** | uvicorn | 0.32.0 | ✅ In Use |
 | **Data Validation** | Pydantic | 2.10.0 | ✅ In Use |
+| **LLM Framework** | LangChain | 0.3.0+ | ✅ In Use |
+| **LLM Provider** | langchain-openai (OpenAI ChatGPT) | 0.2.0+ | ✅ In Use |
 | **Backend Testing** | pytest + httpx + openapi-core | 8.3.0 | ✅ In Use |
 | **API Documentation** | OpenAPI 3.1 (auto-generated) | 3.1.0 | ✅ In Use |
 | **Code Quality** | ESLint + Prettier (frontend) | Latest | ✅ In Use |
@@ -168,7 +185,7 @@ backend/
 
 ### Data Flow (Current Implementation)
 
-**Frontend → Backend → Frontend** (Feature 003)
+**Frontend → Backend → OpenAI ChatGPT → Backend → Frontend** (Feature 006)
 
 ```
 User Action (Type Message)
@@ -206,13 +223,31 @@ Messages Route (/api/v1/messages)
 Message Service (message_service.py)
     │
     ├─► validate_message() - Check empty, whitespace, length
-    ├─► create_loopback_message() - Add "api says: " prefix
+    │
+    ▼
+LLM Service (llm_service.py)
+    │
+    ├─► get_ai_response(message, history) - Get AI response with context
+    ├─► convert_to_langchain_messages() - Format history for ChatGPT
+    ├─► ChatOpenAI.ainvoke() - Call OpenAI API via LangChain
+    ├─► Error mapping & sanitization (503/504/400)
+    │
+    ▼
+OpenAI ChatGPT API
+    │
+    ├─► Process message with conversation context
+    ├─► Generate intelligent response
+    │
+    ▼
+LLM Service receives AI response
+    │
+    ├─► Return AI-generated message
     │
     ▼
 MessageResponse (Pydantic schema)
     │
     ├─► status: "success"
-    ├─► message: "api says: {user_message}"
+    ├─► message: "{ai_response}"
     ├─► timestamp: server timestamp
     │
     ▼
@@ -239,7 +274,7 @@ Storage Adapter (LocalStorageAdapter.js)
 State Update Triggers Re-render
     │
     ▼
-ChatArea Component (Displays Messages with "api says: " prefix)
+ChatArea Component (Displays AI-generated responses)
 ```
 
 ### Module Boundaries (Current)
@@ -605,6 +640,57 @@ ChatArea Component (Live Update)
 - Backend validates requests with Pydantic, processes via service layer
 - Responses follow OpenAPI contract (status, message, timestamp)
 - Foundation for future endpoints: `/api/conversations`, `/api/messages/stream`
+
+---
+
+### ADR-007: LangChain with OpenAI ChatGPT for LLM Integration
+
+**Date**: 2026-01-11
+**Status**: ✅ Implemented (Feature 006)
+
+**Context**: Need to integrate AI chat capabilities into SpecBot backend, replacing the loopback message pattern with actual LLM responses.
+
+**Decision**: Use LangChain framework with langchain-openai provider for OpenAI ChatGPT integration, supporting conversation context and graceful error handling.
+
+**Alternatives Considered**:
+1. **Direct OpenAI SDK** - Lower-level, more control, but requires manual context management and message formatting
+2. **Anthropic Claude** - Alternative LLM provider, but OpenAI has broader ecosystem and better documentation
+3. **LangChain** - Abstraction layer that simplifies LLM integration, supports multiple providers, handles message formatting
+
+**Rationale**:
+- **Provider Abstraction**: LangChain provides consistent interface across different LLM providers (future-proofs for Anthropic, local models)
+- **Conversation Context**: Built-in support for conversation history via message formatting
+- **Error Handling**: Structured exception hierarchy (AuthenticationError, RateLimitError, APIConnectionError, etc.)
+- **Async Support**: Native async/await with `ainvoke()` method integrates seamlessly with FastAPI
+- **Test-Driven Development** (Principle III): Comprehensive test suite (51 tests) covering error scenarios and context retention
+- **Simplicity** (Principle VI): Clean abstraction over raw API calls, minimal boilerplate
+
+**Implementation Details**:
+- **LLM Service Layer**: `llm_service.py` encapsulates all LLM interactions
+- **Singleton Pattern**: Single ChatOpenAI instance reused across requests for performance
+- **Error Mapping**: Custom exception classes map OpenAI errors to sanitized HTTP responses
+  - AuthenticationError → 503 "AI service configuration error"
+  - RateLimitError → 503 "AI service is busy"
+  - APIConnectionError → 503 "Unable to reach AI service"
+  - TimeoutError → 504 "Request timed out"
+  - BadRequestError → 400 "Message could not be processed"
+- **Context Retention**: Conversation history passed via `history` array in MessageRequest
+- **Security**: Sanitized error messages prevent API key exposure (verified by integration tests)
+
+**Consequences**:
+- ✅ Production-ready AI chat with intelligent responses
+- ✅ Conversation context maintained across multi-turn dialogues (tested to 10+ messages)
+- ✅ Graceful error handling with user-friendly messages (no sensitive data exposed)
+- ✅ Ready for future LLM provider additions (Anthropic Claude, local models)
+- ✅ All 51 backend tests passing (100% pass rate)
+- ⚠️ OpenAI API costs scale with usage (requires API key management and usage monitoring)
+- ⚠️ Requires OPENAI_API_KEY environment variable for operation
+
+**Architecture Impact**:
+- New LLM service layer sits between message routes and OpenAI API
+- Message flow: Frontend → API Route → LLM Service → OpenAI ChatGPT → LLM Service → API Route → Frontend
+- Error responses use JSONResponse (not HTTPException) to match OpenAPI contract structure
+- Conversation history stored in frontend LocalStorage, passed to backend on each request
 
 ---
 
