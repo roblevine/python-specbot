@@ -17,6 +17,7 @@ export function createEmptySchema() {
     version: SCHEMA_VERSION,
     conversations: [],
     activeConversationId: null,
+    selectedModelId: null,
     preferences: {
       sidebarCollapsed: false,
     },
@@ -73,6 +74,13 @@ export function validateSchema(data) {
     activeId = null
   }
 
+  // Validate selectedModelId (optional field)
+  let selectedModelId = data.selectedModelId ?? null
+  if (selectedModelId !== null && typeof selectedModelId !== 'string') {
+    console.warn(`Invalid selectedModelId type, resetting to null`)
+    selectedModelId = null
+  }
+
   // Validate preferences (optional field, defaults if missing or invalid)
   let preferences = { sidebarCollapsed: false }
   if (data.preferences && typeof data.preferences === 'object') {
@@ -88,6 +96,7 @@ export function validateSchema(data) {
       version: SCHEMA_VERSION,
       conversations: validConversations,
       activeConversationId: activeId,
+      selectedModelId: selectedModelId,
       preferences,
     },
   }
