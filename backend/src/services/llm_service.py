@@ -9,8 +9,9 @@ Tasks: T006, T007
 
 import os
 import asyncio
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 from langchain_openai import ChatOpenAI
+from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
 from openai import (
     AuthenticationError,
     RateLimitError,
@@ -262,8 +263,13 @@ async def get_ai_response(message: str, history: Optional[List[Dict[str, str]]] 
         # Get LLM instance
         llm = get_llm_instance()
 
-        # Convert message to LangChain format
-        langchain_messages = convert_to_langchain_messages(message)
+        # Build conversation history (T023: include previous messages if provided)
+        conversation = history.copy() if history else []
+        # Add current user message to conversation
+        conversation.append({"sender": "user", "text": message})
+
+        # Convert to LangChain format (T012, T022)
+        langchain_messages = convert_to_langchain_messages(conversation)
 
         # Call LLM service
         logger.debug(f"Invoking ChatOpenAI with {len(langchain_messages)} message(s)")
