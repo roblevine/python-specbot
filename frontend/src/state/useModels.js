@@ -9,7 +9,7 @@
  */
 
 import { ref, watch, onMounted } from 'vue'
-import { StorageAdapter } from '../storage/StorageAdapter.js'
+import { loadConversations, saveSelectedModel } from '../storage/LocalStorageAdapter.js'
 
 // Shared state across all component instances
 const availableModels = ref([])
@@ -86,12 +86,9 @@ export function useModels() {
     console.log(`Selected model: ${modelId}`)
     selectedModelId.value = modelId
 
-    // T034: Persist to localStorage via StorageAdapter
+    // T034: Persist to localStorage
     try {
-      const storage = new StorageAdapter()
-      const data = storage.load()
-      data.selectedModelId = modelId
-      storage.save(data)
+      saveSelectedModel(modelId)
       console.log(`Persisted model selection: ${modelId}`)
     } catch (err) {
       console.error('Failed to persist model selection:', err)
@@ -104,8 +101,7 @@ export function useModels() {
    */
   function loadSelectedModelFromStorage() {
     try {
-      const storage = new StorageAdapter()
-      const data = storage.load()
+      const data = loadConversations()
 
       if (data.selectedModelId) {
         console.log(`Loaded selected model from storage: ${data.selectedModelId}`)
@@ -147,10 +143,7 @@ export function useModels() {
         } else {
           console.warn(`Stored model ${storedModelId} not available, using default`)
           // Clear invalid selection
-          const storage = new StorageAdapter()
-          const data = storage.load()
-          data.selectedModelId = null
-          storage.save(data)
+          saveSelectedModel(null)
           // Fall back to default
           const defaultModel = getDefaultModel()
           selectedModelId.value = defaultModel?.id || null
