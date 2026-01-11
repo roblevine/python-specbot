@@ -1,0 +1,99 @@
+openapi: 3.0.0
+info:
+  title: SpecBot Models API
+  version: 1.0.0
+  description: API for retrieving available OpenAI models
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+
+paths:
+  /api/v1/models:
+    get:
+      summary: Get available models
+      description: Returns a list of available OpenAI models that can be selected by the user
+      operationId: listModels
+      tags:
+        - models
+      responses:
+        '200':
+          description: Successfully retrieved list of models
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - models
+                properties:
+                  models:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Model'
+                    minItems: 1
+              examples:
+                multiple-models:
+                  summary: Multiple models available
+                  value:
+                    models:
+                      - id: gpt-4
+                        name: GPT-4
+                        description: Most capable model, best for complex tasks
+                        default: false
+                      - id: gpt-3.5-turbo
+                        name: GPT-3.5 Turbo
+                        description: Fast and efficient for most tasks
+                        default: true
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Model:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - default
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the model (e.g., gpt-4, gpt-3.5-turbo)
+          example: gpt-4
+          minLength: 1
+        name:
+          type: string
+          description: Human-readable name for the model
+          example: GPT-4
+          minLength: 1
+        description:
+          type: string
+          description: Description of the model's capabilities
+          example: Most capable model, best for complex tasks
+          minLength: 1
+        default:
+          type: boolean
+          description: Whether this is the default model
+          example: true
+      additionalProperties: false
+
+    Error:
+      type: object
+      required:
+        - error
+        - status
+      properties:
+        error:
+          type: string
+          description: Error message
+        status:
+          type: string
+          enum: [error]
+        timestamp:
+          type: string
+          format: date-time
