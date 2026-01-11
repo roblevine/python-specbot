@@ -25,9 +25,9 @@
 
 **Purpose**: Project initialization and dependency configuration
 
-- [ ] T001 Add LangChain dependencies to backend/requirements.txt (langchain>=0.3.0, langchain-openai>=0.2.0)
-- [ ] T002 Add OPENAI_API_KEY and OPENAI_MODEL to backend/.env.example
-- [ ] T003 [P] Copy updated OpenAPI contract to specs/003-backend-api-loopback/contracts/message-api.yaml
+- [x] T001 Add LangChain dependencies to backend/requirements.txt (langchain>=0.3.0, langchain-openai>=0.2.0)
+- [x] T002 Add OPENAI_API_KEY and OPENAI_MODEL to backend/.env.example
+- [x] T003 [P] Copy updated OpenAPI contract to specs/003-backend-api-loopback/contracts/message-api.yaml
 
 ---
 
@@ -39,14 +39,14 @@
 
 ### Tests for Foundation
 
-- [ ] T004 [P] Unit test skeleton for LLM service in backend/tests/unit/test_llm_service.py (test ChatOpenAI initialization, mock config loading)
-- [ ] T005 [P] Integration test skeleton for OpenAI integration in backend/tests/integration/test_openai_integration.py (with response mocking)
+- [x] T004 [P] Unit test skeleton for LLM service in backend/tests/unit/test_llm_service.py (test ChatOpenAI initialization, mock config loading)
+- [x] T005 [P] Integration test skeleton for OpenAI integration in backend/tests/integration/test_openai_integration.py (with response mocking)
 
 ### Implementation for Foundation
 
-- [ ] T006 Create LLM service module in backend/src/services/llm_service.py with ChatOpenAI initialization
-- [ ] T007 Implement config loading from environment (OPENAI_API_KEY, OPENAI_MODEL with gpt-3.5-turbo default) in backend/src/services/llm_service.py
-- [ ] T008 Add LLM logging utilities (llm_request_start, llm_request_complete, llm_request_error) to backend/src/utils/logger.py
+- [x] T006 Create LLM service module in backend/src/services/llm_service.py with ChatOpenAI initialization
+- [x] T007 Implement config loading from environment (OPENAI_API_KEY, OPENAI_MODEL with gpt-3.5-turbo default) in backend/src/services/llm_service.py
+- [x] T008 Add LLM logging utilities (llm_request_start, llm_request_complete, llm_request_error) to backend/src/utils/logger.py
 
 **Checkpoint**: LLM service infrastructure ready - user story implementation can now begin
 
@@ -62,17 +62,17 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T009 [P] [US1] Contract test for POST /api/v1/messages AI response format in backend/tests/contract/test_message_api_contract.py (verify response.message contains AI text, not "api says:" prefix)
-- [ ] T010 [P] [US1] Unit test for get_ai_response() basic invocation in backend/tests/unit/test_llm_service.py (mock ChatOpenAI.ainvoke)
-- [ ] T011 [P] [US1] Integration test for single message AI response in backend/tests/integration/test_openai_integration.py (mock external API, verify full flow)
+- [x] T009 [P] [US1] Contract test for POST /api/v1/messages AI response format in backend/tests/contract/test_message_api_contract.py (verify response.message contains AI text, not "api says:" prefix)
+- [x] T010 [P] [US1] Unit test for get_ai_response() basic invocation in backend/tests/unit/test_llm_service.py (mock ChatOpenAI.ainvoke)
+- [x] T011 [P] [US1] Integration test for single message AI response in backend/tests/integration/test_openai_integration.py (mock external API, verify full flow)
 
 ### Implementation for User Story 1
 
-- [ ] T012 [US1] Implement convert_to_langchain_messages() in backend/src/services/llm_service.py (single message, no history)
-- [ ] T013 [US1] Implement async get_ai_response(message: str) in backend/src/services/llm_service.py using ChatOpenAI.ainvoke()
-- [ ] T014 [US1] Update send_message() in backend/src/api/routes/messages.py to call llm_service instead of loopback
-- [ ] T015 [US1] Add request/response logging for LLM calls in backend/src/api/routes/messages.py
-- [ ] T016 [US1] Verify contract tests pass with new AI response format
+- [x] T012 [US1] Implement convert_to_langchain_messages() in backend/src/services/llm_service.py (single message, no history)
+- [x] T013 [US1] Implement async get_ai_response(message: str) in backend/src/services/llm_service.py using ChatOpenAI.ainvoke()
+- [x] T014 [US1] Update send_message() in backend/src/api/routes/messages.py to call llm_service instead of loopback
+- [x] T015 [US1] Add request/response logging for LLM calls in backend/src/api/routes/messages.py
+- [x] T016 [US1] Verify contract tests pass with new AI response format
 
 **Checkpoint**: User can send a message and receive AI response - MVP complete
 
@@ -88,20 +88,20 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T017 [P] [US2] Contract test for history field in MessageRequest in backend/tests/contract/test_message_api_contract.py
-- [ ] T018 [P] [US2] Unit test for convert_to_langchain_messages() with history array in backend/tests/unit/test_llm_service.py
-- [ ] T019 [P] [US2] Integration test for context-aware response in backend/tests/integration/test_openai_integration.py (verify history is sent to LLM)
+- [x] T017 [P] [US2] Contract test for history field in MessageRequest in backend/tests/contract/test_message_api_contract.py
+- [x] T018 [P] [US2] Unit test for convert_to_langchain_messages() with history array in backend/tests/unit/test_llm_service.py
+- [x] T019 [P] [US2] Integration test for context-aware response in backend/tests/integration/test_openai_integration.py (verify history is sent to LLM)
 
 ### Implementation for User Story 2
 
-- [ ] T020 [US2] Add optional history field to MessageRequest in backend/src/schemas.py (list of {sender, text} objects)
-- [ ] T021 [US2] Add history validation (sender must be user/system, text non-empty) in backend/src/schemas.py
-- [ ] T022 [US2] Extend convert_to_langchain_messages() to handle history array in backend/src/services/llm_service.py
-- [ ] T023 [US2] Update get_ai_response() to accept and process history in backend/src/services/llm_service.py
-- [ ] T024 [US2] Update send_message() to pass history to LLM service in backend/src/api/routes/messages.py
-- [ ] T025 [US2] Update frontend apiClient.sendMessage() to include history from conversation in frontend/src/services/apiClient.js
-- [ ] T026 [US2] Update useMessages.sendUserMessage() to gather and send history in frontend/src/state/useMessages.js
-- [ ] T027 [US2] Verify context is maintained for 10+ message exchanges (SC-002)
+- [x] T020 [US2] Add optional history field to MessageRequest in backend/src/schemas.py (list of {sender, text} objects)
+- [x] T021 [US2] Add history validation (sender must be user/system, text non-empty) in backend/src/schemas.py
+- [x] T022 [US2] Extend convert_to_langchain_messages() to handle history array in backend/src/services/llm_service.py
+- [x] T023 [US2] Update get_ai_response() to accept and process history in backend/src/services/llm_service.py
+- [x] T024 [US2] Update send_message() to pass history to LLM service in backend/src/api/routes/messages.py
+- [x] T025 [US2] Update frontend apiClient.sendMessage() to include history from conversation in frontend/src/services/apiClient.js
+- [x] T026 [US2] Update useMessages.sendUserMessage() to gather and send history in frontend/src/state/useMessages.js
+- [x] T027 [US2] Verify context is maintained for 10+ message exchanges (SC-002)
 
 **Checkpoint**: Multi-turn conversations work with context - User Stories 1 AND 2 complete
 
