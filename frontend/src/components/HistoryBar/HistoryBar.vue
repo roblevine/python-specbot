@@ -171,22 +171,30 @@ export default {
 .new-conversation-btn {
   width: 100%;
   padding: var(--spacing-sm) var(--spacing-md);
-  background-color: var(--color-primary);
-  color: white;
-  border: none;
-  border-radius: 4px;
+  background-color: var(--color-grey-surface);
+  color: var(--color-grey-text-primary);
+  border: 1px solid var(--color-grey-border);
+  border-radius: var(--border-radius-md);
   cursor: pointer;
   font-size: var(--font-size-sm);
   font-weight: 500;
-  transition: background-color 0.2s;
+  transition: all 200ms ease;
+  box-shadow: var(--shadow-sm);
 }
 
 .new-conversation-btn:hover {
-  background-color: var(--color-primary-hover);
+  background-color: var(--color-blue-light);
+  border-color: var(--color-blue-primary);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.new-conversation-btn:active {
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+  transform: translateY(1px);
 }
 
 .new-conversation-btn:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-blue-primary);
   outline-offset: 2px;
 }
 

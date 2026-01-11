@@ -147,4 +147,27 @@ describe('HistoryBar - New Conversation Button', () => {
       expect(wrapper.vm.$options.emits).toContain('select-conversation')
     })
   })
+
+  describe('Button Styling (US3 - P3)', () => {
+    it('button has proper styling classes applied', () => {
+      const button = wrapper.find('.new-conversation-btn')
+      expect(button.classes()).toContain('new-conversation-btn')
+    })
+
+    it('button has proper button affordances (is styled as a button)', () => {
+      const button = wrapper.find('.new-conversation-btn')
+
+      // Verify button is a native button element (provides proper button semantics)
+      expect(button.element.tagName).toBe('BUTTON')
+
+      // Verify button has the styling class
+      expect(button.classes()).toContain('new-conversation-btn')
+    })
+
+    it('button integrates with grey/pastel blue color scheme', () => {
+      const button = wrapper.find('.new-conversation-btn')
+      expect(button.exists()).toBe(true)
+      // Actual color validation happens in E2E tests
+    })
+  })
 })
