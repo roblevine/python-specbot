@@ -225,3 +225,45 @@ async def test_get_ai_response_preserves_special_characters():
 
     # Clean up
     llm_service._llm_instance = None
+
+
+@pytest.mark.unit
+def test_convert_to_langchain_messages_with_history():
+    """
+    T018: Unit test for convert_to_langchain_messages() with conversation history.
+
+    Validates that convert_to_langchain_messages() correctly converts
+    an array of messages with sender/text fields into LangChain message types:
+    - sender: "user" → HumanMessage
+    - sender: "system" → AIMessage
+
+    Feature: 006-openai-langchain-chat User Story 2
+    Expected: FAIL (history parameter not implemented yet)
+    """
+    from src.services.llm_service import convert_to_langchain_messages
+    from langchain_core.messages import HumanMessage, AIMessage
+
+    # Test conversation history
+    history = [
+        {"sender": "user", "text": "My name is Alice"},
+        {"sender": "system", "text": "Nice to meet you, Alice!"},
+        {"sender": "user", "text": "What is my name?"}
+    ]
+
+    # Convert to LangChain messages
+    lc_messages = convert_to_langchain_messages(history)
+
+    # Verify conversion
+    assert len(lc_messages) == 3
+
+    # First message: user → HumanMessage
+    assert isinstance(lc_messages[0], HumanMessage)
+    assert lc_messages[0].content == "My name is Alice"
+
+    # Second message: system → AIMessage
+    assert isinstance(lc_messages[1], AIMessage)
+    assert lc_messages[1].content == "Nice to meet you, Alice!"
+
+    # Third message: user → HumanMessage
+    assert isinstance(lc_messages[2], HumanMessage)
+    assert lc_messages[2].content == "What is my name?"

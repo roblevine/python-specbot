@@ -256,3 +256,71 @@ async def test_single_message_ai_response_flow():
 
     # Clean up
     llm_service._llm_instance = None
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_context_aware_ai_response():
+    """
+    T019: Integration test for context-aware AI responses with conversation history.
+
+    Validates that:
+    - History array is accepted by get_ai_response()
+    - History messages are converted to LangChain format
+    - History is included in the LLM invocation
+    - AI can respond based on conversation context
+
+    Feature: 006-openai-langchain-chat User Story 2
+    Expected: FAIL (history parameter not implemented yet)
+    """
+    import src.services.llm_service as llm_service
+    from src.services.llm_service import get_ai_response
+
+    # Clear cached instance
+    llm_service._llm_instance = None
+
+    with patch.dict('os.environ', {
+        'OPENAI_API_KEY': 'test-key',
+        'OPENAI_MODEL': 'gpt-3.5-turbo'
+    }):
+        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+            # Setup mock LLM
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+
+            # Mock context-aware AI response
+            mock_response = Mock()
+            mock_response.content = "Your name is Alice, as you mentioned earlier."
+            mock_llm.ainvoke = AsyncMock(return_value=mock_response)
+
+            # Conversation history
+            history = [
+                {"sender": "user", "text": "My name is Alice"},
+                {"sender": "system", "text": "Nice to meet you, Alice!"}
+            ]
+
+            # Get AI response with history
+            ai_response = await get_ai_response(
+                message="What is my name?",
+                history=history
+            )
+
+            # Verify AI response
+            assert ai_response == "Your name is Alice, as you mentioned earlier."
+
+            # Verify LLM was invoked with history
+            mock_llm.ainvoke.assert_called_once()
+
+            # Verify history was included in the call
+            call_args = mock_llm.ainvoke.call_args
+            assert call_args is not None
+
+            # The first argument should be a list of messages
+            messages_arg = call_args[0][0]
+            assert isinstance(messages_arg, list)
+
+            # Should have 3 messages total (2 history + 1 current)
+            assert len(messages_arg) == 3
+
+    # Clean up
+    llm_service._llm_instance = None
