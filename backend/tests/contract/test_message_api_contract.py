@@ -129,41 +129,52 @@ def test_loopback_response_matches_contract(
 
     This test validates ALL fields in the response:
     - status: required enum "success"
-    - message: required string starting with "api says: "
+    - message: required string (AI response, no prefix required)
     - timestamp: required ISO-8601 date-time string
 
     CRITICAL: If this fails, backend response doesn't match contract.
     """
     import json
+    from unittest.mock import patch, AsyncMock
 
-    # Prepare request body
-    body = json.dumps(sample_message_request).encode('utf-8')
+    # Mock the LLM service to return predictable response
+    with patch('src.api.routes.messages.load_config') as mock_load_config, \
+         patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
 
-    # Make request
-    response = client.post(
-        "/api/v1/messages",
-        json=sample_message_request,
-        headers={"Content-Type": "application/json"}
-    )
+        # Mock config
+        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
 
-    # Create OpenAPI request/response objects
-    openapi_request = FastAPIOpenAPIRequest(response.request, body)
-    openapi_response = FastAPIOpenAPIResponse(response)
+        # Mock AI response
+        mock_get_ai.return_value = "This is an AI response."
 
-    # Validate response against OpenAPI spec
-    # In openapi-core 0.18.2, validate_response returns None on success, or raises on error
-    result = validate_response(openapi_request, openapi_response, spec=openapi_spec, base_url="http://localhost:8000")
+        # Prepare request body
+        body = json.dumps(sample_message_request).encode('utf-8')
 
-    # If result is None, validation passed
-    if result is not None:
-        assert not result.errors, f"Response validation errors: {[str(e) for e in result.errors]}"
+        # Make request
+        response = client.post(
+            "/api/v1/messages",
+            json=sample_message_request,
+            headers={"Content-Type": "application/json"}
+        )
 
-    # Additional assertions for success response
-    if response.status_code == 200:
-        data = response.json()
-        assert data["status"] == "success", "Response status must be 'success'"
-        assert data["message"].startswith("api says: "), f"Response message must start with 'api says: ', got: {data['message']}"
-        assert "timestamp" in data, "Response must include timestamp"
+        # Create OpenAPI request/response objects
+        openapi_request = FastAPIOpenAPIRequest(response.request, body)
+        openapi_response = FastAPIOpenAPIResponse(response)
+
+        # Validate response against OpenAPI spec
+        # In openapi-core 0.18.2, validate_response returns None on success, or raises on error
+        result = validate_response(openapi_request, openapi_response, spec=openapi_spec, base_url="http://localhost:8000")
+
+        # If result is None, validation passed
+        if result is not None:
+            assert not result.errors, f"Response validation errors: {[str(e) for e in result.errors]}"
+
+        # Additional assertions for success response
+        if response.status_code == 200:
+            data = response.json()
+            assert data["status"] == "success", "Response status must be 'success'"
+            assert len(data["message"]) > 0, "Response message cannot be empty"
+            assert "timestamp" in data, "Response must include timestamp"
 
 
 @pytest.mark.contract
@@ -330,34 +341,45 @@ def test_all_message_fields_validated(
     CRITICAL: This prevents silent schema drift between frontend and backend.
     """
     import json
+    from unittest.mock import patch, AsyncMock
 
-    # Test comprehensive valid request with ALL fields
-    full_request = {
-        "message": "Test message with all fields",
-        "conversationId": "conv-12345678-1234-1234-1234-123456789abc",
-        "timestamp": "2025-12-29T15:00:00.000Z"
-    }
+    # Mock the LLM service to return predictable response
+    with patch('src.api.routes.messages.load_config') as mock_load_config, \
+         patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
 
-    body = json.dumps(full_request).encode('utf-8')
-    response = client.post("/api/v1/messages", json=full_request)
+        # Mock config
+        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
 
-    openapi_request = FastAPIOpenAPIRequest(response.request, body)
-    openapi_response = FastAPIOpenAPIResponse(response)
+        # Mock AI response
+        mock_get_ai.return_value = "This is an AI response to your test message."
 
-    # Validate both request and response
-    request_result = validate_request(openapi_request, spec=openapi_spec, base_url="http://localhost:8000")
-    response_result = validate_response(openapi_request, openapi_response, spec=openapi_spec, base_url="http://localhost:8000")
+        # Test comprehensive valid request with ALL fields
+        full_request = {
+            "message": "Test message with all fields",
+            "conversationId": "conv-12345678-1234-1234-1234-123456789abc",
+            "timestamp": "2025-12-29T15:00:00.000Z"
+        }
 
-    if request_result is not None:
-        assert not request_result.errors, f"Request with all fields failed validation: {[str(e) for e in request_result.errors]}"
-    if response_result is not None:
-        assert not response_result.errors, f"Response validation failed: {[str(e) for e in response_result.errors]}"
+        body = json.dumps(full_request).encode('utf-8')
+        response = client.post("/api/v1/messages", json=full_request)
 
-    # Verify response content
-    data = response.json()
-    assert data["status"] == "success"
-    assert data["message"] == "api says: Test message with all fields"
-    assert "timestamp" in data
+        openapi_request = FastAPIOpenAPIRequest(response.request, body)
+        openapi_response = FastAPIOpenAPIResponse(response)
+
+        # Validate both request and response
+        request_result = validate_request(openapi_request, spec=openapi_spec, base_url="http://localhost:8000")
+        response_result = validate_response(openapi_request, openapi_response, spec=openapi_spec, base_url="http://localhost:8000")
+
+        if request_result is not None:
+            assert not request_result.errors, f"Request with all fields failed validation: {[str(e) for e in request_result.errors]}"
+        if response_result is not None:
+            assert not response_result.errors, f"Response validation failed: {[str(e) for e in response_result.errors]}"
+
+        # Verify response content
+        data = response.json()
+        assert data["status"] == "success"
+        assert len(data["message"]) > 0, "Response message cannot be empty"
+        assert "timestamp" in data
 
 
 @pytest.mark.contract

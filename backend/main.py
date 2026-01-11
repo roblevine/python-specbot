@@ -30,6 +30,7 @@ logger = get_logger(__name__)
 API_HOST = os.getenv("API_HOST", "0.0.0.0")
 API_PORT = int(os.getenv("API_PORT", "8000"))
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+DEBUG = os.getenv("DEBUG", "false").lower() in ("true", "1", "yes")
 
 
 @asynccontextmanager
@@ -38,6 +39,11 @@ async def lifespan(app: FastAPI):
     logger.info("Starting SpecBot Backend API Server")
     logger.info(f"Server configuration: host={API_HOST}, port={API_PORT}")
     logger.info(f"CORS allowed origins: {FRONTEND_URL}")
+    if DEBUG:
+        logger.warning("⚠️  DEBUG MODE ENABLED - Detailed error messages will be exposed in API responses")
+        logger.warning("⚠️  Never use DEBUG mode in production!")
+    else:
+        logger.info("DEBUG mode disabled - Error details will be hidden in API responses")
     yield
     logger.info("Shutting down SpecBot Backend API Server")
 

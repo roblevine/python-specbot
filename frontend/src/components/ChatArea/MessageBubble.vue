@@ -261,7 +261,8 @@ export default {
 .error-details {
   margin-top: var(--spacing-sm);
   padding: var(--spacing-sm);
-  background-color: rgba(239, 68, 68, 0.05);
+  background-color: white;
+  border: 1px solid var(--color-error);
   border-left: 3px solid var(--color-error);
   border-radius: var(--border-radius-sm);
   font-size: var(--font-size-sm);
@@ -276,9 +277,10 @@ export default {
 .error-stack {
   font-family: 'Courier New', Courier, monospace;
   font-size: var(--font-size-xs);
-  color: var(--color-text-secondary);
-  background-color: rgba(0, 0, 0, 0.05);
+  color: #000000;
+  background-color: #ffffff;
   padding: var(--spacing-sm);
+  border: 1px solid #e0e0e0;
   border-radius: var(--border-radius-sm);
   max-height: 200px;
   overflow-y: auto;
