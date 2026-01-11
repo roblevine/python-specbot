@@ -7,7 +7,9 @@ Feature: 006-openai-langchain-chat User Story 1
 Tasks: T014, T015
 """
 
+import os
 import time
+import traceback
 from datetime import datetime
 from typing import Union
 
@@ -23,6 +25,9 @@ logger = get_logger(__name__)
 
 # Create router
 router = APIRouter(tags=["messages"])
+
+# Debug mode configuration
+DEBUG = os.getenv("DEBUG", "false").lower() in ("true", "1", "yes")
 
 
 @router.post(
@@ -146,11 +151,23 @@ async def send_message(request: MessageRequest) -> MessageResponse:
         # T036: Handle unexpected errors (500 Internal Server Error)
         logger.error(f"Unexpected error processing message: {e}", exc_info=True)
 
+        # Build error detail based on debug mode
+        error_detail = {
+            "status": "error",
+            "error": "Internal server error occurred",
+            "timestamp": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
+        }
+
+        # In debug mode, include detailed error information
+        if DEBUG:
+            error_detail["debug_info"] = {
+                "error_type": type(e).__name__,
+                "error_message": str(e),
+                "traceback": traceback.format_exc()
+            }
+            logger.warning("DEBUG mode enabled - exposing detailed error information in API response")
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "status": "error",
-                "error": "Internal server error occurred",
-                "timestamp": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
-            }
+            detail=error_detail
         )
