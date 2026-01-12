@@ -1,5 +1,5 @@
 <template>
-  <div class="model-selector">
+  <div class="model-selector" role="group" aria-label="AI Model Selection">
     <label for="model-select" class="model-selector__label">
       Model:
     </label>
@@ -9,6 +9,10 @@
       class="model-selector__select"
       @change="handleModelChange"
       :disabled="isLoading || availableModels.length === 0"
+      :aria-label="isLoading ? 'Loading available models' : 'Select AI model for conversation'"
+      :aria-busy="isLoading"
+      :aria-invalid="error ? 'true' : 'false'"
+      :aria-describedby="error ? 'model-error' : undefined"
     >
       <option v-if="isLoading" value="">Loading models...</option>
       <option v-else-if="error" value="">Error loading models</option>
@@ -18,11 +22,18 @@
         :key="model.id"
         :value="model.id"
         class="model-selector__option"
+        :aria-label="`${model.name}: ${model.description}`"
       >
         {{ model.name }} — {{ model.description }}
       </option>
     </select>
-    <div v-if="error" class="model-selector__error">
+    <div
+      v-if="error"
+      id="model-error"
+      class="model-selector__error"
+      role="alert"
+      aria-live="polite"
+    >
       {{ error }}
     </div>
   </div>

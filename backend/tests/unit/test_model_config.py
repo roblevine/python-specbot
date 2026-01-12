@@ -18,7 +18,8 @@ from src.config.models import (
     load_model_configuration,
     get_default_model,
     validate_model_id,
-    get_model_by_id
+    get_model_by_id,
+    ModelConfigurationError
 )
 
 
@@ -267,7 +268,7 @@ class TestLoadModelConfiguration:
         """Test that invalid JSON in OPENAI_MODELS raises error."""
         monkeypatch.setenv('OPENAI_MODELS', 'not valid json')
 
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ModelConfigurationError) as exc_info:
             load_model_configuration()
 
         assert "Invalid JSON in OPENAI_MODELS" in str(exc_info.value)
@@ -276,7 +277,7 @@ class TestLoadModelConfiguration:
         """Test that non-array JSON is rejected."""
         monkeypatch.setenv('OPENAI_MODELS', '{"not": "an array"}')
 
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ModelConfigurationError) as exc_info:
             load_model_configuration()
 
         assert "OPENAI_MODELS must be a JSON array" in str(exc_info.value)

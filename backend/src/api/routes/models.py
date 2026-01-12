@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 from typing import List
 import logging
 
-from src.config.models import load_model_configuration, ModelsConfiguration
+from src.config.models import load_model_configuration, ModelsConfiguration, ModelConfigurationError
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -63,8 +63,14 @@ async def list_models() -> ModelsResponse:
 
         return ModelsResponse(models=model_infos)
 
-    except (ValueError, Exception) as e:
-        logger.error(f"Failed to load model configuration: {e}")
+    except ModelConfigurationError as e:
+        logger.error(f"Model configuration error: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail=f"Service unavailable: {str(e)}"
+        ) from e
+    except Exception as e:
+        logger.error(f"Unexpected error loading model configuration: {e}")
         raise HTTPException(
             status_code=503,
             detail=f"Service unavailable: Unable to load model configuration. {str(e)}"

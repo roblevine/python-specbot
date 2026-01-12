@@ -39,13 +39,29 @@ export function useModels() {
         throw new Error('Invalid models response format')
       }
 
+      if (data.models.length === 0) {
+        throw new Error('No models configured on the server')
+      }
+
       availableModels.value = data.models
       console.log(`Loaded ${data.models.length} models:`, data.models.map(m => m.id))
 
       return data.models
     } catch (err) {
       console.error('Failed to fetch models:', err)
-      error.value = err.message
+
+      // T050: Provide user-friendly error messages
+      let userMessage = 'Unable to load available models'
+
+      if (err.message.includes('fetch') || err.message.includes('network')) {
+        userMessage = 'Network error: Unable to connect to server'
+      } else if (err.message.includes('503') || err.message.includes('Service unavailable')) {
+        userMessage = 'Server configuration error: Models not available'
+      } else if (err.message.includes('configured')) {
+        userMessage = 'No models configured on the server'
+      }
+
+      error.value = userMessage
       throw err
     } finally {
       isLoading.value = false
@@ -151,7 +167,11 @@ export function useModels() {
       }
     } catch (err) {
       console.error('Failed to initialize models:', err)
-      error.value = err.message
+      // Error message already set by fetchModels
+      // T050: Ensure error state is visible to user
+      if (!error.value) {
+        error.value = 'Unable to initialize model selection'
+      }
     }
   }
 

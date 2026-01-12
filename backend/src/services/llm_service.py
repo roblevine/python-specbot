@@ -23,7 +23,8 @@ from src.utils.logger import get_logger
 from src.config.models import (
     load_model_configuration,
     get_default_model,
-    validate_model_id
+    validate_model_id,
+    ModelConfigurationError
 )
 
 logger = get_logger(__name__)
@@ -274,19 +275,22 @@ async def get_ai_response(
         # Load model configuration (T022)
         config = load_model_configuration()
 
-        # Determine which model to use (T021)
-        model_to_use = model if model else get_default_model(config)
+        # Determine which model to use (T021, T047)
+        if model:
+            model_to_use = model
+            logger.info(f"User-selected model: {model_to_use}")
+        else:
+            model_to_use = get_default_model(config)
+            logger.info(f"Using default model: {model_to_use}")
 
         # Validate model against configuration (T022)
         if not validate_model_id(model_to_use, config):
             available_models = [m.id for m in config.models]
-            logger.error(f"Invalid model requested: {model_to_use}")
+            logger.error(f"Invalid model requested: {model_to_use}. Available: {', '.join(available_models)}")
             raise ValueError(
                 f"Invalid model: {model_to_use}. "
                 f"Available models: {', '.join(available_models)}"
             )
-
-        logger.info(f"Using model: {model_to_use}")
 
         # Load API key
         api_key = os.getenv('OPENAI_API_KEY')

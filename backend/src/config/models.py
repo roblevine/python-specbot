@@ -11,6 +11,18 @@ from typing import List, Optional
 from pydantic import BaseModel, Field, field_validator
 
 
+class ModelConfigurationError(Exception):
+    """Custom exception for model configuration errors with helpful context."""
+
+    def __init__(self, message: str, help_text: Optional[str] = None):
+        self.message = message
+        self.help_text = help_text
+        full_message = message
+        if help_text:
+            full_message = f"{message}\n\nHow to fix:\n{help_text}"
+        super().__init__(full_message)
+
+
 class ModelConfig(BaseModel):
     """Configuration for a single OpenAI model."""
 
@@ -83,8 +95,7 @@ def load_model_configuration() -> ModelsConfiguration:
         ModelsConfiguration: Validated model configuration
 
     Raises:
-        ValueError: If configuration is invalid or missing
-        json.JSONDecodeError: If OPENAI_MODELS is not valid JSON
+        ModelConfigurationError: If configuration is invalid or missing
     """
     # Try OPENAI_MODELS first (multi-model configuration)
     openai_models_env = os.getenv('OPENAI_MODELS')
@@ -92,12 +103,35 @@ def load_model_configuration() -> ModelsConfiguration:
         try:
             models_data = json.loads(openai_models_env)
             if not isinstance(models_data, list):
-                raise ValueError("OPENAI_MODELS must be a JSON array")
+                raise ModelConfigurationError(
+                    "OPENAI_MODELS must be a JSON array",
+                    "Set OPENAI_MODELS to a JSON array: '[{\"id\": \"gpt-4\", \"name\": \"GPT-4\", "
+                    "\"description\": \"Most capable\", \"default\": true}]'"
+                )
 
-            models = [ModelConfig(**model_data) for model_data in models_data]
-            return ModelsConfiguration(models=models)
+            if len(models_data) == 0:
+                raise ModelConfigurationError(
+                    "OPENAI_MODELS cannot be an empty array",
+                    "Add at least one model to the array, or unset OPENAI_MODELS to use OPENAI_MODEL fallback"
+                )
+
+            try:
+                models = [ModelConfig(**model_data) for model_data in models_data]
+                return ModelsConfiguration(models=models)
+            except ValueError as e:
+                # Re-raise pydantic validation errors with context
+                raise ModelConfigurationError(
+                    f"Invalid model configuration in OPENAI_MODELS: {str(e)}",
+                    "Each model must have: id (string), name (string), description (string), "
+                    "default (boolean). Exactly one model must have default=true."
+                ) from e
+
         except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON in OPENAI_MODELS: {e}") from e
+            raise ModelConfigurationError(
+                f"Invalid JSON in OPENAI_MODELS: {str(e)}",
+                "Ensure OPENAI_MODELS contains valid JSON. Example: "
+                "'[{\"id\": \"gpt-4\", \"name\": \"GPT-4\", \"description\": \"Most capable\", \"default\": true}]'"
+            ) from e
 
     # Fallback to OPENAI_MODEL (single-model configuration)
     openai_model_env = os.getenv('OPENAI_MODEL', 'gpt-3.5-turbo')
