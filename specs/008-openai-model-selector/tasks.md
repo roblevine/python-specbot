@@ -25,10 +25,10 @@
 
 **Purpose**: Verify project structure and prepare for implementation
 
-- [ ] T001 Verify backend/frontend project structure matches plan.md
-- [ ] T002 Verify existing dependencies (FastAPI, LangChain, Vue 3, Pydantic) are installed
-- [ ] T003 [P] Create backend/src/config/ directory if not exists
-- [ ] T004 [P] Create frontend/src/components/ModelSelector/ directory
+- [X] T001 Verify backend/frontend project structure matches plan.md
+- [X] T002 Verify existing dependencies (FastAPI, LangChain, Vue 3, Pydantic) are installed
+- [X] T003 [P] Create backend/src/config/ directory if not exists
+- [X] T004 [P] Create frontend/src/components/ModelSelector/ directory
 
 ---
 
@@ -38,13 +38,13 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T005 Create model configuration schema in backend/src/config/models.py
-- [ ] T006 Implement model configuration loader with OPENAI_MODELS env var support in backend/src/config/models.py
-- [ ] T007 Add fallback to OPENAI_MODEL env var for single-model configuration in backend/src/config/models.py
-- [ ] T008 Implement GET /api/v1/models endpoint in backend/src/api/routes/models.py
-- [ ] T009 Register models router in backend/main.py
-- [ ] T010 Update StorageSchema.js to add selectedModelId field in frontend/src/storage/StorageSchema.js
-- [ ] T011 Add model configuration validation (at least one model, exactly one default) in backend/src/config/models.py
+- [X] T005 Create model configuration schema in backend/src/config/models.py
+- [X] T006 Implement model configuration loader with OPENAI_MODELS env var support in backend/src/config/models.py
+- [X] T007 Add fallback to OPENAI_MODEL env var for single-model configuration in backend/src/config/models.py
+- [X] T008 Implement GET /api/v1/models endpoint in backend/src/api/routes/models.py
+- [X] T009 Register models router in backend/main.py
+- [X] T010 Update StorageSchema.js to add selectedModelId field in frontend/src/storage/StorageSchema.js
+- [X] T011 Add model configuration validation (at least one model, exactly one default) in backend/src/config/models.py
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -60,13 +60,13 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T012 [P] [US1] Contract test for GET /api/v1/models in backend/tests/contract/test_models_api_contract.py
-- [ ] T013 [P] [US1] Contract test for POST /api/v1/messages with model field in backend/tests/contract/test_message_api_contract.py
-- [ ] T014 [P] [US1] Unit test for model configuration loader in backend/tests/unit/test_model_config.py
-- [ ] T015 [P] [US1] Unit test for LLM service with model selection in backend/tests/unit/test_llm_service.py
-- [ ] T016 [P] [US1] Unit test for ModelSelector component in frontend/src/components/ModelSelector/ModelSelector.test.js
-- [ ] T017 [US1] Integration test for model selection flow in backend/tests/integration/test_model_selection.py
-- [ ] T018 [US1] Frontend integration test for model selection in frontend/tests/integration/model-selection.test.js
+- [X] T012 [P] [US1] Contract test for GET /api/v1/models in backend/tests/contract/test_models_api_contract.py
+- [X] T013 [P] [US1] Contract test for POST /api/v1/messages with model field in backend/tests/contract/test_message_api_contract.py
+- [X] T014 [P] [US1] Unit test for model configuration loader in backend/tests/unit/test_model_config.py
+- [X] T015 [P] [US1] Unit test for LLM service with model selection in backend/tests/unit/test_llm_service.py
+- [X] T016 [P] [US1] Unit test for ModelSelector component in frontend/src/components/ModelSelector/ModelSelector.test.js
+- [X] T017 [US1] Integration test for model selection flow in backend/tests/integration/test_model_selection.py
+- [X] T018 [US1] Frontend integration test for model selection in frontend/tests/integration/model-selection.test.js
 
 ### Backend Implementation for User Story 1
 
@@ -103,13 +103,13 @@
 
 ### Tests for User Story 2
 
-- [ ] T036 [P] [US2] Unit test for ModelSelector displaying model descriptions in frontend/src/components/ModelSelector/ModelSelector.test.js
+- [X] T036 [P] [US2] Unit test for ModelSelector displaying model descriptions in frontend/src/components/ModelSelector/ModelSelector.test.js
 
 ### Implementation for User Story 2
 
-- [ ] T037 [US2] Update ModelSelector.vue to display model name and description in dropdown options in frontend/src/components/ModelSelector/ModelSelector.vue
-- [ ] T038 [US2] Add CSS styling for model descriptions (truncate if needed) in frontend/src/components/ModelSelector/ModelSelector.vue
-- [ ] T039 [US2] Add visual distinction between model name and description in ModelSelector.vue
+- [X] T037 [US2] Update ModelSelector.vue to display model name and description in dropdown options in frontend/src/components/ModelSelector/ModelSelector.vue
+- [X] T038 [US2] Add CSS styling for model descriptions (truncate if needed) in frontend/src/components/ModelSelector/ModelSelector.vue
+- [X] T039 [US2] Add visual distinction between model name and description in ModelSelector.vue
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
@@ -123,15 +123,15 @@
 
 ### Tests for User Story 3
 
-- [ ] T040 [P] [US3] Unit test for MessageBubble with model indicator in frontend/src/components/MessageBubble/MessageBubble.test.js
-- [ ] T041 [US3] E2E test for mid-conversation model change in frontend/tests/e2e/model-selection.spec.js
+- [X] T040 [P] [US3] Unit test for MessageBubble with model indicator in frontend/src/components/MessageBubble/MessageBubble.test.js
+- [X] T041 [US3] E2E test for mid-conversation model change in frontend/tests/e2e/model-change.test.js
 
 ### Implementation for User Story 3
 
-- [ ] T042 [US3] Update MessageBubble.vue to display model indicator for system messages in frontend/src/components/MessageBubble/MessageBubble.vue
-- [ ] T043 [US3] Add CSS styling for model indicator (subtle, non-intrusive) in frontend/src/components/MessageBubble/MessageBubble.vue
-- [ ] T044 [US3] Verify ModelSelector state updates trigger immediate effect on next message in useModels.js
-- [ ] T045 [US3] Ensure conversation history preserves model information per message in storage
+- [X] T042 [US3] Update MessageBubble.vue to display model indicator for system messages in frontend/src/components/MessageBubble/MessageBubble.vue
+- [X] T043 [US3] Add CSS styling for model indicator (subtle, non-intrusive) in frontend/src/components/MessageBubble/MessageBubble.vue
+- [X] T044 [US3] Verify ModelSelector state updates trigger immediate effect on next message in useModels.js
+- [X] T045 [US3] Ensure conversation history preserves model information per message in storage
 
 **Checkpoint**: All user stories should now be independently functional
 
