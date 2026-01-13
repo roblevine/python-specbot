@@ -132,13 +132,13 @@ This document breaks down the message streaming feature into atomic, executable 
 
 ### Backend - LLM Streaming Service (Test-First)
 
-- [ ] T008 [P] [US1] Write tests for stream_ai_response() in backend/tests/unit/test_llm_service.py
+- [x] T008 [P] [US1] Write tests for stream_ai_response() in backend/tests/unit/test_llm_service.py
   - Test async generator yields token chunks
   - Test LangChain astream integration with mock
   - Test conversation history passed correctly
   - Test model selection (default + custom)
   - Test empty response handling
-  - **Expected**: Tests FAIL (function doesn't exist yet)
+  - **Result**: 9 tests created, all FAILED as expected (ImportError: function doesn't exist)
 
 - [ ] T009 [US1] Implement stream_ai_response() in backend/src/services/llm_service.py
   - Create async generator function using LangChain astream()
