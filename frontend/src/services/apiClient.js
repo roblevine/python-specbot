@@ -198,6 +198,147 @@ export async function fetchModels() {
 }
 
 /**
+ * T015: Stream message with real-time token-by-token responses
+ *
+ * Uses fetch + ReadableStream to parse SSE (Server-Sent Events) format.
+ * EventSource doesn't support POST, so we use fetch with manual SSE parsing.
+ *
+ * Feature: 009-message-streaming User Story 1
+ *
+ * @param {string} messageText - The message to send
+ * @param {Function} onToken - Callback for each token: (content: string) => void
+ * @param {Function} onComplete - Callback when complete: (metadata: object) => void
+ * @param {Function} onError - Optional callback for errors: (error: object) => void
+ * @param {Array<{sender: string, text: string}>} history - Optional conversation history
+ * @param {string} model - Optional model ID to use for this request
+ * @returns {Function} cleanup - Call to abort the stream
+ */
+export function streamMessage(messageText, onToken, onComplete, onError = null, history = null, model = null) {
+  logger.debug('Starting streaming message', { messageText, historyLength: history?.length, model })
+
+  // Create request payload
+  const requestBody = {
+    message: messageText,
+    timestamp: new Date().toISOString(),
+  }
+
+  if (history && history.length > 0) {
+    requestBody.history = history
+  }
+
+  if (model) {
+    requestBody.model = model
+  }
+
+  // Create abort controller for cleanup
+  const controller = new AbortController()
+
+  // Start streaming in background (don't await)
+  const streamPromise = (async () => {
+    try {
+      // Make POST request with streaming headers
+      const response = await fetch(`${API_BASE_URL}/api/v1/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'text/event-stream',
+        },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal,
+      })
+
+      // Handle HTTP errors
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: response.statusText }))
+        logger.warn('Streaming request failed', { status: response.status, error: errorData })
+
+        if (onError) {
+          onError({
+            error: errorData.error || 'Request failed',
+            code: `HTTP_${response.status}`,
+            statusCode: response.status,
+          })
+        }
+        return
+      }
+
+      // Get readable stream reader
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder('utf-8')
+      let buffer = '' // Buffer for partial SSE events
+
+      // Read stream chunks
+      while (true) {
+        const { done, value } = await reader.read()
+
+        if (done) {
+          logger.debug('Stream completed')
+          break
+        }
+
+        // Decode chunk and add to buffer
+        buffer += decoder.decode(value, { stream: true })
+
+        // Process complete SSE events (format: "data: {...}\n\n")
+        const events = buffer.split('\n\n')
+
+        // Keep last incomplete event in buffer
+        buffer = events.pop() || ''
+
+        // Process each complete event
+        for (const eventString of events) {
+          if (!eventString.trim() || !eventString.startsWith('data: ')) {
+            continue
+          }
+
+          try {
+            // Parse JSON from SSE format
+            const jsonString = eventString.substring(6) // Remove "data: " prefix
+            const event = JSON.parse(jsonString)
+
+            // Handle different event types
+            if (event.type === 'token') {
+              onToken(event.content)
+            } else if (event.type === 'complete') {
+              onComplete(event)
+            } else if (event.type === 'error') {
+              if (onError) {
+                onError(event)
+              }
+            }
+          } catch (parseError) {
+            logger.error('Failed to parse SSE event', { eventString, error: parseError })
+          }
+        }
+      }
+    } catch (error) {
+      // Handle abort (cleanup called)
+      if (error.name === 'AbortError') {
+        logger.debug('Stream aborted by user')
+        return
+      }
+
+      // Handle network errors
+      logger.error('Streaming error', error)
+
+      if (onError) {
+        onError({
+          error: error.message || 'Network error',
+          code: 'NETWORK_ERROR',
+          originalError: error,
+        })
+      }
+    }
+  })()
+
+  // Return cleanup function
+  return () => {
+    logger.debug('Aborting stream')
+    controller.abort()
+  }
+}
+
+/**
  * Health check endpoint
  * @returns {Promise<{status: string}>}
  */

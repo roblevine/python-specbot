@@ -184,15 +184,15 @@ This document breaks down the message streaming feature into atomic, executable 
 
 ### Frontend - Streaming API Client (Test-First)
 
-- [ ] T014 [P] [US1] Write tests for streamMessage() in frontend/tests/unit/apiClient.spec.js
+- [x] T014 [P] [US1] Write tests for streamMessage() in frontend/tests/unit/apiClient.spec.js
   - Test EventSource creation with correct URL and headers
   - Test token event handling (call onToken callback)
   - Test complete event handling (call onComplete callback)
   - Test connection close on complete
   - Mock EventSource API
-  - **Expected**: Tests FAIL (function doesn't exist yet)
+  - **Result**: 13 tests created, all FAIL with "streamMessage is not a function" as expected (TDD)
 
-- [ ] T015 [P] [US1] Implement streamMessage() in frontend/src/services/apiClient.js
+- [x] T015 [P] [US1] Implement streamMessage() in frontend/src/services/apiClient.js
   - Create EventSource with POST /api/v1/messages URL
   - Note: EventSource GET only - workaround via URL params or use fetch with ReadableStream
   - Use fetch() with ReadableStream for POST support (EventSource limitation)
@@ -200,7 +200,7 @@ This document breaks down the message streaming feature into atomic, executable 
   - Handle token events → call onToken(content)
   - Handle complete events → call onComplete(metadata)
   - Return cleanup function to close connection
-  - **Expected**: Tests PASS
+  - **Result**: All 13 streamMessage tests PASS (470ms runtime), implements SSE parsing with buffering for partial events
 
 - [ ] T016 [US1] Add streaming logging to frontend/src/utils/logger.js
   - Add logStreamStart(messageText) function
