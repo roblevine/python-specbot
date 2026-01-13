@@ -157,13 +157,13 @@ This document breaks down the message streaming feature into atomic, executable 
 
 ### Backend - Streaming API Endpoint (Test-First)
 
-- [ ] T011 [US1] Write contract tests for streaming endpoint in backend/tests/contract/test_message_api_contract.py
+- [x] T011 [US1] Write contract tests for streaming endpoint in backend/tests/contract/test_message_api_contract.py
   - Test POST /api/v1/messages with Accept: text/event-stream header
   - Test SSE event sequence: multiple tokens → complete
   - Test SSE format: "data: {...}\n\n" structure
   - Test backward compatibility (Accept: application/json still works)
   - Capture SSE stream snapshot for regression testing
-  - **Expected**: Tests FAIL (streaming not implemented yet)
+  - **Result**: 10 tests created, all FAILED as expected (AttributeError: stream_ai_response not in routes)
 
 - [ ] T012 [US1] Implement streaming support in backend/src/api/routes/messages.py
   - Check Accept header (text/event-stream vs application/json)
