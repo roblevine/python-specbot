@@ -165,14 +165,14 @@ This document breaks down the message streaming feature into atomic, executable 
   - Capture SSE stream snapshot for regression testing
   - **Result**: 10 tests created, all FAILED as expected (AttributeError: stream_ai_response not in routes)
 
-- [ ] T012 [US1] Implement streaming support in backend/src/api/routes/messages.py
+- [x] T012 [US1] Implement streaming support in backend/src/api/routes/messages.py
   - Check Accept header (text/event-stream vs application/json)
   - If streaming: Return StreamingResponse with event generator
   - If not streaming: Keep existing synchronous behavior
   - Event generator: call stream_ai_response(), yield SSE events
   - Set SSE headers: Content-Type, Cache-Control, Connection, X-Accel-Buffering
   - Handle request validation (reuse existing MessageRequest schema)
-  - **Expected**: Contract tests PASS
+  - **Result**: All 8 streaming contract tests PASS, backward compatibility maintained
 
 - [ ] T013 [US1] Write integration tests for backend streaming in backend/tests/integration/test_streaming_flow.py
   - Test end-to-end streaming: request → LLM → SSE response
