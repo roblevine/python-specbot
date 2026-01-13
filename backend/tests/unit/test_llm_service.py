@@ -159,7 +159,8 @@ async def test_get_ai_response_basic_invocation():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODEL': 'gpt-3.5-turbo'
+        'OPENAI_MODEL': 'gpt-3.5-turbo',
+        'OPENAI_MODELS': ''  # Clear OPENAI_MODELS so OPENAI_MODEL fallback is used
     }):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             # Setup mock LLM
@@ -205,7 +206,8 @@ async def test_get_ai_response_preserves_special_characters():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODEL': 'gpt-3.5-turbo'
+        'OPENAI_MODEL': 'gpt-3.5-turbo',
+        'OPENAI_MODELS': ''  # Clear OPENAI_MODELS so OPENAI_MODEL fallback is used
     }):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             # Setup mock LLM
