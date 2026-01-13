@@ -61,12 +61,12 @@ This document breaks down the message streaming feature into atomic, executable 
 
 **Tasks**:
 
-- [ ] T001 Review feature specification in specs/009-message-streaming/spec.md
+- [x] T001 Review feature specification in specs/009-message-streaming/spec.md
   - Understand 3 user stories with priorities (P1, P2, P3)
   - Note acceptance scenarios for each story
   - Identify success criteria (first token <1s, 95% success rate)
 
-- [ ] T002 Review technical design documents in specs/009-message-streaming/
+- [x] T002 Review technical design documents in specs/009-message-streaming/
   - Read plan.md for technical approach (SSE, LangChain astream, EventSource)
   - Read data-model.md for entities (StreamingMessage, StreamEvent, StreamingState)
   - Read contracts/streaming-api.yaml for API specification
@@ -83,17 +83,17 @@ This document breaks down the message streaming feature into atomic, executable 
 
 **Tasks**:
 
-- [ ] T003 Verify pytest configuration supports async tests in backend/pytest.ini
+- [x] T003 Verify pytest configuration supports async tests in backend/pytest.ini
   - Confirm pytest-asyncio plugin installed
   - Add async test markers if needed
   - Document async test conventions
 
-- [ ] T004 Verify Vitest configuration supports async tests in frontend/vitest.config.js
+- [x] T004 Verify Vitest configuration supports async tests in frontend/vitest.config.js
   - Confirm async test support enabled
   - Add EventSource mock utilities if needed
   - Document frontend test conventions
 
-- [ ] T005 Review existing test utilities in backend/tests/ and frontend/tests/
+- [x] T005 Review existing test utilities in backend/tests/ and frontend/tests/
   - Identify reusable fixtures (API client, mock responses)
   - Document test helper functions
   - Plan SSE test mocking strategy
