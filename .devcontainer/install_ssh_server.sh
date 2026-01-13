@@ -19,6 +19,11 @@ sudo sed -i 's/#PubkeyAuthentication yes/PubkeyAuthentication yes/' /etc/ssh/ssh
 # Remove the HOME=/root line from /etc/environment - this screws up SSH sessions
 sudo sed -i '/^HOME=/d' /etc/environment
 
+# Set up locales (especially important for connecting via SSH from Mac)
+sudo apt install -y locales
+sudo sed -i '/en_GB.UTF-8/s/^# //g' /etc/locale.gen
+sudo locale-gen
+
 # Install host keys from environment variable
 # Note: newlines in the key are stored as | characters in .env_devcontainer
 if [ -n "$SSH_HOST_ED25519_KEY" ]; then
@@ -51,6 +56,17 @@ EOF
 
 # Enable environment processing in SSH
 sudo sed -i 's/#PermitUserEnvironment no/PermitUserEnvironment yes/' /etc/ssh/sshd_config
+
+# Set default working directory for SSH sessions
+if ! grep -q "cd /workspaces" /home/vscode/.bashrc 2>/dev/null; then
+    cat >> /home/vscode/.bashrc << 'EOF'
+
+# Default to workspace directory if it exists
+if [ -d /workspaces ] && [ "$(pwd)" = "$HOME" ]; then
+    cd /workspaces/* 2>/dev/null || true
+fi
+EOF
+fi
 
 # Ensure vscode user's .bashrc is sourced for interactive SSH sessions
 # Copy the devcontainer bash prompt setup if not already present

@@ -81,6 +81,11 @@ class MessageRequest(BaseModel):
             {"sender": "system", "text": "Nice to meet you, Alice!"}
         ]]
     )
+    model: Optional[str] = Field(
+        None,
+        description="Model ID to use for this request. If not provided, uses the configured default model.",
+        examples=["gpt-4", "gpt-3.5-turbo"]
+    )
 
     @field_validator('message')
     @classmethod
@@ -125,6 +130,11 @@ class MessageResponse(BaseModel):
         default_factory=lambda: datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z',
         description="Server-side timestamp (ISO-8601 with milliseconds)",
         examples=["2025-12-28T10:00:01.234Z"]
+    )
+    model: str = Field(
+        ...,
+        description="Model ID that generated this response",
+        examples=["gpt-4", "gpt-3.5-turbo"]
     )
 
     model_config = {

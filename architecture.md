@@ -1,7 +1,7 @@
 # SpecBot Architecture
 
-**Last Updated**: 2026-01-11
-**Current Version**: P1 + Backend API + OpenAI LangChain Chat (Feature 006 Complete)
+**Last Updated**: 2026-01-12
+**Current Version**: P1 + Backend API + OpenAI LangChain Chat + Model Selector (Features 006, 008 Complete)
 
 This document describes the current implemented architecture and planned future architecture for SpecBot.
 
@@ -48,7 +48,8 @@ SpecBot is a **full-stack AI chat application** with a Vue.js frontend and Pytho
 │  ┌─────────▼──────────────────────────────────────────────┐ │
 │  │           Browser LocalStorage (Persistence)            │ │
 │  │    - Conversations (messages, metadata, timestamps)     │ │
-│  │    - Schema Version: v1.0.0                             │ │
+│  │    - Model Selection (selectedModelId)                  │ │
+│  │    - Schema Version: v1.1.0                             │ │
 │  └─────────────────────────────────────────────────────────┘ │
 └────────────┼────────────────────────────────────────────────┘
              │
@@ -61,6 +62,7 @@ SpecBot is a **full-stack AI chat application** with a Vue.js frontend and Pytho
 │  ┌────────────────────────────────────────────────────────┐ │
 │  │                  API Routes Layer                       │ │
 │  │         POST /api/v1/messages (AI chat)                 │ │
+│  │         GET /api/v1/models (model list)                 │ │
 │  │         GET /health (health check)                      │ │
 │  └──────────────────────┬─────────────────────────────────┘ │
 │                         │                                    │
@@ -295,10 +297,11 @@ ChatArea Component (Displays AI-generated responses)
 
 ### Data Schema (Current)
 
-**LocalStorage Schema v1.0.0** (`frontend/src/storage/schema.js`)
+**LocalStorage Schema v1.1.0** (`frontend/src/storage/schema.js`)
 
 ```javascript
 {
+  version: "1.1.0",
   conversations: [
     {
       id: "uuid-v4",
@@ -310,14 +313,24 @@ ChatArea Component (Displays AI-generated responses)
           id: "uuid-v4",
           role: "user" | "system",
           content: "Message text",
-          timestamp: "ISO-8601 timestamp"
+          timestamp: "ISO-8601 timestamp",
+          model: "gpt-4" | "gpt-3.5-turbo" | null  // Feature 008: Model used for response
         }
       ]
     }
   ],
-  schemaVersion: "1.0.0"
+  activeConversationId: "uuid-v4" | null,
+  selectedModelId: "gpt-4" | "gpt-3.5-turbo" | null,  // Feature 008: Currently selected model
+  preferences: {
+    sidebarCollapsed: boolean  // Feature 007: UI preference
+  }
 }
 ```
+
+**Schema Migration**: v1.0.0 → v1.1.0
+- Added `selectedModelId` field for model selection persistence
+- Added `model` field to messages to track which model generated each response
+- Added `preferences` object for UI state persistence
 
 ---
 
@@ -691,6 +704,136 @@ ChatArea Component (Live Update)
 - Message flow: Frontend → API Route → LLM Service → OpenAI ChatGPT → LLM Service → API Route → Frontend
 - Error responses use JSONResponse (not HTTPException) to match OpenAPI contract structure
 - Conversation history stored in frontend LocalStorage, passed to backend on each request
+
+---
+
+### ADR-008: Model Selector with Per-Request Model Selection
+
+**Date**: 2026-01-12
+**Status**: ✅ Implemented (Feature 008)
+
+**Context**: Users need the ability to select different OpenAI models (GPT-4, GPT-3.5-turbo) for different conversations and see which model generated each response.
+
+**Decision**: Implement a model selection system with:
+- Backend: Pydantic-based model configuration, GET /api/v1/models endpoint, per-request model parameter
+- Frontend: ModelSelector dropdown component, useModels composable, model indicators on messages
+- Persistence: localStorage v1.1.0 schema with selectedModelId and per-message model tracking
+
+**Alternatives Considered**:
+1. **Server-side model switching** - User account on backend with model preference. Rejected: requires authentication, not needed for MVP
+2. **Hardcoded single model** - Simplest approach. Rejected: inflexible, can't test different models
+3. **Per-request model selection** - Selected option: stateless backend, flexible, supports future multi-model conversations
+
+**Rationale**:
+- **Stateless Backend** (Principle II): Model passed per-request, no server-side session state
+- **Configuration-Driven**: OPENAI_MODELS env var defines available models with descriptions
+- **User Experience**: Clear model information (descriptions), visual indicators showing which model generated each response
+- **Accessibility**: Full ARIA labels and keyboard navigation support
+- **Error Handling**: Comprehensive validation, user-friendly error messages with "How to fix" guidance
+- **Test Coverage**: 285 total tests (93 backend + 192 frontend), 100% pass rate
+
+**Implementation Details**:
+- **Backend Configuration** (`backend/src/config/models.py`):
+  - Pydantic-based model validation (ModelConfig, ModelsConfiguration)
+  - Custom ModelConfigurationError with contextual help messages
+  - Support for both OPENAI_MODELS (multi-model JSON array) and OPENAI_MODEL (single model fallback)
+  - Validates: non-empty models, exactly one default, unique IDs, required fields
+
+- **Backend API** (`backend/src/api/routes/models.py`):
+  - GET /api/v1/models returns list of available models with id, name, description, default
+  - Caches configuration per-request (stateless, re-reads on each request)
+  - Error handling: 503 Service Unavailable if configuration invalid
+
+- **Backend LLM Integration** (`backend/src/services/llm_service.py`):
+  - Optional `model` parameter in get_ai_response()
+  - Validates model against configuration
+  - Logs model selection events (user-selected vs default)
+  - Returns tuple: (response, model_used) to track which model was actually used
+
+- **Frontend State Management** (`frontend/src/state/useModels.js`):
+  - useModels() composable manages model selection state
+  - Fetches available models from backend on initialization
+  - Persists selected model to localStorage
+  - Validates stored model still available on load (graceful fallback to default)
+
+- **Frontend UI** (`frontend/src/components/ModelSelector/ModelSelector.vue`):
+  - Dropdown shows model name and description (e.g., "GPT-4 — Most capable model")
+  - Loading state while fetching models
+  - Error state with user-friendly messages
+  - Accessibility: ARIA labels, keyboard navigation, screen reader support
+
+- **Frontend Message Display** (`frontend/src/components/ChatArea/MessageBubble.vue`):
+  - Model indicator on system messages showing which model generated the response
+  - Subtle styling (italic, low opacity) to be non-intrusive
+  - Enables users to compare model responses in same conversation
+
+**Model Selection Flow**:
+```
+App Load
+  │
+  ├─► useModels.initializeModels()
+  │   ├─► GET /api/v1/models (fetch available models)
+  │   ├─► Load selectedModelId from localStorage
+  │   ├─► Validate stored model still available
+  │   └─► Fallback to default if invalid
+  │
+User Selects Model
+  │
+  ├─► ModelSelector.handleModelChange()
+  │   ├─► useModels.setSelectedModel(modelId)
+  │   └─► Save to localStorage
+  │
+User Sends Message
+  │
+  ├─► useMessages.sendMessage()
+  │   ├─► Include selectedModelId in request
+  │   └─► POST /api/v1/messages { message, model: "gpt-4", history }
+  │
+Backend Processes
+  │
+  ├─► messages.send_message()
+  │   ├─► Load model configuration
+  │   ├─► Validate requested model
+  │   └─► get_ai_response(message, history, model="gpt-4")
+  │
+Backend Returns
+  │
+  ├─► MessageResponse { message, model: "gpt-4", ... }
+  │
+Frontend Displays
+  │
+  └─► MessageBubble shows response with model indicator: "gpt-4"
+```
+
+**Consequences**:
+- ✅ Users can select GPT-4, GPT-3.5-turbo, or other configured models
+- ✅ Each message shows which model generated it (transparent AI interaction)
+- ✅ Model selection persists across page reloads
+- ✅ Backend validates model requests, fallbacks to default for invalid models
+- ✅ Configuration-driven: add new models via OPENAI_MODELS env var (no code changes)
+- ✅ Comprehensive error handling with helpful "How to fix" messages
+- ✅ Full accessibility support (ARIA labels, keyboard navigation)
+- ✅ 285 tests passing (100% coverage)
+- ⚠️ Model switching mid-conversation possible (can be confusing, but also powerful for A/B testing responses)
+
+**Architecture Impact**:
+- New model configuration layer in backend (`src/config/models.py`)
+- New models API endpoint (`GET /api/v1/models`)
+- Extended message API to accept optional `model` parameter
+- LocalStorage schema upgraded to v1.1.0 with `selectedModelId` and per-message `model` fields
+- LLM service now returns tuple: (response, model_used) instead of just response
+
+**Configuration Example** (`.env`):
+```bash
+# Single model (simple setup)
+OPENAI_MODEL=gpt-3.5-turbo
+
+# Multi-model (enables model selector)
+OPENAI_MODELS='[
+  {"id": "gpt-4", "name": "GPT-4", "description": "Most capable model", "default": true},
+  {"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": false}
+]'
+```
 
 ---
 

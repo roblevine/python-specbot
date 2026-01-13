@@ -44,6 +44,7 @@ describe('StorageSchema', () => {
         },
       ],
       activeConversationId: 'conv-550e8400-e29b-41d4-a716-446655440000',
+      selectedModelId: null,
       preferences: {
         sidebarCollapsed: false,
       },

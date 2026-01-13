@@ -1,0 +1,252 @@
+# OpenAPI Specification Additions for Model Selector
+# Feature: 008-openai-model-selector
+# This file documents API contract changes to be merged with existing openapi.yaml
+
+openapi: 3.0.3
+info:
+  title: SpecBot Chat API - Model Selector Extensions
+  version: 1.1.0
+  description: |
+    API contract extensions for the OpenAI Model Selector feature.
+    These additions extend the existing /api/v1/messages endpoint
+    and add a new /api/v1/models endpoint.
+
+paths:
+  /api/v1/models:
+    get:
+      summary: List available models
+      description: |
+        Returns the list of available OpenAI models configured in the system.
+        Frontend uses this to populate the model selector dropdown.
+      operationId: listModels
+      tags:
+        - Models
+      responses:
+        '200':
+          description: List of available models
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelsResponse'
+              example:
+                models:
+                  - id: gpt-4
+                    name: GPT-4
+                    description: Most capable model for complex tasks
+                    default: false
+                  - id: gpt-3.5-turbo
+                    name: GPT-3.5 Turbo
+                    description: Fast and efficient for most tasks
+                    default: true
+        '503':
+          description: Service unavailable (no models configured)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/messages:
+    post:
+      summary: Send a message (extended with model selection)
+      description: |
+        Send a user message to the AI and receive a response.
+        Extended to support model selection per request.
+      operationId: sendMessage
+      tags:
+        - Messages
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageRequest'
+            examples:
+              withModel:
+                summary: Request with model selection
+                value:
+                  message: "Hello, how are you?"
+                  model: "gpt-4"
+                  conversationId: "conv-a1b2c3d4-5678-90ab-cdef-123456789abc"
+              withoutModel:
+                summary: Request using default model
+                value:
+                  message: "Hello, how are you?"
+                  conversationId: "conv-a1b2c3d4-5678-90ab-cdef-123456789abc"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                status: success
+                message: "Hello! I'm doing well, thank you for asking."
+                timestamp: "2026-01-11T12:00:00.000Z"
+                model: "gpt-4"
+        '400':
+          description: Bad request (validation error or invalid model)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidModel:
+                  summary: Invalid model ID
+                  value:
+                    status: error
+                    error: "Invalid model: gpt-5. Available models: gpt-4, gpt-3.5-turbo"
+                    timestamp: "2026-01-11T12:00:00.000Z"
+                emptyMessage:
+                  summary: Empty message
+                  value:
+                    status: error
+                    error: "Message cannot be empty"
+                    timestamp: "2026-01-11T12:00:00.000Z"
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    # New schemas for model selector
+    ModelInfo:
+      type: object
+      description: Information about an available model
+      required:
+        - id
+        - name
+        - description
+        - default
+      properties:
+        id:
+          type: string
+          description: Model identifier for API requests
+          example: gpt-4
+        name:
+          type: string
+          description: Human-readable display name
+          example: GPT-4
+        description:
+          type: string
+          description: Brief description of model characteristics
+          example: Most capable model for complex tasks
+        default:
+          type: boolean
+          description: Whether this is the default model
+          example: false
+
+    ModelsResponse:
+      type: object
+      description: Response containing available models
+      required:
+        - models
+      properties:
+        models:
+          type: array
+          description: List of available models
+          items:
+            $ref: '#/components/schemas/ModelInfo'
+          minItems: 1
+
+    # Extended schemas (additions to existing)
+    MessageRequest:
+      type: object
+      description: Request payload for sending a message
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: User message text
+          minLength: 1
+          maxLength: 10000
+          example: Hello world
+        conversationId:
+          type: string
+          description: Optional conversation ID
+          pattern: '^conv-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$'
+          example: conv-a1b2c3d4-5678-90ab-cdef-123456789abc
+        timestamp:
+          type: string
+          description: Client-side timestamp (ISO-8601)
+          example: "2026-01-11T10:00:00.000Z"
+        history:
+          type: array
+          description: Optional conversation history for context
+          items:
+            $ref: '#/components/schemas/HistoryMessage'
+        model:
+          type: string
+          description: |
+            Model ID to use for this request.
+            If not provided, uses the configured default model.
+            Must be a valid model ID from /api/v1/models.
+          example: gpt-4
+
+    HistoryMessage:
+      type: object
+      description: Individual message in conversation history
+      required:
+        - sender
+        - text
+      properties:
+        sender:
+          type: string
+          enum: [user, system]
+          description: Message sender type
+        text:
+          type: string
+          minLength: 1
+          description: Message content
+
+    MessageResponse:
+      type: object
+      description: Response payload for successful message
+      required:
+        - status
+        - message
+        - timestamp
+        - model
+      properties:
+        status:
+          type: string
+          enum: [success]
+          description: Response status
+        message:
+          type: string
+          description: AI-generated response text
+        timestamp:
+          type: string
+          description: Server-side timestamp (ISO-8601)
+          example: "2026-01-11T10:00:01.234Z"
+        model:
+          type: string
+          description: Model ID that generated this response
+          example: gpt-4
+
+    ErrorResponse:
+      type: object
+      description: Response payload for errors
+      required:
+        - status
+        - error
+        - timestamp
+      properties:
+        status:
+          type: string
+          enum: [error]
+          description: Response status
+        error:
+          type: string
+          description: Human-readable error message
+        detail:
+          type: object
+          description: Additional error context
+          additionalProperties: true
+        timestamp:
+          type: string
+          description: Server-side timestamp (ISO-8601)

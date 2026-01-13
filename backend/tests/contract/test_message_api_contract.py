@@ -145,7 +145,7 @@ def test_loopback_response_matches_contract(
         mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
 
         # Mock AI response
-        mock_get_ai.return_value = "This is an AI response."
+        mock_get_ai.return_value = ("This is an AI response.", "gpt-3.5-turbo")
 
         # Prepare request body
         body = json.dumps(sample_message_request).encode('utf-8')
@@ -351,7 +351,7 @@ def test_all_message_fields_validated(
         mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
 
         # Mock AI response
-        mock_get_ai.return_value = "This is an AI response to your test message."
+        mock_get_ai.return_value = ("This is an AI response to your test message.", "gpt-3.5-turbo")
 
         # Test comprehensive valid request with ALL fields
         full_request = {
@@ -411,7 +411,7 @@ def test_ai_response_matches_contract(
         mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
 
         # Mock AI response
-        mock_get_ai.return_value = "Hello! I'm doing well, thank you for asking."
+        mock_get_ai.return_value = ("Hello! I'm doing well, thank you for asking.", "gpt-3.5-turbo")
 
         # Prepare request
         request_data = {"message": "Hello, how are you?"}
@@ -585,3 +585,169 @@ def test_504_timeout_response_matches_contract(
         error_msg = data["error"].lower()
         assert "timeout" in error_msg or "timed out" in error_msg, \
             f"Timeout error message should mention timeout: {data['error']}"
+
+
+@pytest.mark.contract
+def test_message_request_with_model_field_matches_contract(
+    client: TestClient,
+    openapi_spec: Spec
+):
+    """
+    T013: Contract test for POST /api/v1/messages with model field.
+
+    Validates that MessageRequest with optional model field matches OpenAPI spec.
+    This is part of Feature 008-openai-model-selector User Story 1.
+
+    Tests:
+    - model field is optional string
+    - Valid model IDs are accepted
+    - Response includes the model that was used
+    """
+    import json
+    from unittest.mock import patch, AsyncMock
+
+    # Mock the LLM service
+    with patch('src.api.routes.messages.load_config') as mock_load_config, \
+         patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
+
+        # Mock config
+        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
+
+        # Mock AI response - return both response and model used (T013)
+        mock_get_ai.return_value = ("AI response text", "gpt-4")
+
+        # Test request with model field
+        request_data = {
+            "message": "Test message",
+            "model": "gpt-4"
+        }
+        body = json.dumps(request_data).encode('utf-8')
+
+        # Make request
+        response = client.post(
+            "/api/v1/messages",
+            json=request_data,
+            headers={"Content-Type": "application/json"}
+        )
+
+        # Create OpenAPI request/response objects
+        openapi_request = FastAPIOpenAPIRequest(response.request, body)
+        openapi_response = FastAPIOpenAPIResponse(response)
+
+        # Validate request against spec (model field should be accepted)
+        request_result = validate_request(openapi_request, spec=openapi_spec, base_url="http://localhost:8000")
+        if request_result is not None:
+            assert not request_result.errors, f"Request with model field failed validation: {[str(e) for e in request_result.errors]}"
+
+        # Validate response against spec
+        response_result = validate_response(openapi_request, openapi_response, spec=openapi_spec, base_url="http://localhost:8000")
+        if response_result is not None:
+            assert not response_result.errors, f"Response validation failed: {[str(e) for e in response_result.errors]}"
+
+        # Verify response includes model field
+        assert response.status_code == 200
+        data = response.json()
+        assert "model" in data, "Response must include model field (FR-008)"
+        assert data["model"] == "gpt-4", f"Response model should match used model, got {data['model']}"
+
+
+@pytest.mark.contract
+def test_message_request_without_model_uses_default(
+    client: TestClient,
+    openapi_spec: Spec
+):
+    """
+    T013: Validate that omitting model field uses default model.
+
+    When no model is specified, the backend should use the default model
+    from configuration and return it in the response.
+    """
+    import json
+    from unittest.mock import patch, AsyncMock
+
+    # Mock the LLM service
+    with patch('src.api.routes.messages.load_config') as mock_load_config, \
+         patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
+
+        # Mock config with default model
+        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
+
+        # Mock AI response - returns default model when not specified
+        mock_get_ai.return_value = ("AI response text", "gpt-3.5-turbo")
+
+        # Test request WITHOUT model field
+        request_data = {
+            "message": "Test message"
+        }
+        body = json.dumps(request_data).encode('utf-8')
+
+        # Make request
+        response = client.post(
+            "/api/v1/messages",
+            json=request_data,
+            headers={"Content-Type": "application/json"}
+        )
+
+        # Validate response
+        assert response.status_code == 200
+        data = response.json()
+
+        # Verify default model was used
+        assert "model" in data, "Response must include model field"
+        assert len(data["model"]) > 0, "Model field cannot be empty"
+
+
+@pytest.mark.contract
+def test_invalid_model_id_returns_error(
+    client: TestClient,
+    openapi_spec: Spec
+):
+    """
+    T013: Validate that invalid model ID returns appropriate error.
+
+    When a non-existent model is specified, the backend should reject
+    the request with a validation error.
+    """
+    import json
+    from unittest.mock import patch, AsyncMock
+
+    # Mock the LLM service
+    with patch('src.api.routes.messages.load_config') as mock_load_config, \
+         patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
+
+        # Mock config
+        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
+
+        # Mock AI response to raise ValueError for invalid model
+        mock_get_ai.side_effect = ValueError("Invalid model: nonexistent-model")
+
+        # Test request with invalid model
+        request_data = {
+            "message": "Test message",
+            "model": "nonexistent-model"
+        }
+
+        # Make request
+        response = client.post(
+            "/api/v1/messages",
+            json=request_data,
+            headers={"Content-Type": "application/json"}
+        )
+
+        # Should return 400 error for invalid model
+        assert response.status_code == 400
+        data = response.json()
+
+        # Check for error in either top-level or detail wrapper
+        error_message = ""
+        if "error" in data:
+            error_message = data["error"]
+        elif "detail" in data:
+            if isinstance(data["detail"], dict) and "error" in data["detail"]:
+                error_message = data["detail"]["error"]
+            elif isinstance(data["detail"], str):
+                error_message = data["detail"]
+
+        assert len(error_message) > 0, "Error response must include error message"
+        assert "model" in error_message.lower() or "invalid" in error_message.lower(), \
+            f"Error should mention model or invalid, got: {error_message}"

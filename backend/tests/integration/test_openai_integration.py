@@ -240,12 +240,13 @@ async def test_single_message_ai_response_flow():
 
             # Process message through AI service
             user_message = "Hello, how are you?"
-            ai_response = await get_ai_response(user_message)
+            ai_response, model_used = await get_ai_response(user_message)
 
             # Verify AI response
             assert ai_response == "Hello! I'm an AI assistant. How can I help you today?"
             assert not ai_response.startswith("api says: "), \
                 "AI response should not have loopback prefix"
+            assert model_used  # Verify model is returned
 
             # Verify LLM was invoked
             mock_llm.ainvoke.assert_called_once()

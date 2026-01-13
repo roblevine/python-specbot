@@ -34,7 +34,7 @@ def test_send_message_receives_loopback_response(
          patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
 
         mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
-        mock_get_ai.return_value = "This is an AI response."
+        mock_get_ai.return_value = ("This is an AI response.", "gpt-3.5-turbo")
 
         # Send message
         response = client.post("/api/v1/messages", json=sample_message_request)
@@ -69,7 +69,7 @@ def test_loopback_preserves_special_characters(
          patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
 
         mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
-        mock_get_ai.return_value = "AI response with special chars: 🚀 世界"
+        mock_get_ai.return_value = ("AI response with special chars: 🚀 世界", "gpt-3.5-turbo")
 
         # Send message with special characters
         response = client.post("/api/v1/messages", json=sample_message_special_chars)
@@ -102,7 +102,7 @@ def test_loopback_response_time_under_2_seconds(
          patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
 
         mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
-        mock_get_ai.return_value = "Quick AI response."
+        mock_get_ai.return_value = ("Quick AI response.", "gpt-3.5-turbo")
 
         # Measure response time
         start_time = time.time()
@@ -146,7 +146,7 @@ def test_multiple_messages_in_sequence(client: TestClient):
 
         for i, msg in enumerate(messages):
             # Set different AI response for each message
-            mock_get_ai.return_value = f"AI response #{i+1}"
+            mock_get_ai.return_value = (f"AI response #{i+1}", "gpt-3.5-turbo")
 
             # Send message
             response = client.post("/api/v1/messages", json={"message": msg})
@@ -171,7 +171,7 @@ def test_minimal_message_request(client: TestClient):
          patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
 
         mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
-        mock_get_ai.return_value = "AI response to minimal request."
+        mock_get_ai.return_value = ("AI response to minimal request.", "gpt-3.5-turbo")
 
         response = client.post("/api/v1/messages", json={"message": "Test"})
 
@@ -193,7 +193,7 @@ def test_message_with_conversation_id(client: TestClient):
          patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
 
         mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
-        mock_get_ai.return_value = "AI response with conversation context."
+        mock_get_ai.return_value = ("AI response with conversation context.", "gpt-3.5-turbo")
 
         request_data = {
             "message": "Test with conversation ID",
@@ -222,7 +222,7 @@ def test_multiline_message_preserved(client: TestClient):
          patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
 
         mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
-        mock_get_ai.return_value = "AI response to multiline message."
+        mock_get_ai.return_value = ("AI response to multiline message.", "gpt-3.5-turbo")
 
         multiline_message = "Line 1\nLine 2\nLine 3\n\nLine 5 after blank"
 
