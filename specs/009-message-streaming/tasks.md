@@ -231,17 +231,17 @@ This document breaks down the message streaming feature into atomic, executable 
 
 ### Frontend - UI Components (Test-First)
 
-- [ ] T019 [P] [US1] Write tests for streaming message display in frontend/tests/unit/MessageBubble.spec.js
+- [x] T019 [P] [US1] Write tests for streaming message display in frontend/tests/unit/MessageBubble.spec.js
   - Test displays streamingMessage when streaming=true
   - Test text updates reactively as tokens append
   - Test shows completed message when streaming=false
-  - **Expected**: Tests FAIL (streaming support doesn't exist yet)
+  - **Result**: 9 streaming tests created, all FAIL as expected (validator rejects 'streaming' status)
 
-- [ ] T020 [P] [US1] Update MessageBubble in frontend/src/components/ChatArea/MessageBubble.vue
+- [x] T020 [P] [US1] Update MessageBubble in frontend/src/components/ChatArea/MessageBubble.vue
   - Accept streaming prop (boolean)
   - Render message.text reactively (updates on each token)
   - Apply streaming-specific CSS class when streaming=true
-  - **Expected**: Tests PASS, tokens appear progressively
+  - **Result**: All 27 tests PASS (118ms), added streaming status validation, message-streaming class, animated cursor indicator
 
 - [ ] T021 [US1] Update ChatArea in frontend/src/components/ChatArea/ChatArea.vue
   - Display streamingMessage from useMessages composable
