@@ -7,13 +7,13 @@
  * - T044: Handle API response format (status, message, timestamp)
  */
 
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { generateId } from '../utils/idGenerator.js'
 import { validateMessageText } from '../utils/validators.js'
 import * as logger from '../utils/logger.js'
 import { useConversations } from './useConversations.js'
 import { useAppState } from './useAppState.js'
-import { sendMessage as apiSendMessage, ApiError } from '../services/apiClient.js'
+import { sendMessage as apiSendMessage, ApiError, streamMessage as apiStreamMessage } from '../services/apiClient.js'
 import { useModels } from './useModels.js'
 
 /**
@@ -38,6 +38,14 @@ function categorizeError(error) {
 
   return 'Network Error'
 }
+
+/**
+ * T018: Streaming state management
+ * Feature: 009-message-streaming User Story 1
+ */
+const streamingMessage = ref(null)
+const isStreaming = ref(false)
+let cleanupFunction = null
 
 export function useMessages() {
   const { activeConversation, addMessage, saveToStorage } = useConversations()
@@ -195,8 +203,156 @@ export function useMessages() {
     }
   }
 
+  /**
+   * T018: Start streaming a response
+   * @param {string} messageId - Message ID for the streaming message
+   * @param {string} model - Model being used for generation
+   */
+  function startStreaming(messageId, model = null) {
+    // Prevent starting new stream if already streaming
+    if (isStreaming.value) {
+      logger.warn('Cannot start new stream: already streaming')
+      return
+    }
+
+    const now = new Date().toISOString()
+
+    streamingMessage.value = {
+      id: messageId,
+      text: '',
+      sender: 'system',
+      timestamp: now,
+      status: 'streaming',
+      model: model,
+    }
+
+    isStreaming.value = true
+    logger.logStreamStart('Streaming response', { messageId, model })
+  }
+
+  /**
+   * T018: Append a token to the streaming message
+   * @param {string} token - Token content to append
+   */
+  function appendToken(token) {
+    if (!streamingMessage.value) {
+      logger.warn('Cannot append token: no active streaming message')
+      return
+    }
+
+    streamingMessage.value.text += token
+  }
+
+  /**
+   * T018: Complete streaming and move message to conversation
+   */
+  function completeStreaming() {
+    if (!streamingMessage.value || !activeConversation.value) {
+      logger.warn('Cannot complete streaming: no active streaming message or conversation')
+      return
+    }
+
+    // Update status to sent
+    const completedMessage = {
+      ...streamingMessage.value,
+      status: 'sent',
+    }
+
+    // Add to conversation messages
+    addMessage(activeConversation.value.id, completedMessage)
+
+    // Save to storage
+    saveToStorage()
+
+    // Clean up streaming state
+    streamingMessage.value = null
+    isStreaming.value = false
+
+    if (cleanupFunction) {
+      cleanupFunction()
+      cleanupFunction = null
+    }
+
+    logger.logStreamComplete(0, completedMessage.text.length, completedMessage.model)
+  }
+
+  /**
+   * T018: Abort streaming (user cancelled)
+   */
+  function abortStreaming() {
+    if (cleanupFunction) {
+      cleanupFunction()
+      cleanupFunction = null
+    }
+
+    streamingMessage.value = null
+    isStreaming.value = false
+
+    logger.logStreamAbort('user_cancelled')
+  }
+
+  /**
+   * T018: Handle streaming error
+   * @param {string} errorMsg - Error message
+   * @param {string} errorCode - Error code
+   */
+  function errorStreaming(errorMsg, errorCode) {
+    if (!streamingMessage.value || !activeConversation.value) {
+      logger.warn('Cannot handle streaming error: no active streaming message')
+      return
+    }
+
+    // Create error message with partial text
+    const errorMessage = {
+      ...streamingMessage.value,
+      status: 'error',
+      errorMessage: errorMsg,
+      errorType: errorCode,
+      errorTimestamp: new Date().toISOString(),
+    }
+
+    // Add error message to conversation
+    addMessage(activeConversation.value.id, errorMessage)
+
+    // Save to storage
+    saveToStorage()
+
+    // Clean up streaming state
+    streamingMessage.value = null
+    isStreaming.value = false
+
+    if (cleanupFunction) {
+      cleanupFunction()
+      cleanupFunction = null
+    }
+
+    logger.logStreamError(errorMsg, { code: errorCode })
+  }
+
+  /**
+   * T018: Reset streaming state for testing
+   * @private
+   */
+  function __resetStreamingState() {
+    streamingMessage.value = null
+    isStreaming.value = false
+    if (cleanupFunction) {
+      cleanupFunction()
+      cleanupFunction = null
+    }
+  }
+
   return {
     currentMessages,
     sendUserMessage,
+    // T018: Streaming state and functions
+    streamingMessage,
+    isStreaming,
+    startStreaming,
+    appendToken,
+    completeStreaming,
+    abortStreaming,
+    errorStreaming,
+    __resetStreamingState, // For testing
   }
 }

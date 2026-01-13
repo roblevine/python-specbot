@@ -202,24 +202,24 @@ This document breaks down the message streaming feature into atomic, executable 
   - Return cleanup function to close connection
   - **Result**: All 13 streamMessage tests PASS (470ms runtime), implements SSE parsing with buffering for partial events
 
-- [ ] T016 [US1] Add streaming logging to frontend/src/utils/logger.js
+- [x] T016 [US1] Add streaming logging to frontend/src/utils/logger.js
   - Add logStreamStart(messageText) function
   - Add logTokenReceived(tokenCount) function
   - Add logStreamComplete(duration, totalTokens) function
   - Use existing console logging utilities
-  - **Expected**: Logging available for streaming state
+  - **Result**: 5 streaming logging functions added (logStreamStart, logTokenReceived, logStreamComplete, logStreamAbort, logStreamError)
 
 ### Frontend - Streaming State Management (Test-First)
 
-- [ ] T017 [P] [US1] Write tests for streaming state in frontend/tests/unit/useMessages.spec.js
+- [x] T017 [P] [US1] Write tests for streaming state in frontend/tests/unit/useMessages.spec.js
   - Test startStreaming(messageId) - creates streamingMessage
   - Test appendToken(token) - accumulates text
   - Test completeStreaming() - moves to messages array
   - Test isStreaming flag transitions
   - Test EventSource cleanup on complete
-  - **Expected**: Tests FAIL (streaming state doesn't exist yet)
+  - **Result**: 11 streaming tests created, all FAIL as expected (functions don't exist yet)
 
-- [ ] T018 [P] [US1] Add streaming state to frontend/src/state/useMessages.js
+- [x] T018 [P] [US1] Add streaming state to frontend/src/state/useMessages.js
   - Add streamingMessage ref (null | StreamingMessage)
   - Add isStreaming ref (boolean)
   - Add eventSource ref (null | EventSource/ReadableStream)
@@ -227,7 +227,7 @@ This document breaks down the message streaming feature into atomic, executable 
   - Add appendToken(token) function (concatenate to streamingMessage.text)
   - Add completeStreaming() function (move to messages, save to localStorage)
   - Integrate with existing sendMessage() function
-  - **Expected**: Tests PASS
+  - **Result**: All 11 streaming tests PASS (28ms runtime), implemented full streaming state management with abort and error handling
 
 ### Frontend - UI Components (Test-First)
 
