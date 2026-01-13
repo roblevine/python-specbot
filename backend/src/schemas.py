@@ -4,8 +4,8 @@ Pydantic Schemas for API Request/Response Models
 Defines data validation and serialization for the Message API.
 Based on contracts/message-api.yaml and data-model.md.
 
-Feature: 003-backend-api-loopback (extended by 006-openai-langchain-chat)
-Tasks: T030, T031, T032, T020, T021
+Feature: 003-backend-api-loopback (extended by 006-openai-langchain-chat, 009-message-streaming)
+Tasks: T030, T031, T032, T020, T021, T007 (streaming events)
 """
 
 from datetime import datetime
@@ -189,3 +189,109 @@ class ErrorResponse(BaseModel):
             ]
         }
     }
+
+
+# ============================================================================
+# Streaming Event Schemas (Feature: 009-message-streaming)
+# ============================================================================
+
+class TokenEvent(BaseModel):
+    """
+    T007: Streaming token event.
+
+    Represents a single token/chunk from LLM streaming response.
+
+    Feature: 009-message-streaming Task T007
+    """
+
+    type: Literal["token"] = Field(
+        default="token",
+        description="Event type identifier"
+    )
+    content: str = Field(
+        ...,
+        description="Token/chunk content from LLM"
+    )
+
+    def to_sse_format(self) -> str:
+        """
+        Convert to SSE (Server-Sent Events) format.
+
+        Returns:
+            str: SSE formatted string "data: <JSON>\n\n"
+        """
+        json_str = self.model_dump_json()
+        return f"data: {json_str}\n\n"
+
+
+class CompleteEvent(BaseModel):
+    """
+    T007: Streaming completion event.
+
+    Signals successful completion of streaming response.
+
+    Feature: 009-message-streaming Task T007
+    """
+
+    type: Literal["complete"] = Field(
+        default="complete",
+        description="Event type identifier"
+    )
+    model: str = Field(
+        ...,
+        description="Model ID that generated the response"
+    )
+    totalTokens: Optional[int] = Field(
+        None,
+        description="Total number of tokens in the response (optional)"
+    )
+
+    def to_sse_format(self) -> str:
+        """
+        Convert to SSE (Server-Sent Events) format.
+
+        Returns:
+            str: SSE formatted string "data: <JSON>\n\n"
+        """
+        json_str = self.model_dump_json()
+        return f"data: {json_str}\n\n"
+
+
+class ErrorEvent(BaseModel):
+    """
+    T007: Streaming error event.
+
+    Signals error during streaming response.
+
+    Feature: 009-message-streaming Task T007
+    """
+
+    type: Literal["error"] = Field(
+        default="error",
+        description="Event type identifier"
+    )
+    error: str = Field(
+        ...,
+        description="Human-readable error message"
+    )
+    code: Literal[
+        "TIMEOUT",
+        "RATE_LIMIT",
+        "LLM_ERROR",
+        "AUTH_ERROR",
+        "CONNECTION_ERROR",
+        "UNKNOWN"
+    ] = Field(
+        ...,
+        description="Machine-readable error code"
+    )
+
+    def to_sse_format(self) -> str:
+        """
+        Convert to SSE (Server-Sent Events) format.
+
+        Returns:
+            str: SSE formatted string "data: <JSON>\n\n"
+        """
+        json_str = self.model_dump_json()
+        return f"data: {json_str}\n\n"

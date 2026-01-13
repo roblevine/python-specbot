@@ -116,19 +116,19 @@ This document breaks down the message streaming feature into atomic, executable 
 
 ### Backend - Streaming Event Schemas (Test-First)
 
-- [ ] T006 [P] [US1] Write tests for StreamEvent schemas in backend/tests/unit/test_schemas.py
+- [x] T006 [P] [US1] Write tests for StreamEvent schemas in backend/tests/unit/test_streaming_schemas.py
   - Test TokenEvent validation (type="token", content required)
   - Test CompleteEvent validation (type="complete", model field)
   - Test ErrorEvent validation (type="error", error+code required)
   - Test SSE JSON serialization format
-  - **Expected**: Tests FAIL (schemas don't exist yet)
+  - **Result**: 18 tests created, all FAILED as expected
 
-- [ ] T007 [P] [US1] Implement StreamEvent schemas in backend/src/schemas.py
+- [x] T007 [P] [US1] Implement StreamEvent schemas in backend/src/schemas.py
   - Add TokenEvent(BaseModel) with type and content fields
   - Add CompleteEvent(BaseModel) with type, model, totalTokens fields
   - Add ErrorEvent(BaseModel) with type, error, code fields
   - Add SSE serialization helper: to_sse_format()
-  - **Expected**: Tests PASS
+  - **Result**: All 18 tests PASS
 
 ### Backend - LLM Streaming Service (Test-First)
 
