@@ -36,40 +36,41 @@ _llm_instance: Optional[ChatOpenAI] = None
 # Custom exception classes for LLM errors (T034-T038)
 class LLMServiceError(Exception):
     """Base exception for LLM service errors"""
-    def __init__(self, message: str, status_code: int = 503):
+    def __init__(self, message: str, status_code: int = 503, original_error: Optional[Exception] = None):
         self.message = message
         self.status_code = status_code
+        self.original_error = original_error
         super().__init__(self.message)
 
 
 class LLMAuthenticationError(LLMServiceError):
     """T034: Authentication/configuration error → 503"""
-    def __init__(self, message: str = "AI service configuration error"):
-        super().__init__(message, status_code=503)
+    def __init__(self, message: str = "AI service configuration error", original_error: Optional[Exception] = None):
+        super().__init__(message, status_code=503, original_error=original_error)
 
 
 class LLMRateLimitError(LLMServiceError):
     """T035: Rate limit error → 503"""
-    def __init__(self, message: str = "AI service is busy"):
-        super().__init__(message, status_code=503)
+    def __init__(self, message: str = "AI service is busy", original_error: Optional[Exception] = None):
+        super().__init__(message, status_code=503, original_error=original_error)
 
 
 class LLMConnectionError(LLMServiceError):
     """T036: Connection error → 503"""
-    def __init__(self, message: str = "Unable to reach AI service"):
-        super().__init__(message, status_code=503)
+    def __init__(self, message: str = "Unable to reach AI service", original_error: Optional[Exception] = None):
+        super().__init__(message, status_code=503, original_error=original_error)
 
 
 class LLMTimeoutError(LLMServiceError):
     """T037: Timeout error → 504"""
-    def __init__(self, message: str = "Request timed out"):
-        super().__init__(message, status_code=504)
+    def __init__(self, message: str = "Request timed out", original_error: Optional[Exception] = None):
+        super().__init__(message, status_code=504, original_error=original_error)
 
 
 class LLMBadRequestError(LLMServiceError):
     """T038: Bad request error → 400"""
-    def __init__(self, message: str = "Message could not be processed"):
-        super().__init__(message, status_code=400)
+    def __init__(self, message: str = "Message could not be processed", original_error: Optional[Exception] = None):
+        super().__init__(message, status_code=400, original_error=original_error)
 
 
 def load_config() -> Dict[str, str]:
@@ -331,30 +332,30 @@ async def get_ai_response(
     except AuthenticationError as e:
         # T034, T040: Map AuthenticationError → 503 with sanitized message
         logger.error(f"LLM authentication failed: {type(e).__name__}")
-        raise LLMAuthenticationError()
+        raise LLMAuthenticationError(original_error=e)
 
     except RateLimitError as e:
         # T035, T040: Map RateLimitError → 503 with sanitized message
         logger.error(f"LLM rate limit exceeded: {type(e).__name__}")
-        raise LLMRateLimitError()
+        raise LLMRateLimitError(original_error=e)
 
     except APIConnectionError as e:
         # T036, T040: Map APIConnectionError → 503 with sanitized message
         logger.error(f"LLM connection failed: {type(e).__name__}")
-        raise LLMConnectionError()
+        raise LLMConnectionError(original_error=e)
 
     except (APITimeoutError, asyncio.TimeoutError) as e:
         # T037, T040: Map timeout errors → 504 with sanitized message
         logger.error(f"LLM request timed out: {type(e).__name__}")
-        raise LLMTimeoutError()
+        raise LLMTimeoutError(original_error=e)
 
     except BadRequestError as e:
         # T038, T040: Map BadRequestError → 400 with sanitized message
-        logger.error(f"LLM bad request: {type(e).__name__}")
-        raise LLMBadRequestError()
+        logger.error(f"LLM bad request: {type(e).__name__}: {str(e)}")
+        raise LLMBadRequestError(original_error=e)
 
     except Exception as e:
         # T040: Log unexpected errors (sanitized)
-        logger.error(f"Unexpected LLM error: {type(e).__name__}")
+        logger.error(f"Unexpected LLM error: {type(e).__name__}: {str(e)}")
         # Re-raise as generic LLM error
-        raise LLMServiceError("AI service error occurred")
+        raise LLMServiceError("AI service error occurred", original_error=e)

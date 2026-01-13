@@ -36,8 +36,10 @@ logger = get_logger(__name__)
 # Create router
 router = APIRouter(tags=["messages"])
 
-# Debug mode configuration
-DEBUG = os.getenv("DEBUG", "false").lower() in ("true", "1", "yes")
+
+def is_debug_mode() -> bool:
+    """Check if DEBUG mode is enabled (checked at runtime, not import time)."""
+    return os.getenv("DEBUG", "false").lower() in ("true", "1", "yes")
 
 
 @router.post(
@@ -167,39 +169,75 @@ async def send_message(request: MessageRequest) -> MessageResponse:
         # T039: Handle LLM timeout errors (504 Gateway Timeout)
         logger.warning(f"LLM timeout: {e.message}")
 
+        error_content = {
+            "status": "error",
+            "error": e.message,
+            "timestamp": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
+        }
+
+        # In debug mode, include detailed error information
+        if is_debug_mode():
+            error_content["debug_info"] = {
+                "error_type": type(e).__name__,
+                "error_message": str(e),
+                "original_error": getattr(e, 'original_error', None),
+                "traceback": traceback.format_exc()
+            }
+            logger.warning("DEBUG mode enabled - exposing detailed error information in API response")
+
         return JSONResponse(
             status_code=status.HTTP_504_GATEWAY_TIMEOUT,
-            content={
-                "status": "error",
-                "error": e.message,
-                "timestamp": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
-            }
+            content=error_content
         )
 
     except LLMBadRequestError as e:
         # T039: Handle LLM bad request errors (400 Bad Request)
         logger.warning(f"LLM bad request: {e.message}")
 
+        error_content = {
+            "status": "error",
+            "error": e.message,
+            "timestamp": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
+        }
+
+        # In debug mode, include detailed error information
+        if is_debug_mode():
+            error_content["debug_info"] = {
+                "error_type": type(e).__name__,
+                "error_message": str(e),
+                "original_error": getattr(e, 'original_error', None),
+                "traceback": traceback.format_exc()
+            }
+            logger.warning("DEBUG mode enabled - exposing detailed error information in API response")
+
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
-            content={
-                "status": "error",
-                "error": e.message,
-                "timestamp": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
-            }
+            content=error_content
         )
 
     except (LLMAuthenticationError, LLMRateLimitError, LLMConnectionError, LLMServiceError) as e:
         # T039: Handle LLM service errors (503 Service Unavailable)
         logger.warning(f"LLM service error: {e.message}")
 
+        error_content = {
+            "status": "error",
+            "error": e.message,
+            "timestamp": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
+        }
+
+        # In debug mode, include detailed error information
+        if is_debug_mode():
+            error_content["debug_info"] = {
+                "error_type": type(e).__name__,
+                "error_message": str(e),
+                "original_error": str(getattr(e, 'original_error', None)),
+                "traceback": traceback.format_exc()
+            }
+            logger.warning("DEBUG mode enabled - exposing detailed error information in API response")
+
         return JSONResponse(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            content={
-                "status": "error",
-                "error": e.message,
-                "timestamp": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
-            }
+            content=error_content
         )
 
     except Exception as e:
@@ -223,7 +261,7 @@ async def send_message(request: MessageRequest) -> MessageResponse:
         }
 
         # In debug mode, include detailed error information
-        if DEBUG:
+        if is_debug_mode():
             error_detail["debug_info"] = {
                 "error_type": type(e).__name__,
                 "error_message": str(e),
