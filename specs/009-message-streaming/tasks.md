@@ -148,12 +148,12 @@ This document breaks down the message streaming feature into atomic, executable 
   - Support model parameter
   - **Result**: All 9 tests PASS
 
-- [ ] T010 [US1] Add streaming logging to backend/src/utils/logger.py
+- [x] T010 [US1] Add streaming logging to backend/src/utils/logger.py
   - Add log_stream_start(message_id, model) function
   - Add log_stream_token(message_id, token_count) function
   - Add log_stream_complete(message_id, duration, total_tokens) function
   - Use existing structured logging format
-  - **Expected**: Logging functions available for streaming routes
+  - **Result**: Logging functions added (+ bonus log_stream_error for completeness)
 
 ### Backend - Streaming API Endpoint (Test-First)
 
