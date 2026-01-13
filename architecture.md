@@ -1,7 +1,7 @@
 # SpecBot Architecture
 
-**Last Updated**: 2026-01-12
-**Current Version**: P1 + Backend API + OpenAI LangChain Chat + Model Selector (Features 006, 008 Complete)
+**Last Updated**: 2026-01-13
+**Current Version**: P1 + Backend API + OpenAI LangChain Chat + Model Selector + Message Streaming MVP (Features 006, 008, 009 Partial)
 
 This document describes the current implemented architecture and planned future architecture for SpecBot.
 
@@ -961,11 +961,171 @@ OPENAI_MODELS='[
 
 ## Questions & Decisions Needed
 
+---
+
+## Message Streaming Architecture (Feature 009)
+
+**Status**: ✅ **PARTIALLY IMPLEMENTED** (Backend MVP complete, Frontend components in progress)
+**Last Updated**: 2026-01-13
+
+### Overview
+
+Real-time message streaming allows users to see LLM responses token-by-token as they're generated, providing immediate feedback and improved perceived performance.
+
+### Streaming Data Flow
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Frontend (Vue.js)                        │
+│                                                              │
+│  User sends message                                          │
+│         │                                                   │
+│         ▼                                                   │
+│  streamMessage(text, onToken, onComplete, onError)          │
+│         │                                                   │
+│         │ fetch() with Accept: text/event-stream           │
+│         │                                                   │
+└─────────┼──────────────────────────────────────────────────┘
+          │
+          │ HTTP POST /api/v1/messages
+          │ Accept: text/event-stream
+          │
+┌─────────▼──────────────────────────────────────────────────┐
+│              Backend API (FastAPI)                          │
+│                                                              │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │  1. Check Accept header                                 │ │
+│  │     - text/event-stream → Streaming                     │ │
+│  │     - application/json → Traditional                    │ │
+│  └────────────────────────────────────────────────────────┘ │
+│                         │                                    │
+│  ┌──────────────────────▼───────────────────────────────┐   │
+│  │  2. stream_ai_response() generator                    │   │
+│  │     - LangChain astream() for token-by-token          │   │
+│  │     - Yields TokenEvent, CompleteEvent, ErrorEvent    │   │
+│  └──────────────────────┬───────────────────────────────┘   │
+│                         │                                    │
+│  ┌──────────────────────▼───────────────────────────────┐   │
+│  │  3. StreamingResponse                                 │   │
+│  │     - Format: "data: {...}\n\n" (SSE)                 │   │
+│  │     - Headers: text/event-stream, no-cache            │   │
+│  └──────────────────────┬───────────────────────────────┘   │
+└────────────────────────┼────────────────────────────────────┘
+                         │
+                    SSE Stream
+                         │
+┌─────────────────────────▼──────────────────────────────────┐
+│                Frontend ReadableStream                      │
+│                                                              │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │  Parse SSE events (buffer for partial events)          │ │
+│  │     data: {"type":"token","content":"Hello"}           │ │
+│  │     data: {"type":"complete","model":"gpt-3.5-turbo"}  │ │
+│  └────────────────────────────────────────────────────────┘ │
+│                         │                                    │
+│  ┌──────────────────────▼───────────────────────────────┐   │
+│  │  Streaming State Management (useMessages)             │   │
+│  │     - startStreaming(messageId, model)                │   │
+│  │     - appendToken(content)                            │   │
+│  │     - completeStreaming() → save to localStorage      │   │
+│  └──────────────────────┬───────────────────────────────┘   │
+│                         │                                    │
+│  ┌──────────────────────▼───────────────────────────────┐   │
+│  │  UI Update (MessageBubble)                            │   │
+│  │     - Reactive text display                           │   │
+│  │     - Streaming indicator (blinking cursor)           │   │
+│  │     - Auto-scroll to latest token                     │   │
+│  └────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Event Types
+
+**TokenEvent**: Streaming token content
+```json
+{
+  "type": "token",
+  "content": "Hello"
+}
+```
+
+**CompleteEvent**: Stream completion with metadata
+```json
+{
+  "type": "complete",
+  "model": "gpt-3.5-turbo",
+  "totalTokens": 150
+}
+```
+
+**ErrorEvent**: Streaming errors
+```json
+{
+  "type": "error",
+  "error": "Rate limit exceeded",
+  "code": "RATE_LIMIT"
+}
+```
+
+### Implementation Status
+
+**Backend (Completed)** ✅
+- `stream_ai_response()` generator in `llm_service.py`
+- SSE endpoint in `messages.py` with Accept header routing
+- StreamEvent schemas (TokenEvent, CompleteEvent, ErrorEvent)
+- Full test coverage (unit, contract, integration)
+
+**Frontend API Client (Completed)** ✅
+- `streamMessage()` in `apiClient.js`
+- SSE parsing with buffering for partial events
+- Callback-based API: onToken, onComplete, onError
+- AbortController for stream cancellation
+
+**Frontend State Management (Completed)** ✅
+- Streaming state in `useMessages.js`
+- `streamingMessage` ref, `isStreaming` flag
+- Functions: startStreaming, appendToken, completeStreaming, abortStreaming, errorStreaming
+
+**Frontend UI Components (Partially Complete)** 🚧
+- MessageBubble: ✅ Streaming status, animated cursor indicator
+- ChatArea: ⏳ Pending integration (T021)
+- Auto-scroll: ⏳ Pending (T021)
+
+**Testing**
+- ✅ Backend: 9 unit tests, 10 contract tests, 9 integration tests
+- ✅ Frontend API: 13 tests
+- ✅ Frontend State: 11 tests
+- ✅ Frontend UI: 9 tests (MessageBubble)
+- ⏳ Frontend Integration: Pending (T022)
+- ⏳ E2E Tests: Pending (T023)
+
+### Architecture Decision Record: SSE vs WebSocket
+
+**Decision**: Use Server-Sent Events (SSE) over WebSocket for LLM streaming
+
+**Rationale**:
+1. **Simplicity**: SSE is simpler - unidirectional, HTTP-based, no special handshake
+2. **Browser Support**: Native EventSource API, automatic reconnection
+3. **Infrastructure**: Works with standard HTTP/HTTPS, no special proxy configuration
+4. **Use Case Fit**: LLM streaming is unidirectional (server → client only)
+5. **Fallback**: Can gracefully degrade to traditional JSON for old clients
+
+**Trade-offs**:
+- ❌ No bidirectional communication (but not needed for streaming responses)
+- ❌ EventSource doesn't support POST (workaround: use fetch + ReadableStream)
+- ✅ Simpler than WebSocket for this use case
+- ✅ Automatic reconnection on network issues
+- ✅ Standard HTTP caching/proxying works
+
+**Implementation Note**: Used `fetch()` with `ReadableStream` instead of `EventSource` API to support POST requests with request body.
+
+---
+
 ### Open Questions
 
 1. **Backend Hosting**: Where will backend be deployed? (Cloud provider TBD)
 2. **Database Schema**: Should we use PostgreSQL JSONB for messages or relational tables?
-3. **Streaming Protocol**: Server-Sent Events (SSE) or WebSocket for LLM streaming?
+3. ~~**Streaming Protocol**: Server-Sent Events (SSE) or WebSocket for LLM streaming?~~ ✅ **DECIDED: SSE** (see ADR above)
 4. **Authentication**: Should we support social login (Google, GitHub) or email/password?
 5. **Multi-tenancy**: Single-tenant (self-hosted) or multi-tenant (SaaS)?
 
