@@ -174,13 +174,13 @@ This document breaks down the message streaming feature into atomic, executable 
   - Handle request validation (reuse existing MessageRequest schema)
   - **Result**: All 8 streaming contract tests PASS, backward compatibility maintained
 
-- [ ] T013 [US1] Write integration tests for backend streaming in backend/tests/integration/test_streaming_flow.py
+- [x] T013 [US1] Write integration tests for backend streaming in backend/tests/integration/test_streaming_flow.py
   - Test end-to-end streaming: request → LLM → SSE response
   - Test with conversation history (context preserved)
   - Test with custom model selection
   - Test concurrent streams (at least 10 simultaneous)
   - Measure performance: first token latency, throughput
-  - **Expected**: Integration tests PASS, <1s first token latency
+  - **Result**: 9 integration tests created, all PASS (0.19s runtime, <1s first token latency validated)
 
 ### Frontend - Streaming API Client (Test-First)
 
