@@ -135,7 +135,9 @@ def initialize_llm(api_key: str, model: str) -> ChatOpenAI:
 
     llm = ChatOpenAI(
         api_key=api_key,
-        model=model
+        model=model,
+        timeout=120,  # 2 minutes - allows time for large responses while preventing infinite hangs
+        request_timeout=120  # Alternative parameter for compatibility across SDK versions
     )
 
     logger.info("ChatOpenAI initialized successfully")
@@ -307,7 +309,9 @@ async def get_ai_response(
         logger.debug(f"Creating ChatOpenAI instance for model: {model_to_use}")
         llm = ChatOpenAI(
             api_key=api_key,
-            model=model_to_use
+            model=model_to_use,
+            timeout=120,  # 2 minutes - allows time for large responses while preventing infinite hangs
+            request_timeout=120  # Alternative parameter for compatibility across SDK versions
         )
 
         # Build conversation history (T023: include previous messages if provided)

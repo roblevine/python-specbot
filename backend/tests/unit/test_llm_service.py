@@ -33,7 +33,9 @@ def test_chatgpt_initialization_with_api_key():
         # Verify ChatOpenAI was called with correct params
         mock_chat.assert_called_once_with(
             api_key="test-key",
-            model="gpt-3.5-turbo"
+            model="gpt-3.5-turbo",
+            timeout=120,
+            request_timeout=120
         )
         assert llm == mock_instance
 
@@ -423,7 +425,9 @@ async def test_get_ai_response_with_specific_model():
             # Verify ChatOpenAI was created with requested model
             mock_chat.assert_called_with(
                 api_key='test-key',
-                model='gpt-4'
+                model='gpt-4',
+                timeout=120,
+                request_timeout=120
             )
 
             # Verify response and model are returned
@@ -483,7 +487,9 @@ async def test_get_ai_response_uses_default_model_when_not_specified():
             # Verify default model was used
             mock_chat.assert_called_with(
                 api_key='test-key',
-                model='gpt-3.5-turbo'
+                model='gpt-3.5-turbo',
+                timeout=120,
+                request_timeout=120
             )
 
             # Verify response and default model are returned
@@ -592,7 +598,9 @@ async def test_get_ai_response_with_conversation_history_and_model():
             # Verify ChatOpenAI was created with requested model
             mock_chat.assert_called_with(
                 api_key='test-key',
-                model='gpt-4'
+                model='gpt-4',
+                timeout=120,
+                request_timeout=120
             )
 
             # Verify ainvoke was called with history + new message

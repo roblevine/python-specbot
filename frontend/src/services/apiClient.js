@@ -11,7 +11,7 @@ import * as logger from '../utils/logger.js'
 
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
-const API_TIMEOUT = 10000 // 10 seconds (per FR-009)
+const API_TIMEOUT = 120000 // 120 seconds (2 minutes) - increased to support large LLM responses
 
 /**
  * Custom error class for API errors
