@@ -30,9 +30,10 @@ describe('LocalStorageAdapter', () => {
       expect(stored).toBeTruthy()
 
       const data = JSON.parse(stored)
-      expect(data.version).toBe('1.0.0')
+      expect(data.version).toBe('1.1.0')
       expect(data.conversations).toEqual(conversations)
       expect(data.activeConversationId).toBe(activeId)
+      expect(data.preferences).toEqual({ sidebarCollapsed: false })
     })
 
     it('should handle null activeConversationId', () => {
@@ -71,7 +72,8 @@ describe('LocalStorageAdapter', () => {
       const result = loadConversations()
       expect(result.conversations).toEqual([])
       expect(result.activeConversationId).toBeNull()
-      expect(result.version).toBe('1.0.0')
+      expect(result.version).toBe('1.1.0')
+      expect(result.preferences).toEqual({ sidebarCollapsed: false })
     })
 
     it('should handle corrupted data gracefully', () => {

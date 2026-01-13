@@ -112,7 +112,15 @@ export function useConversations() {
       // Only save conversations that have messages
       const conversationsToSave = conversations.value.filter(c => c.messages.length > 0)
 
-      saveConversations(conversationsToSave, activeConversationId.value)
+      // Load existing data to preserve preferences and selectedModelId
+      const existingData = loadConversations()
+
+      saveConversations(
+        conversationsToSave,
+        activeConversationId.value,
+        existingData.preferences,
+        existingData.selectedModelId
+      )
       logger.debug('Saved conversations to storage', { count: conversationsToSave.length })
     } catch (error) {
       logger.error('Failed to save to storage', error)

@@ -14,6 +14,7 @@ import * as logger from '../utils/logger.js'
 import { useConversations } from './useConversations.js'
 import { useAppState } from './useAppState.js'
 import { sendMessage as apiSendMessage, ApiError } from '../services/apiClient.js'
+import { useModels } from './useModels.js'
 
 /**
  * T038: Categorize errors based on statusCode
@@ -41,6 +42,7 @@ function categorizeError(error) {
 export function useMessages() {
   const { activeConversation, addMessage, saveToStorage } = useConversations()
   const { setProcessing, setStatus, setError } = useAppState()
+  const { selectedModelId } = useModels() // Feature 008: Get selected model
 
   /**
    * Gets messages for the current active conversation
@@ -101,17 +103,19 @@ export function useMessages() {
 
       logger.debug('Sending message with conversation history', {
         messageLength: text.trim().length,
-        historyLength: conversationHistory.length
+        historyLength: conversationHistory.length,
+        selectedModel: selectedModelId.value
       })
 
-      // T043: Call backend API with conversation history
+      // T043: Call backend API with conversation history and selected model
       const response = await apiSendMessage(
         text.trim(),
         activeConversation.value.id,
-        conversationHistory // T026: Include history for context-aware responses
+        conversationHistory, // T026: Include history for context-aware responses
+        selectedModelId.value // Feature 008 T030: Include selected model
       )
 
-      // T044: Handle API response format (status, message, timestamp)
+      // T044: Handle API response format (status, message, timestamp, model)
       if (response.status === 'success') {
         // Create system message from API response
         const systemMessage = {
@@ -120,6 +124,7 @@ export function useMessages() {
           sender: 'system',
           timestamp: response.timestamp,
           status: 'sent',
+          model: response.model, // Feature 008 T033: Store model that generated response
         }
 
         // Add system message from API

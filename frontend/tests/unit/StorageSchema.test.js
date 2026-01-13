@@ -12,7 +12,7 @@ describe('StorageSchema', () => {
     it('should create schema with correct version', () => {
       const schema = createEmptySchema()
       expect(schema.version).toBe(SCHEMA_VERSION)
-      expect(schema.version).toBe('1.0.0')
+      expect(schema.version).toBe('1.1.0')
     })
 
     it('should create schema with empty conversations array', () => {
@@ -25,11 +25,16 @@ describe('StorageSchema', () => {
       const schema = createEmptySchema()
       expect(schema.activeConversationId).toBeNull()
     })
+
+    it('should create schema with preferences', () => {
+      const schema = createEmptySchema()
+      expect(schema.preferences).toEqual({ sidebarCollapsed: false })
+    })
   })
 
   describe('validateSchema', () => {
     const validSchema = {
-      version: '1.0.0',
+      version: '1.1.0',
       conversations: [
         {
           id: 'conv-550e8400-e29b-41d4-a716-446655440000',
@@ -39,6 +44,10 @@ describe('StorageSchema', () => {
         },
       ],
       activeConversationId: 'conv-550e8400-e29b-41d4-a716-446655440000',
+      selectedModelId: null,
+      preferences: {
+        sidebarCollapsed: false,
+      },
     }
 
     it('should accept valid schema', () => {
@@ -78,7 +87,7 @@ describe('StorageSchema', () => {
 
     it('should filter out invalid conversations', () => {
       const schema = {
-        version: '1.0.0',
+        version: '1.1.0',
         conversations: [
           {
             id: 'conv-valid',
@@ -100,6 +109,48 @@ describe('StorageSchema', () => {
       expect(result.isValid).toBe(true)
       expect(result.data.conversations).toHaveLength(1)
       expect(result.data.conversations[0].id).toBe('conv-valid')
+    })
+
+    it('should default preferences if missing', () => {
+      const schema = {
+        version: '1.1.0',
+        conversations: [],
+        activeConversationId: null,
+      }
+
+      const result = validateSchema(schema)
+      expect(result.isValid).toBe(true)
+      expect(result.data.preferences).toEqual({ sidebarCollapsed: false })
+    })
+
+    it('should accept valid sidebar collapsed preference', () => {
+      const schema = {
+        version: '1.1.0',
+        conversations: [],
+        activeConversationId: null,
+        preferences: {
+          sidebarCollapsed: true,
+        },
+      }
+
+      const result = validateSchema(schema)
+      expect(result.isValid).toBe(true)
+      expect(result.data.preferences.sidebarCollapsed).toBe(true)
+    })
+
+    it('should default invalid preference values', () => {
+      const schema = {
+        version: '1.1.0',
+        conversations: [],
+        activeConversationId: null,
+        preferences: {
+          sidebarCollapsed: 'not-boolean',
+        },
+      }
+
+      const result = validateSchema(schema)
+      expect(result.isValid).toBe(true)
+      expect(result.data.preferences.sidebarCollapsed).toBe(false)
     })
 
     it('should reset activeConversationId if not found in conversations', () => {
@@ -124,13 +175,66 @@ describe('StorageSchema', () => {
   describe('migrateSchema', () => {
     it('should return data unchanged if version matches', () => {
       const data = {
-        version: '1.0.0',
+        version: '1.1.0',
         conversations: [],
         activeConversationId: null,
+        preferences: { sidebarCollapsed: false },
       }
 
       const migrated = migrateSchema(data)
       expect(migrated).toEqual(data)
+    })
+
+    it('should migrate from v1.0.0 to v1.1.0', () => {
+      const v1_0_data = {
+        version: '1.0.0',
+        conversations: [
+          {
+            id: 'conv-123',
+            createdAt: '2025-12-23T10:00:00.000Z',
+            updatedAt: '2025-12-23T10:05:00.000Z',
+            messages: [],
+          },
+        ],
+        activeConversationId: 'conv-123',
+      }
+
+      const migrated = migrateSchema(v1_0_data)
+
+      expect(migrated.version).toBe('1.1.0')
+      expect(migrated.conversations).toEqual(v1_0_data.conversations)
+      expect(migrated.activeConversationId).toBe('conv-123')
+      expect(migrated.preferences).toEqual({ sidebarCollapsed: false })
+    })
+
+    it('should preserve existing data during v1.0.0 to v1.1.0 migration', () => {
+      const v1_0_data = {
+        version: '1.0.0',
+        conversations: [
+          {
+            id: 'conv-abc',
+            createdAt: '2025-12-23T10:00:00.000Z',
+            updatedAt: '2025-12-23T10:05:00.000Z',
+            messages: [
+              {
+                id: 'msg-1',
+                sender: 'user',
+                text: 'Hello',
+                timestamp: '2025-12-23T10:00:00.000Z',
+                status: 'sent',
+              },
+            ],
+          },
+        ],
+        activeConversationId: 'conv-abc',
+      }
+
+      const migrated = migrateSchema(v1_0_data)
+
+      expect(migrated.version).toBe('1.1.0')
+      expect(migrated.conversations).toEqual(v1_0_data.conversations)
+      expect(migrated.activeConversationId).toBe(v1_0_data.activeConversationId)
+      expect(migrated.preferences.sidebarCollapsed).toBe(false)
     })
 
     it('should return empty schema for data without version', () => {

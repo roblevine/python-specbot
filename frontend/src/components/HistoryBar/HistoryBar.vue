@@ -1,9 +1,25 @@
 <template>
-  <div class="history-bar">
+  <div
+    class="history-bar"
+    :class="{ collapsed: isCollapsed }"
+  >
     <div class="history-header">
-      <h2>Conversations</h2>
+      <h2 v-if="!isCollapsed">
+        Conversations
+      </h2>
+      <button
+        class="collapse-button"
+        :aria-label="isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+        :aria-expanded="!isCollapsed"
+        @click="$emit('toggle-sidebar')"
+      >
+        <span class="icon">{{ isCollapsed ? '→' : '←' }}</span>
+      </button>
     </div>
-    <div class="button-container">
+    <div
+      v-if="!isCollapsed"
+      class="button-container"
+    >
       <button
         class="new-conversation-btn"
         aria-label="Start new conversation"
@@ -12,7 +28,10 @@
         New Conversation
       </button>
     </div>
-    <div class="conversations-list">
+    <div
+      v-if="!isCollapsed"
+      class="conversations-list"
+    >
       <div
         v-for="conversation in conversations"
         :key="conversation.id"
@@ -27,7 +46,12 @@
           {{ getPreview(conversation) }}
         </div>
       </div>
-      <div v-if="conversations.length === 0" class="empty-history">No conversations yet</div>
+      <div
+        v-if="conversations.length === 0"
+        class="empty-history"
+      >
+        No conversations yet
+      </div>
     </div>
   </div>
 </template>
@@ -46,8 +70,12 @@ export default {
       type: String,
       default: null,
     },
+    isCollapsed: {
+      type: Boolean,
+      default: false,
+    },
   },
-  emits: ['select-conversation', 'new-conversation'],
+  emits: ['select-conversation', 'new-conversation', 'toggle-sidebar'],
   setup(props, { emit }) {
     const isCreating = ref(false)
     const DEBOUNCE_MS = 300
@@ -88,12 +116,29 @@ export default {
   width: var(--history-bar-width);
   background-color: var(--color-surface);
   border-right: 1px solid var(--color-border);
+  transition: width 300ms ease-in-out;
+  overflow: hidden;
+}
+
+.history-bar.collapsed {
+  width: 48px;
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .history-bar {
+    transition: none;
+  }
 }
 
 .history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: var(--spacing-md);
   padding-bottom: var(--spacing-sm);
   border-bottom: 1px solid var(--color-border);
+  min-height: 56px;
 }
 
 .history-header h2 {
@@ -101,6 +146,37 @@ export default {
   font-weight: 600;
   color: var(--color-text);
   margin: 0;
+  white-space: nowrap;
+}
+
+.collapse-button {
+  padding: var(--spacing-xs);
+  background: var(--color-grey-surface);
+  border: 1px solid var(--color-grey-border);
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  transition: all 200ms ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+  color: var(--color-text);
+}
+
+.collapse-button:hover {
+  background: var(--color-blue-light);
+  border-color: var(--color-blue-primary);
+}
+
+.collapse-button:focus-visible {
+  outline: 2px solid var(--color-blue-primary);
+  outline-offset: 2px;
+}
+
+.collapse-button .icon {
+  font-size: 1.2rem;
+  line-height: 1;
 }
 
 .button-container {
@@ -111,22 +187,30 @@ export default {
 .new-conversation-btn {
   width: 100%;
   padding: var(--spacing-sm) var(--spacing-md);
-  background-color: var(--color-primary);
-  color: white;
-  border: none;
-  border-radius: 4px;
+  background-color: var(--color-grey-surface);
+  color: var(--color-grey-text-primary);
+  border: 1px solid var(--color-grey-border);
+  border-radius: var(--border-radius-md);
   cursor: pointer;
   font-size: var(--font-size-sm);
   font-weight: 500;
-  transition: background-color 0.2s;
+  transition: all 200ms ease;
+  box-shadow: var(--shadow-sm);
 }
 
 .new-conversation-btn:hover {
-  background-color: var(--color-primary-hover);
+  background-color: var(--color-blue-light);
+  border-color: var(--color-blue-primary);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.new-conversation-btn:active {
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+  transform: translateY(1px);
 }
 
 .new-conversation-btn:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-blue-primary);
   outline-offset: 2px;
 }
 

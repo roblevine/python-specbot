@@ -11,18 +11,32 @@
     <div class="message-timestamp">
       {{ formattedTime }}
     </div>
+    <!-- T042: Model indicator for system messages -->
+    <div
+      v-if="message.sender === 'system' && message.model"
+      class="model-indicator"
+    >
+      {{ message.model }}
+    </div>
     <!-- T025-T027: Error section for status='error' -->
-    <div v-if="message.status === 'error'" class="error-section">
-      <div class="error-icon">⚠</div>
-      <div class="error-message">{{ message.errorMessage }}</div>
+    <div
+      v-if="message.status === 'error'"
+      class="error-section"
+    >
+      <div class="error-icon">
+        ⚠
+      </div>
+      <div class="error-message">
+        {{ message.errorMessage }}
+      </div>
 
       <!-- T053: Details toggle button -->
       <button
         v-if="hasErrorDetails"
         class="error-toggle"
+        v-bind="errorCollapsible.triggerAttrs"
         @click="errorCollapsible.toggle"
         @keydown="handleKeyDown"
-        v-bind="errorCollapsible.triggerAttrs"
       >
         {{ errorCollapsible.isExpanded.value ? 'Hide Details' : 'Details' }}
       </button>
@@ -178,6 +192,16 @@ export default {
   opacity: 0.7;
   margin-top: var(--spacing-xs);
   text-align: right;
+}
+
+/* T043: Model indicator styling - subtle and non-intrusive */
+.model-indicator {
+  font-size: var(--font-size-xs);
+  opacity: 0.5;
+  margin-top: var(--spacing-xs);
+  text-align: right;
+  font-style: italic;
+  color: var(--color-system-message-text);
 }
 
 .message-pending {

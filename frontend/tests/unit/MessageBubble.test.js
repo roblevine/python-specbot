@@ -289,3 +289,100 @@ describe('MessageBubble - Error Display', () => {
     expect(wrapper.find('.error-details').exists()).toBe(true)
   })
 })
+
+describe('MessageBubble - Model Indicator', () => {
+  // T040: Display model indicator for system messages with model field
+  it('should display model indicator for system messages with model field', () => {
+    const systemMessage = {
+      id: 'msg-1',
+      text: 'This is a response from GPT-4',
+      sender: 'system',
+      timestamp: new Date().toISOString(),
+      status: 'sent',
+      model: 'gpt-4'
+    }
+
+    const wrapper = mount(MessageBubble, {
+      props: { message: systemMessage }
+    })
+
+    expect(wrapper.find('.model-indicator').exists()).toBe(true)
+    expect(wrapper.find('.model-indicator').text()).toContain('gpt-4')
+  })
+
+  // T040: Don't display model indicator for system messages without model field
+  it('should not display model indicator when model field is missing', () => {
+    const systemMessage = {
+      id: 'msg-1',
+      text: 'This is a response without model info',
+      sender: 'system',
+      timestamp: new Date().toISOString(),
+      status: 'sent'
+    }
+
+    const wrapper = mount(MessageBubble, {
+      props: { message: systemMessage }
+    })
+
+    expect(wrapper.find('.model-indicator').exists()).toBe(false)
+  })
+
+  // T040: Don't display model indicator for user messages
+  it('should not display model indicator for user messages', () => {
+    const userMessage = {
+      id: 'msg-1',
+      text: 'User message',
+      sender: 'user',
+      timestamp: new Date().toISOString(),
+      status: 'sent',
+      model: 'gpt-4' // Even with model field
+    }
+
+    const wrapper = mount(MessageBubble, {
+      props: { message: userMessage }
+    })
+
+    expect(wrapper.find('.model-indicator').exists()).toBe(false)
+  })
+
+  // T040: Display correct model name in indicator
+  it('should display correct model name in indicator', () => {
+    const systemMessage = {
+      id: 'msg-1',
+      text: 'Response from GPT-3.5 Turbo',
+      sender: 'system',
+      timestamp: new Date().toISOString(),
+      status: 'sent',
+      model: 'gpt-3.5-turbo'
+    }
+
+    const wrapper = mount(MessageBubble, {
+      props: { message: systemMessage }
+    })
+
+    const indicator = wrapper.find('.model-indicator')
+    expect(indicator.exists()).toBe(true)
+    expect(indicator.text()).toContain('gpt-3.5-turbo')
+  })
+
+  // T040: Model indicator should be subtle and non-intrusive
+  it('should render model indicator with subtle styling', () => {
+    const systemMessage = {
+      id: 'msg-1',
+      text: 'AI response',
+      sender: 'system',
+      timestamp: new Date().toISOString(),
+      status: 'sent',
+      model: 'gpt-4'
+    }
+
+    const wrapper = mount(MessageBubble, {
+      props: { message: systemMessage }
+    })
+
+    const indicator = wrapper.find('.model-indicator')
+    expect(indicator.exists()).toBe(true)
+    // Indicator should exist with class that we'll style as subtle
+    expect(indicator.classes()).toContain('model-indicator')
+  })
+})
