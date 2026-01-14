@@ -36,7 +36,7 @@ tests/
 ```bash
 # Frontend
 cd frontend && npm test                    # All tests
-cd frontend && npm test -- --coverage      # With coverage
+cd frontend && npm run test:coverage       # With coverage
 cd frontend && npm run test:e2e            # E2E tests
 
 # Backend
