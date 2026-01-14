@@ -31,7 +31,7 @@ def mock_test_env_vars(monkeypatch):
         monkeypatch: pytest fixture for modifying environment variables
     """
     # Set predictable test values
-    monkeypatch.setenv("DEFAULT_MODEL", "gpt-3.5-turbo")
+    monkeypatch.setenv("OPENAI_MODEL", "gpt-3.5-turbo")  # Changed from DEFAULT_MODEL
     monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-12345")
 
     # Note: Individual tests can still override these with their own patch.dict
