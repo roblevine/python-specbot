@@ -5,6 +5,7 @@ Provides:
 - TestClient for integration tests
 - OpenAPI spec loader for contract tests
 - Common test data fixtures
+- Environment variable mocking for test isolation
 """
 
 import os
@@ -16,6 +17,25 @@ from fastapi.testclient import TestClient
 from openapi_core import Spec
 
 from main import app
+
+
+@pytest.fixture(scope="function", autouse=True)
+def mock_test_env_vars(monkeypatch):
+    """
+    Override environment variables for all tests to ensure test isolation.
+
+    This fixture runs automatically for every test (autouse=True) and ensures
+    tests don't depend on local .env configuration which may differ across machines.
+
+    Args:
+        monkeypatch: pytest fixture for modifying environment variables
+    """
+    # Set predictable test values
+    monkeypatch.setenv("DEFAULT_MODEL", "gpt-3.5-turbo")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-12345")
+
+    # Note: Individual tests can still override these with their own patch.dict
+    # if they need to test different configurations
 
 
 @pytest.fixture(scope="session")

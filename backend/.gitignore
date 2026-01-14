@@ -5,6 +5,11 @@ ENV/
 
 # Environment variables
 .env
+.env.local
+.env.*.local
+
+# Keep test reference file (it's committed)
+!.env.test
 
 # Python cache
 __pycache__/
