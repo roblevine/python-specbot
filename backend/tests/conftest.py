@@ -16,8 +16,6 @@ import yaml
 from fastapi.testclient import TestClient
 from openapi_core import Spec
 
-from main import app
-
 
 @pytest.fixture(scope="function", autouse=True)
 def mock_test_env_vars(monkeypatch):
@@ -30,9 +28,20 @@ def mock_test_env_vars(monkeypatch):
     Args:
         monkeypatch: pytest fixture for modifying environment variables
     """
-    # Set predictable test values
-    monkeypatch.setenv("OPENAI_MODEL", "gpt-3.5-turbo")  # Changed from DEFAULT_MODEL
+    # CRITICAL: Unset OPENAI_MODELS to prevent it from overriding OPENAI_MODEL
+    # The config loader prioritizes OPENAI_MODELS over OPENAI_MODEL (see config/models.py:101-137)
+    monkeypatch.delenv("OPENAI_MODELS", raising=False)
+
+    # Set predictable test values BEFORE any imports that load config
+    monkeypatch.setenv("OPENAI_MODEL", "gpt-3.5-turbo")
     monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-12345")
+
+    # Clear any cached LLM instances to force reload with new env vars
+    try:
+        import src.services.llm_service as llm_service
+        llm_service._llm_instance = None
+    except (ImportError, AttributeError):
+        pass  # Module not imported yet or no cache to clear
 
     # Note: Individual tests can still override these with their own patch.dict
     # if they need to test different configurations
@@ -73,6 +82,9 @@ def client() -> Generator[TestClient, None, None]:
     Yields:
         TestClient instance for making test requests
     """
+    # Import app here (not at module level) to ensure env vars are set first
+    from main import app
+
     with TestClient(app) as test_client:
         yield test_client
 
