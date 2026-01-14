@@ -22,7 +22,28 @@ tests/
 
 ## Commands
 
-# Add commands for 
+### Testing
+
+**Quick Test Scripts** (from project root):
+```bash
+./scripts/test-all.sh              # Run all tests (backend + frontend + contract)
+./scripts/test-all.sh --coverage   # Run all tests with coverage reports
+./scripts/test-backend.sh          # Run backend tests only
+./scripts/test-frontend.sh         # Run frontend tests only
+```
+
+**Manual Testing**:
+```bash
+# Frontend
+cd frontend && npm test                    # All tests
+cd frontend && npm test -- --coverage      # With coverage
+cd frontend && npm run test:e2e            # E2E tests
+
+# Backend
+cd backend && pytest                       # All tests
+cd backend && pytest --cov=src             # With coverage
+cd backend && pytest -m unit               # Unit tests only
+```
 
 ## Code Style
 

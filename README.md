@@ -52,7 +52,29 @@ The application will be available at `http://localhost:5173` but API calls will 
 
 ### Testing
 
-**Frontend Tests:**
+**Quick Test Scripts** (Recommended)
+
+Run tests from the project root using convenience scripts:
+
+```bash
+# Run all tests (backend + frontend, including contract tests)
+./scripts/test-all.sh
+
+# Run with coverage reports
+./scripts/test-all.sh --coverage
+
+# Run only backend tests
+./scripts/test-all.sh --backend-only
+
+# Run only frontend tests
+./scripts/test-all.sh --frontend-only
+
+# Or run individually
+./scripts/test-backend.sh     # Backend tests only
+./scripts/test-frontend.sh    # Frontend tests only
+```
+
+**Frontend Tests (Manual):**
 
 ```bash
 cd frontend
@@ -63,6 +85,9 @@ npm test
 # Run tests in watch mode
 npm run test:watch
 
+# Run with coverage
+npm test -- --coverage
+
 # Run E2E tests
 npm run test:e2e
 
@@ -70,7 +95,7 @@ npm run test:e2e
 npm run test:e2e:ui
 ```
 
-**Backend Tests:**
+**Backend Tests (Manual):**
 
 ```bash
 cd backend
@@ -85,6 +110,9 @@ pytest --cov=src --cov-report=html
 pytest -m unit          # Unit tests only
 pytest -m integration   # Integration tests only
 pytest -m contract      # Contract tests only
+
+# Run with verbose output
+pytest tests/ -v
 ```
 
 ### Code Quality
@@ -135,13 +163,14 @@ python-specbot/
 │   ├── tests/
 │   │   ├── unit/            # Unit tests (Vitest)
 │   │   ├── integration/     # Integration tests
+│   │   ├── contract/        # Contract snapshot tests
 │   │   └── e2e/             # End-to-end tests (Playwright)
 │   ├── public/              # Static assets
 │   └── package.json
 ├── backend/                   # Python FastAPI backend server
 │   ├── src/
 │   │   ├── api/routes/      # API endpoint handlers
-│   │   ├── services/        # Business logic (message processing)
+│   │   ├── services/        # Business logic (message processing, LLM streaming)
 │   │   ├── middleware/      # CORS, logging middleware
 │   │   ├── utils/           # Logging, validation utilities
 │   │   └── schemas.py       # Pydantic data models
@@ -152,18 +181,22 @@ python-specbot/
 │   ├── main.py              # FastAPI application entry point
 │   ├── requirements.txt     # Python dependencies
 │   └── pytest.ini           # Test configuration
+├── scripts/                   # Test and utility scripts
+│   ├── test-all.sh          # Run all tests (backend + frontend + contract)
+│   ├── test-backend.sh      # Run backend tests only
+│   └── test-frontend.sh     # Run frontend tests only
 ├── specs/                    # Feature specifications
 │   ├── 001-chat-interface/  # Chat interface spec & design docs
 │   │   ├── spec.md          # Feature specification
 │   │   ├── plan.md          # Implementation plan
 │   │   ├── tasks.md         # Task breakdown
 │   │   └── ...
-│   └── 003-backend-api-loopback/  # Backend API spec & design docs
+│   └── 009-message-streaming/  # Streaming feature spec & design docs
 │       ├── spec.md          # Feature specification
 │       ├── plan.md          # Implementation plan
-│       ├── tasks.md         # Task breakdown (76 tasks)
-│       ├── data-model.md    # Data schemas
-│       ├── contracts/       # OpenAPI 3.1 specification
+│       ├── tasks.md         # Task breakdown (46 tasks)
+│       ├── data-model.md    # Data schemas (StreamEvent, StreamingMessage)
+│       ├── contracts/       # OpenAPI 3.1 specification for SSE
 │       └── ...
 ├── architecture.md           # Living architecture documentation
 └── README.md                # This file
