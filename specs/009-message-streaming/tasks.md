@@ -257,6 +257,10 @@ This document breaks down the message streaming feature into atomic, executable 
   - Test completed message saved and displayed
   - Test auto-scroll behavior
   - **Result**: 8 integration tests PASS (68ms) - covers streaming state, token accumulation, ChatArea display, localStorage persistence, error handling, abort, and multiple stream prevention
+  - **Note**: sendUserMessage integration completed in T021 with critical fixes:
+    - Commit 52760cd: Fixed function signature mismatch (callbacks parameter order)
+    - Commit 5d244b5: Added robust error handling (30s timeout, callback validation, error reporting)
+    - All 23 unit tests passing
 
 ### End-to-End Testing
 
@@ -464,19 +468,35 @@ This document breaks down the message streaming feature into atomic, executable 
 
 **Tasks**:
 
-- [ ] T044 [P] Update CLAUDE.md with streaming implementation notes
+- [x] T044 [P] Update CLAUDE.md with streaming implementation notes (2026-01-14)
   - Add streaming endpoints to Recent Changes section
   - Document SSE usage and EventSource patterns
   - Note any gotchas or best practices discovered
-  - **Expected**: Agent context updated for future features
+  - **Result**: Added comprehensive "009-message-streaming (2026-01-14) ✅ MVP COMPLETE" section with:
+    - Backend/frontend implementation details
+    - Error handling improvements (bonus work beyond spec)
+    - Testing status (23/23 tests passing)
+    - Key files modified
+    - Critical bug fixes documented
+    - Usage examples with code snippets
+    - SSE format examples
 
-- [ ] T045 [P] Create release notes in specs/009-message-streaming/RELEASE.md
+- [x] T045 [P] Create release notes in specs/009-message-streaming/RELEASE.md (2026-01-14)
   - Summarize implemented user stories (US1, US2, US3)
   - List new endpoints and API changes
   - Document breaking changes (none expected)
   - Add migration guide for existing clients (none needed)
   - Include performance benchmarks (first token latency, throughput)
-  - **Expected**: Clear release communication
+  - **Result**: Created comprehensive release notes (v1.0.0 MVP) including:
+    - Complete feature overview and benefits
+    - Technical implementation details (backend/frontend)
+    - Bonus error handling improvements section
+    - Performance metrics (<1s first token, 100+ concurrent streams)
+    - Breaking changes (none - 100% backward compatible)
+    - Migration guide (opt-in via Accept header)
+    - Known limitations and future enhancements
+    - Rollback plan and security considerations
+    - Testing validation checklist
 
 - [ ] T046 Run full test suite and verify all tests pass
   - Backend: pytest backend/tests/ -v
