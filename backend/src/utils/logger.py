@@ -139,3 +139,111 @@ def llm_request_error(message: str, model: str, error: Exception) -> None:
         f"error={sanitized_error}"
     )
     logger.debug(f"Failed message preview: {message[:50]}...")
+
+
+# ============================================================================
+# Streaming Logging Functions (Feature: 009-message-streaming)
+# ============================================================================
+
+def log_stream_start(message_id: str, model: str) -> None:
+    """
+    T010: Log the start of a streaming LLM response.
+
+    Logs when a streaming request begins, including the message ID
+    and model being used. Useful for tracking streaming session lifecycle.
+
+    Feature: 009-message-streaming Task T010
+
+    Args:
+        message_id: Unique identifier for the message/stream
+        model: LLM model being used for streaming
+
+    Examples:
+        >>> log_stream_start("msg-123", "gpt-4")
+        # Logs: "Stream started: message_id=msg-123, model=gpt-4"
+    """
+    logger.info(
+        f"Stream started: message_id={message_id}, "
+        f"model={model}"
+    )
+
+
+def log_stream_token(message_id: str, token_count: int) -> None:
+    """
+    T010: Log streaming token progress.
+
+    Logs periodic updates during streaming to track token generation progress.
+    Should be called periodically (e.g., every 10 tokens) to avoid log spam.
+
+    Feature: 009-message-streaming Task T010
+
+    Args:
+        message_id: Unique identifier for the message/stream
+        token_count: Number of tokens streamed so far
+
+    Examples:
+        >>> log_stream_token("msg-123", 50)
+        # Logs: "Stream progress: message_id=msg-123, tokens=50"
+    """
+    logger.debug(
+        f"Stream progress: message_id={message_id}, "
+        f"tokens={token_count}"
+    )
+
+
+def log_stream_complete(message_id: str, duration_ms: float, total_tokens: int) -> None:
+    """
+    T010: Log the successful completion of a streaming response.
+
+    Logs when a streaming session completes successfully, including
+    timing and token count information for performance monitoring.
+
+    Feature: 009-message-streaming Task T010
+
+    Args:
+        message_id: Unique identifier for the message/stream
+        duration_ms: Total streaming duration in milliseconds
+        total_tokens: Total number of tokens streamed
+
+    Examples:
+        >>> log_stream_complete("msg-123", 2345.6, 150)
+        # Logs: "Stream completed: message_id=msg-123, duration=2345.60ms, total_tokens=150"
+    """
+    logger.info(
+        f"Stream completed: message_id={message_id}, "
+        f"duration={duration_ms:.2f}ms, "
+        f"total_tokens={total_tokens}"
+    )
+
+
+def log_stream_error(message_id: str, error: Exception, tokens_sent: int = 0) -> None:
+    """
+    T010: Log an error during streaming response.
+
+    Logs when a streaming session fails, with sanitized error information
+    and count of tokens successfully sent before the error.
+
+    Feature: 009-message-streaming Task T010
+
+    Args:
+        message_id: Unique identifier for the message/stream
+        error: Exception that occurred
+        tokens_sent: Number of tokens successfully sent before error
+
+    Examples:
+        >>> log_stream_error("msg-123", TimeoutError("Connection lost"), 42)
+        # Logs: "Stream failed: message_id=msg-123, error_type=TimeoutError, tokens_sent=42"
+    """
+    error_type = type(error).__name__
+    error_message = str(error)
+
+    # Sanitize error message to avoid exposing API keys or sensitive data
+    import re
+    sanitized_error = re.sub(r'sk-[a-zA-Z0-9]+', 'sk-***REDACTED***', error_message)
+
+    logger.error(
+        f"Stream failed: message_id={message_id}, "
+        f"error_type={error_type}, "
+        f"tokens_sent={tokens_sent}, "
+        f"error={sanitized_error}"
+    )

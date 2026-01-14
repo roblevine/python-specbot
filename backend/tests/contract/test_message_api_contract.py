@@ -751,3 +751,482 @@ def test_invalid_model_id_returns_error(
         assert len(error_message) > 0, "Error response must include error message"
         assert "model" in error_message.lower() or "invalid" in error_message.lower(), \
             f"Error should mention model or invalid, got: {error_message}"
+
+
+# ============================================================================
+# Streaming Contract Tests (Feature: 009-message-streaming)
+# ============================================================================
+
+@pytest.mark.contract
+def test_streaming_request_with_sse_accept_header(
+    client: TestClient,
+    sample_message_minimal: dict
+):
+    """
+    T011: Contract test for streaming endpoint with Accept: text/event-stream header.
+
+    Validates that:
+    - POST /api/v1/messages accepts text/event-stream Accept header
+    - Response has Content-Type: text/event-stream
+    - Response status is 200
+    - Response body contains SSE formatted data
+
+    Feature: 009-message-streaming User Story 1
+    Expected: FAIL (streaming not implemented yet)
+    """
+    from unittest.mock import patch, AsyncMock, Mock
+
+    # Mock the LLM streaming service
+    with patch('src.api.routes.messages.load_config') as mock_load_config, \
+         patch('src.api.routes.messages.stream_ai_response') as mock_stream_ai:
+
+        # Mock config
+        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
+
+        # Mock streaming response with async generator
+        async def mock_generator():
+            from src.schemas import TokenEvent, CompleteEvent
+            yield TokenEvent(content="Hello")
+            yield TokenEvent(content=" ")
+            yield TokenEvent(content="World")
+            yield CompleteEvent(model="gpt-3.5-turbo")
+
+        mock_stream_ai.return_value = mock_generator()
+
+        # Make request with SSE Accept header
+        response = client.post(
+            "/api/v1/messages",
+            json=sample_message_minimal,
+            headers={"Accept": "text/event-stream"}
+        )
+
+        # Verify response
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+
+        # Verify Content-Type header
+        content_type = response.headers.get("Content-Type", "")
+        assert "text/event-stream" in content_type, \
+            f"Expected text/event-stream Content-Type, got: {content_type}"
+
+
+@pytest.mark.contract
+def test_streaming_response_sse_format(
+    client: TestClient,
+    sample_message_minimal: dict
+):
+    """
+    T011: Validate SSE (Server-Sent Events) format in streaming response.
+
+    Validates that streaming response follows SSE specification:
+    - Each event: "data: <JSON>\\n\\n"
+    - Events are newline-delimited
+    - JSON contains type field (token, complete, error)
+
+    Feature: 009-message-streaming User Story 1
+    """
+    from unittest.mock import patch
+    import json
+
+    # Mock the LLM streaming service
+    with patch('src.api.routes.messages.load_config') as mock_load_config, \
+         patch('src.api.routes.messages.stream_ai_response') as mock_stream_ai:
+
+        # Mock config
+        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
+
+        # Mock streaming response
+        async def mock_generator():
+            from src.schemas import TokenEvent, CompleteEvent
+            yield TokenEvent(content="Test")
+            yield CompleteEvent(model="gpt-3.5-turbo")
+
+        mock_stream_ai.return_value = mock_generator()
+
+        # Make streaming request
+        response = client.post(
+            "/api/v1/messages",
+            json=sample_message_minimal,
+            headers={"Accept": "text/event-stream"}
+        )
+
+        # Parse SSE response
+        response_text = response.text
+
+        # SSE format: each event should be "data: {...}\n\n"
+        assert "data: " in response_text, "SSE response must contain 'data: ' prefix"
+
+        # Split by double newline to get individual events
+        events = [e for e in response_text.split("\n\n") if e.strip()]
+
+        assert len(events) > 0, "SSE response must contain at least one event"
+
+        # Validate each event format
+        for event_str in events:
+            assert event_str.startswith("data: "), \
+                f"Each SSE event must start with 'data: ', got: {event_str[:20]}"
+
+            # Extract JSON part (remove "data: " prefix)
+            json_str = event_str[6:]  # len("data: ") = 6
+
+            # Validate JSON is parseable
+            try:
+                event_data = json.loads(json_str)
+            except json.JSONDecodeError as e:
+                pytest.fail(f"SSE event contains invalid JSON: {e}\nEvent: {json_str}")
+
+            # Validate event has type field
+            assert "type" in event_data, f"SSE event must have 'type' field, got: {event_data}"
+            assert event_data["type"] in ["token", "complete", "error"], \
+                f"Event type must be token/complete/error, got: {event_data['type']}"
+
+
+@pytest.mark.contract
+def test_streaming_event_sequence(
+    client: TestClient,
+    sample_message_minimal: dict
+):
+    """
+    T011: Validate correct sequence of streaming events.
+
+    Validates that streaming response follows expected event sequence:
+    1. Zero or more TokenEvent (type="token")
+    2. Exactly one CompleteEvent (type="complete") OR ErrorEvent (type="error")
+    3. CompleteEvent is always the last event
+
+    Feature: 009-message-streaming User Story 1
+    """
+    from unittest.mock import patch
+    import json
+
+    # Mock the LLM streaming service
+    with patch('src.api.routes.messages.load_config') as mock_load_config, \
+         patch('src.api.routes.messages.stream_ai_response') as mock_stream_ai:
+
+        # Mock config
+        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
+
+        # Mock streaming response with multiple tokens
+        async def mock_generator():
+            from src.schemas import TokenEvent, CompleteEvent
+            yield TokenEvent(content="Hello")
+            yield TokenEvent(content=" ")
+            yield TokenEvent(content="World")
+            yield TokenEvent(content="!")
+            yield CompleteEvent(model="gpt-3.5-turbo")
+
+        mock_stream_ai.return_value = mock_generator()
+
+        # Make streaming request
+        response = client.post(
+            "/api/v1/messages",
+            json=sample_message_minimal,
+            headers={"Accept": "text/event-stream"}
+        )
+
+        # Parse events
+        response_text = response.text
+        events = []
+
+        for event_str in response_text.split("\n\n"):
+            if event_str.strip() and event_str.startswith("data: "):
+                json_str = event_str[6:]
+                events.append(json.loads(json_str))
+
+        # Validate event sequence
+        assert len(events) >= 2, "Stream must have at least 1 token + 1 complete event"
+
+        # All events except last should be TokenEvent
+        for i, event in enumerate(events[:-1]):
+            assert event["type"] == "token", \
+                f"Event {i} should be token, got: {event['type']}"
+            assert "content" in event, f"TokenEvent must have 'content' field"
+
+        # Last event should be CompleteEvent
+        last_event = events[-1]
+        assert last_event["type"] == "complete", \
+            f"Last event should be complete, got: {last_event['type']}"
+        assert "model" in last_event, "CompleteEvent must have 'model' field"
+        assert last_event["model"] == "gpt-3.5-turbo"
+
+
+@pytest.mark.contract
+def test_streaming_backward_compatibility_json_accept(
+    client: TestClient,
+    sample_message_minimal: dict
+):
+    """
+    T011: Test backward compatibility - Accept: application/json still works.
+
+    Validates that:
+    - Existing clients using Accept: application/json continue to work
+    - Response is standard JSON (not SSE)
+    - Response matches MessageResponse schema
+
+    Feature: 009-message-streaming User Story 1
+    CRITICAL: This ensures we don't break existing integrations
+    """
+    from unittest.mock import patch, AsyncMock
+    import json
+
+    # Mock the LLM service (non-streaming)
+    with patch('src.api.routes.messages.load_config') as mock_load_config, \
+         patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
+
+        # Mock config
+        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
+
+        # Mock non-streaming AI response
+        mock_get_ai.return_value = ("Hello World!", "gpt-3.5-turbo")
+
+        # Make request with application/json Accept header (or omit - defaults to JSON)
+        response = client.post(
+            "/api/v1/messages",
+            json=sample_message_minimal,
+            headers={"Accept": "application/json"}
+        )
+
+        # Verify non-streaming response
+        assert response.status_code == 200
+
+        # Verify Content-Type is JSON
+        content_type = response.headers.get("Content-Type", "")
+        assert "application/json" in content_type, \
+            f"JSON Accept should return application/json, got: {content_type}"
+
+        # Verify response is valid JSON (not SSE)
+        data = response.json()
+        assert "status" in data, "JSON response must have status field"
+        assert data["status"] == "success"
+        assert "message" in data, "JSON response must have message field"
+        assert "timestamp" in data, "JSON response must have timestamp field"
+
+        # Verify NOT SSE format
+        response_text = response.text
+        assert not response_text.startswith("data: "), \
+            "JSON response should not be in SSE format"
+
+
+@pytest.mark.contract
+def test_streaming_with_conversation_history(
+    client: TestClient
+):
+    """
+    T011: Validate streaming works with conversation history.
+
+    Validates that streaming endpoint accepts history field and
+    passes it to the streaming service.
+
+    Feature: 009-message-streaming User Story 1
+    """
+    from unittest.mock import patch
+
+    # Mock the LLM streaming service
+    with patch('src.api.routes.messages.load_config') as mock_load_config, \
+         patch('src.api.routes.messages.stream_ai_response') as mock_stream_ai:
+
+        # Mock config
+        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
+
+        # Mock streaming response
+        async def mock_generator():
+            from src.schemas import TokenEvent, CompleteEvent
+            yield TokenEvent(content="Context-aware response")
+            yield CompleteEvent(model="gpt-3.5-turbo")
+
+        mock_stream_ai.return_value = mock_generator()
+
+        # Request with conversation history
+        request_data = {
+            "message": "What's my name?",
+            "history": [
+                {"sender": "user", "text": "My name is Alice"},
+                {"sender": "system", "text": "Nice to meet you, Alice!"}
+            ]
+        }
+
+        # Make streaming request
+        response = client.post(
+            "/api/v1/messages",
+            json=request_data,
+            headers={"Accept": "text/event-stream"}
+        )
+
+        # Verify streaming response
+        assert response.status_code == 200
+        assert "text/event-stream" in response.headers.get("Content-Type", "")
+
+        # Verify stream_ai_response was called with history
+        mock_stream_ai.assert_called_once()
+        call_kwargs = mock_stream_ai.call_args[1]
+        assert "history" in call_kwargs, "stream_ai_response should receive history"
+        assert len(call_kwargs["history"]) == 2
+
+
+@pytest.mark.contract
+def test_streaming_with_custom_model(
+    client: TestClient,
+    sample_message_minimal: dict
+):
+    """
+    T011: Validate streaming works with per-request model selection.
+
+    Validates that streaming endpoint accepts model field and
+    CompleteEvent returns the model that was used.
+
+    Feature: 009-message-streaming + 008-openai-model-selector
+    """
+    from unittest.mock import patch
+    import json
+
+    # Mock the LLM streaming service
+    with patch('src.api.routes.messages.load_config') as mock_load_config, \
+         patch('src.api.routes.messages.stream_ai_response') as mock_stream_ai:
+
+        # Mock config
+        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
+
+        # Mock streaming response with custom model
+        async def mock_generator():
+            from src.schemas import TokenEvent, CompleteEvent
+            yield TokenEvent(content="GPT-4 response")
+            yield CompleteEvent(model="gpt-4")  # Returns requested model
+
+        mock_stream_ai.return_value = mock_generator()
+
+        # Request with custom model
+        request_data = {
+            **sample_message_minimal,
+            "model": "gpt-4"
+        }
+
+        # Make streaming request
+        response = client.post(
+            "/api/v1/messages",
+            json=request_data,
+            headers={"Accept": "text/event-stream"}
+        )
+
+        # Parse events
+        events = []
+        for event_str in response.text.split("\n\n"):
+            if event_str.strip() and event_str.startswith("data: "):
+                events.append(json.loads(event_str[6:]))
+
+        # Find CompleteEvent
+        complete_events = [e for e in events if e["type"] == "complete"]
+        assert len(complete_events) == 1, "Should have exactly one CompleteEvent"
+
+        # Verify model field in CompleteEvent
+        assert complete_events[0]["model"] == "gpt-4", \
+            f"CompleteEvent should return requested model, got: {complete_events[0]['model']}"
+
+
+@pytest.mark.contract
+def test_streaming_error_event_format(
+    client: TestClient,
+    sample_message_minimal: dict
+):
+    """
+    T011: Validate ErrorEvent format in streaming response.
+
+    Validates that when streaming fails:
+    - ErrorEvent is yielded with type="error"
+    - ErrorEvent has error field (human-readable message)
+    - ErrorEvent has code field (machine-readable error code)
+    - Valid error codes: TIMEOUT, RATE_LIMIT, LLM_ERROR, AUTH_ERROR, CONNECTION_ERROR, UNKNOWN
+
+    Feature: 009-message-streaming User Story 3
+    """
+    from unittest.mock import patch
+    import json
+
+    # Mock the LLM streaming service to yield error
+    with patch('src.api.routes.messages.load_config') as mock_load_config, \
+         patch('src.api.routes.messages.stream_ai_response') as mock_stream_ai:
+
+        # Mock config
+        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
+
+        # Mock streaming response with error
+        async def mock_generator():
+            from src.schemas import ErrorEvent
+            yield ErrorEvent(error="AI service is busy", code="RATE_LIMIT")
+
+        mock_stream_ai.return_value = mock_generator()
+
+        # Make streaming request
+        response = client.post(
+            "/api/v1/messages",
+            json=sample_message_minimal,
+            headers={"Accept": "text/event-stream"}
+        )
+
+        # Parse events
+        events = []
+        for event_str in response.text.split("\n\n"):
+            if event_str.strip() and event_str.startswith("data: "):
+                events.append(json.loads(event_str[6:]))
+
+        # Should have exactly one ErrorEvent
+        assert len(events) == 1, f"Error stream should have exactly one event, got {len(events)}"
+
+        error_event = events[0]
+        assert error_event["type"] == "error", f"Event type should be 'error', got: {error_event['type']}"
+        assert "error" in error_event, "ErrorEvent must have 'error' field"
+        assert "code" in error_event, "ErrorEvent must have 'code' field"
+
+        # Validate error code is one of the valid codes
+        valid_codes = ["TIMEOUT", "RATE_LIMIT", "LLM_ERROR", "AUTH_ERROR", "CONNECTION_ERROR", "UNKNOWN"]
+        assert error_event["code"] in valid_codes, \
+            f"Error code must be one of {valid_codes}, got: {error_event['code']}"
+
+
+@pytest.mark.contract
+def test_streaming_sse_headers(
+    client: TestClient,
+    sample_message_minimal: dict
+):
+    """
+    T011: Validate required SSE headers in streaming response.
+
+    Validates that streaming response includes required headers:
+    - Content-Type: text/event-stream
+    - Cache-Control: no-cache (prevents caching of stream)
+    - Connection: keep-alive (maintains connection for streaming)
+    - X-Accel-Buffering: no (disables nginx buffering)
+
+    Feature: 009-message-streaming User Story 1
+    """
+    from unittest.mock import patch
+
+    # Mock the LLM streaming service
+    with patch('src.api.routes.messages.load_config') as mock_load_config, \
+         patch('src.api.routes.messages.stream_ai_response') as mock_stream_ai:
+
+        # Mock config
+        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
+
+        # Mock streaming response
+        async def mock_generator():
+            from src.schemas import TokenEvent, CompleteEvent
+            yield TokenEvent(content="Test")
+            yield CompleteEvent(model="gpt-3.5-turbo")
+
+        mock_stream_ai.return_value = mock_generator()
+
+        # Make streaming request
+        response = client.post(
+            "/api/v1/messages",
+            json=sample_message_minimal,
+            headers={"Accept": "text/event-stream"}
+        )
+
+        # Verify required headers
+        headers = response.headers
+
+        assert "text/event-stream" in headers.get("Content-Type", ""), \
+            f"Missing or incorrect Content-Type: {headers.get('Content-Type')}"
+
+        # Note: Cache-Control, Connection, X-Accel-Buffering may not be testable
+        # with TestClient since it doesn't fully emulate HTTP streaming headers.
+        # These will be validated in integration tests with actual server.

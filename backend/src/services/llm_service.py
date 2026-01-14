@@ -26,6 +26,7 @@ from src.config.models import (
     validate_model_id,
     ModelConfigurationError
 )
+from src.schemas import TokenEvent, CompleteEvent, ErrorEvent
 
 logger = get_logger(__name__)
 
@@ -77,22 +78,26 @@ def load_config() -> Dict[str, str]:
     """
     T007: Load LLM configuration from environment variables.
 
-    Loads OPENAI_API_KEY (required) and OPENAI_MODEL (optional, defaults to gpt-3.5-turbo).
+    Loads OPENAI_API_KEY (required) and OPENAI_MODELS (required).
+    Uses the default model from OPENAI_MODELS configuration.
 
     Returns:
         Dictionary with 'api_key' and 'model' keys
 
     Raises:
         ValueError: If OPENAI_API_KEY is not set
+        ModelConfigurationError: If OPENAI_MODELS is invalid or missing
 
     Examples:
-        >>> # With environment: OPENAI_API_KEY=sk-abc123, OPENAI_MODEL=gpt-4
+        >>> # With environment: OPENAI_API_KEY=sk-abc123, OPENAI_MODELS='[{"id": "gpt-4", ...}]'
         >>> config = load_config()
         >>> config['api_key']
         'sk-abc123'
         >>> config['model']
         'gpt-4'
     """
+    from src.config.models import load_model_configuration, get_default_model
+
     api_key = os.getenv('OPENAI_API_KEY')
 
     if not api_key:
@@ -102,8 +107,9 @@ def load_config() -> Dict[str, str]:
             "Please set it in your .env file or environment."
         )
 
-    # Default to gpt-3.5-turbo if OPENAI_MODEL not specified
-    model = os.getenv('OPENAI_MODEL', 'gpt-3.5-turbo')
+    # Load model configuration and get default model
+    model_config = load_model_configuration()
+    model = get_default_model(model_config)
 
     logger.info(f"Loaded LLM config: model={model}, api_key={'*' * 8}...{api_key[-4:]}")
 
@@ -363,3 +369,155 @@ async def get_ai_response(
         logger.error(f"Unexpected LLM error: {type(e).__name__}: {str(e)}")
         # Re-raise as generic LLM error
         raise LLMServiceError("AI service error occurred", original_error=e)
+
+
+async def stream_ai_response(
+    message: str,
+    history: Optional[List[Dict[str, str]]] = None,
+    model: Optional[str] = None
+):
+    """
+    T009: Stream AI response as token-by-token events.
+
+    Streams the AI response as a sequence of events using Server-Sent Events protocol.
+    Uses LangChain's astream() for token-by-token streaming from the LLM.
+
+    Feature: 009-message-streaming User Story 1 (P1)
+
+    Args:
+        message: User message text
+        history: Optional list of previous messages with sender/text fields
+                 for context-aware responses
+        model: Optional model ID to use for this request.
+               If not provided, uses the configured default model.
+
+    Yields:
+        TokenEvent: For each token/chunk from the LLM
+        CompleteEvent: Final event indicating stream completion with model info
+        ErrorEvent: If an error occurs during streaming
+
+    Examples:
+        >>> import asyncio
+        >>> async def example():
+        ...     async for event in stream_ai_response("Hello"):
+        ...         if isinstance(event, TokenEvent):
+        ...             print(event.content, end="", flush=True)
+        ...         elif isinstance(event, CompleteEvent):
+        ...             print(f"\\nDone! Model: {event.model}")
+        >>> asyncio.run(example())
+    """
+    if not message or not message.strip():
+        yield ErrorEvent(
+            error="Message cannot be empty",
+            code="UNKNOWN"
+        )
+        return
+
+    logger.info(f"Starting streaming for message: {message[:50]}...")
+    if history:
+        logger.info(f"Including {len(history)} message(s) from conversation history")
+
+    try:
+        # Load model configuration
+        config = load_model_configuration()
+
+        # Determine which model to use
+        if model:
+            model_to_use = model
+            logger.info(f"User-selected model: {model_to_use}")
+        else:
+            model_to_use = get_default_model(config)
+            logger.info(f"Using default model: {model_to_use}")
+
+        # Validate model against configuration
+        if not validate_model_id(model_to_use, config):
+            available_models = [m.id for m in config.models]
+            logger.error(f"Invalid model requested: {model_to_use}. Available: {', '.join(available_models)}")
+            yield ErrorEvent(
+                error=f"Invalid model: {model_to_use}",
+                code="UNKNOWN"
+            )
+            return
+
+        # Load API key
+        api_key = os.getenv('OPENAI_API_KEY')
+        if not api_key:
+            logger.error("OPENAI_API_KEY environment variable is not set")
+            yield ErrorEvent(
+                error="AI service configuration error",
+                code="AUTH_ERROR"
+            )
+            return
+
+        # Create per-request ChatOpenAI instance with specified model
+        logger.debug(f"Creating ChatOpenAI instance for model: {model_to_use}")
+        llm = ChatOpenAI(
+            api_key=api_key,
+            model=model_to_use,
+            timeout=120,
+            request_timeout=120
+        )
+
+        # Build conversation history
+        conversation = history.copy() if history else []
+        conversation.append({"sender": "user", "text": message})
+
+        # Convert to LangChain format
+        langchain_messages = convert_to_langchain_messages(conversation)
+
+        # Stream LLM response
+        logger.debug(f"Streaming from ChatOpenAI with {len(langchain_messages)} message(s)")
+
+        async for chunk in llm.astream(langchain_messages):
+            # Extract content from chunk
+            content = chunk.content
+
+            # Skip empty chunks
+            if content:
+                yield TokenEvent(content=content)
+
+        # Yield completion event
+        logger.info(f"Stream completed successfully using model: {model_to_use}")
+        yield CompleteEvent(model=model_to_use)
+
+    except AuthenticationError as e:
+        logger.error(f"LLM authentication failed during streaming: {type(e).__name__}")
+        yield ErrorEvent(
+            error="AI service configuration error",
+            code="AUTH_ERROR"
+        )
+
+    except RateLimitError as e:
+        logger.error(f"LLM rate limit exceeded during streaming: {type(e).__name__}")
+        yield ErrorEvent(
+            error="AI service is busy",
+            code="RATE_LIMIT"
+        )
+
+    except APIConnectionError as e:
+        logger.error(f"LLM connection failed during streaming: {type(e).__name__}")
+        yield ErrorEvent(
+            error="Unable to reach AI service",
+            code="CONNECTION_ERROR"
+        )
+
+    except (APITimeoutError, asyncio.TimeoutError) as e:
+        logger.error(f"LLM request timed out during streaming: {type(e).__name__}")
+        yield ErrorEvent(
+            error="Request timed out",
+            code="TIMEOUT"
+        )
+
+    except BadRequestError as e:
+        logger.error(f"LLM bad request during streaming: {type(e).__name__}: {str(e)}")
+        yield ErrorEvent(
+            error="Message could not be processed",
+            code="LLM_ERROR"
+        )
+
+    except Exception as e:
+        logger.error(f"Unexpected error during streaming: {type(e).__name__}: {str(e)}")
+        yield ErrorEvent(
+            error="AI service error occurred",
+            code="UNKNOWN"
+        )

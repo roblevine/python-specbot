@@ -198,6 +198,224 @@ export async function fetchModels() {
 }
 
 /**
+ * T015: Stream message with real-time token-by-token responses
+ *
+ * Uses fetch + ReadableStream to parse SSE (Server-Sent Events) format.
+ * EventSource doesn't support POST, so we use fetch with manual SSE parsing.
+ *
+ * Feature: 009-message-streaming User Story 1
+ *
+ * @param {string} messageText - The message to send
+ * @param {Function} onToken - Callback for each token: (content: string) => void
+ * @param {Function} onComplete - Callback when complete: (metadata: object) => void
+ * @param {Function} onError - Optional callback for errors: (error: object) => void
+ * @param {Array<{sender: string, text: string}>} history - Optional conversation history
+ * @param {string} model - Optional model ID to use for this request
+ * @returns {Function} cleanup - Call to abort the stream
+ */
+export function streamMessage(messageText, onToken, onComplete, onError = null, history = null, model = null) {
+  logger.debug('Starting streaming message', { messageText, historyLength: history?.length, model })
+
+  // Validate callbacks are functions to prevent silent failures
+  if (typeof onToken !== 'function') {
+    const error = new Error('onToken must be a function')
+    logger.error('Invalid callback', { onToken })
+    if (onError && typeof onError === 'function') {
+      onError({ error: error.message, code: 'INVALID_CALLBACK' })
+    }
+    throw error
+  }
+
+  if (typeof onComplete !== 'function') {
+    const error = new Error('onComplete must be a function')
+    logger.error('Invalid callback', { onComplete })
+    if (onError && typeof onError === 'function') {
+      onError({ error: error.message, code: 'INVALID_CALLBACK' })
+    }
+    throw error
+  }
+
+  // Create request payload
+  const requestBody = {
+    message: messageText,
+    timestamp: new Date().toISOString(),
+  }
+
+  if (history && history.length > 0) {
+    requestBody.history = history
+  }
+
+  if (model) {
+    requestBody.model = model
+  }
+
+  // Create abort controller for cleanup
+  const controller = new AbortController()
+
+  // Track if we've received any tokens (for timeout detection)
+  let receivedFirstToken = false
+  let streamTimeout = null
+
+  // Set a timeout to detect if streaming hangs (no tokens received)
+  const STREAM_START_TIMEOUT = 30000 // 30 seconds to receive first token
+  streamTimeout = setTimeout(() => {
+    if (!receivedFirstToken) {
+      logger.error('Streaming timeout - no tokens received')
+      if (onError && typeof onError === 'function') {
+        onError({
+          error: 'Streaming request timed out. No response received from server.',
+          code: 'STREAM_TIMEOUT',
+        })
+      }
+      controller.abort()
+    }
+  }, STREAM_START_TIMEOUT)
+
+  // Start streaming in background (don't await)
+  const streamPromise = (async () => {
+    try {
+      // Make POST request with streaming headers
+      const response = await fetch(`${API_BASE_URL}/api/v1/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'text/event-stream',
+        },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal,
+      })
+
+      // Handle HTTP errors
+      if (!response.ok) {
+        clearTimeout(streamTimeout)
+        const errorData = await response.json().catch(() => ({ error: response.statusText }))
+        logger.warn('Streaming request failed', { status: response.status, error: errorData })
+
+        if (onError && typeof onError === 'function') {
+          onError({
+            error: errorData.error || 'Request failed',
+            code: `HTTP_${response.status}`,
+            statusCode: response.status,
+          })
+        }
+        return
+      }
+
+      // Get readable stream reader
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder('utf-8')
+      let buffer = '' // Buffer for partial SSE events
+
+      // Read stream chunks
+      while (true) {
+        const { done, value } = await reader.read()
+
+        if (done) {
+          logger.debug('Stream completed')
+          clearTimeout(streamTimeout)
+          break
+        }
+
+        // Decode chunk and add to buffer
+        buffer += decoder.decode(value, { stream: true })
+
+        // Process complete SSE events (format: "data: {...}\n\n")
+        const events = buffer.split('\n\n')
+
+        // Keep last incomplete event in buffer
+        buffer = events.pop() || ''
+
+        // Process each complete event
+        for (const eventString of events) {
+          if (!eventString.trim() || !eventString.startsWith('data: ')) {
+            continue
+          }
+
+          try {
+            // Parse JSON from SSE format
+            const jsonString = eventString.substring(6) // Remove "data: " prefix
+            const event = JSON.parse(jsonString)
+
+            // Handle different event types
+            if (event.type === 'token') {
+              receivedFirstToken = true
+              clearTimeout(streamTimeout) // Clear timeout once we start receiving tokens
+
+              try {
+                onToken(event.content)
+              } catch (callbackError) {
+                logger.error('Error in onToken callback', callbackError)
+                // Report callback errors to user
+                if (onError && typeof onError === 'function') {
+                  onError({
+                    error: 'Error processing streamed token',
+                    code: 'CALLBACK_ERROR',
+                    originalError: callbackError.message,
+                  })
+                }
+              }
+            } else if (event.type === 'complete') {
+              try {
+                onComplete(event)
+              } catch (callbackError) {
+                logger.error('Error in onComplete callback', callbackError)
+                if (onError && typeof onError === 'function') {
+                  onError({
+                    error: 'Error completing stream',
+                    code: 'CALLBACK_ERROR',
+                    originalError: callbackError.message,
+                  })
+                }
+              }
+            } else if (event.type === 'error') {
+              if (onError && typeof onError === 'function') {
+                onError(event)
+              }
+            }
+          } catch (parseError) {
+            logger.error('Failed to parse SSE event', { eventString, error: parseError })
+            // Report parse errors to user instead of silently failing
+            if (onError && typeof onError === 'function') {
+              onError({
+                error: 'Error parsing server response',
+                code: 'PARSE_ERROR',
+                originalError: parseError.message,
+              })
+            }
+          }
+        }
+      }
+    } catch (error) {
+      clearTimeout(streamTimeout)
+
+      // Handle abort (cleanup called)
+      if (error.name === 'AbortError') {
+        logger.debug('Stream aborted by user')
+        return
+      }
+
+      // Handle network errors
+      logger.error('Streaming error', error)
+
+      if (onError && typeof onError === 'function') {
+        onError({
+          error: error.message || 'Network error',
+          code: 'NETWORK_ERROR',
+          originalError: error,
+        })
+      }
+    }
+  })()
+
+  // Return cleanup function
+  return () => {
+    logger.debug('Aborting stream')
+    clearTimeout(streamTimeout)
+    controller.abort()
+  }
+}
+
+/**
  * Health check endpoint
  * @returns {Promise<{status: string}>}
  */

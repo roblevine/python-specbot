@@ -5,6 +5,7 @@ Provides:
 - TestClient for integration tests
 - OpenAPI spec loader for contract tests
 - Common test data fixtures
+- Environment variable mocking for test isolation
 """
 
 import os
@@ -15,7 +16,36 @@ import yaml
 from fastapi.testclient import TestClient
 from openapi_core import Spec
 
-from main import app
+
+@pytest.fixture(scope="function", autouse=True)
+def mock_test_env_vars(monkeypatch):
+    """
+    Override environment variables for all tests to ensure test isolation.
+
+    This fixture runs automatically for every test (autouse=True) and ensures
+    tests don't depend on local .env configuration which may differ across machines.
+
+    Args:
+        monkeypatch: pytest fixture for modifying environment variables
+    """
+    # Set predictable test values BEFORE any imports that load config
+    # Use OPENAI_MODELS (JSON array) with gpt-3.5-turbo as the default model
+    monkeypatch.setenv(
+        "OPENAI_MODELS",
+        '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", '
+        '"description": "Fast and efficient for most tasks", "default": true}]'
+    )
+    monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-12345")
+
+    # Clear any cached LLM instances to force reload with new env vars
+    try:
+        import src.services.llm_service as llm_service
+        llm_service._llm_instance = None
+    except (ImportError, AttributeError):
+        pass  # Module not imported yet or no cache to clear
+
+    # Note: Individual tests can still override these with their own monkeypatch
+    # if they need to test different configurations
 
 
 @pytest.fixture(scope="session")
@@ -53,6 +83,9 @@ def client() -> Generator[TestClient, None, None]:
     Yields:
         TestClient instance for making test requests
     """
+    # Import app here (not at module level) to ensure env vars are set first
+    from main import app
+
     with TestClient(app) as test_client:
         yield test_client
 

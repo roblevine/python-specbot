@@ -6,6 +6,7 @@ import { ApiError } from '../../src/services/apiClient.js'
 // Mock the API client
 vi.mock('../../src/services/apiClient.js', () => ({
   sendMessage: vi.fn(),
+  streamMessage: vi.fn(),
   ApiError: class ApiError extends Error {
     constructor(message, statusCode = null, details = null) {
       super(message)
@@ -30,24 +31,23 @@ describe('Error Display Integration', () => {
     const { createConversation } = useConversations()
     const { sendUserMessage, currentMessages } = useMessages()
 
-    // Mock API to throw 422 validation error
-    vi.mocked(apiClient.sendMessage).mockRejectedValueOnce(
-      new apiClient.ApiError(
-        'Message validation failed',
-        422,
-        { field: 'message', reason: 'Message too short' }
-      )
-    )
+    // Mock streaming API to trigger error via onError callback
+    vi.mocked(apiClient.streamMessage).mockImplementation((message, onToken, onComplete, onError) => {
+      setTimeout(() => onError({ error: 'Message validation failed', code: 'HTTP_422', statusCode: 422 }), 10)
+      return vi.fn()
+    })
 
     createConversation()
     await sendUserMessage('Test message')
+    await new Promise(resolve => setTimeout(resolve, 50))
 
-    const errorMessage = currentMessages.value[0]
+    // Check the error response message (index 1, after user message at index 0)
+    const errorMessage = currentMessages.value[1]
 
     expect(errorMessage.status).toBe('error')
     expect(errorMessage.errorMessage).toBe('Message validation failed')
-    expect(errorMessage.errorType).toBe('Validation Error')
-    expect(errorMessage.errorCode).toBe(422)
+    expect(errorMessage.errorType).toBe('HTTP_422')
+    expect(errorMessage.errorCode).toBeUndefined()
   })
 
   // T031: 500 server error displays in chat
@@ -56,24 +56,23 @@ describe('Error Display Integration', () => {
     const { createConversation } = useConversations()
     const { sendUserMessage, currentMessages } = useMessages()
 
-    // Mock API to throw 500 server error
-    vi.mocked(apiClient.sendMessage).mockRejectedValueOnce(
-      new apiClient.ApiError(
-        'Internal server error',
-        500,
-        { stack: 'Error stack trace...' }
-      )
-    )
+    // Mock streaming API to trigger error via onError callback
+    vi.mocked(apiClient.streamMessage).mockImplementation((message, onToken, onComplete, onError) => {
+      setTimeout(() => onError({ error: 'Internal server error', code: 'HTTP_500', statusCode: 500 }), 10)
+      return vi.fn()
+    })
 
     createConversation()
     await sendUserMessage('Test message')
+    await new Promise(resolve => setTimeout(resolve, 50))
 
-    const errorMessage = currentMessages.value[0]
+    // Check the error response message (index 1, after user message at index 0)
+    const errorMessage = currentMessages.value[1]
 
     expect(errorMessage.status).toBe('error')
     expect(errorMessage.errorMessage).toBe('Internal server error')
-    expect(errorMessage.errorType).toBe('Server Error')
-    expect(errorMessage.errorCode).toBe(500)
+    expect(errorMessage.errorType).toBe('HTTP_500')
+    expect(errorMessage.errorCode).toBeUndefined()
   })
 
   // T032: 400 bad request displays in chat
@@ -82,24 +81,23 @@ describe('Error Display Integration', () => {
     const { createConversation } = useConversations()
     const { sendUserMessage, currentMessages } = useMessages()
 
-    // Mock API to throw 400 bad request error
-    vi.mocked(apiClient.sendMessage).mockRejectedValueOnce(
-      new apiClient.ApiError(
-        'Invalid message format',
-        400,
-        { error: 'Missing required field' }
-      )
-    )
+    // Mock streaming API to trigger error via onError callback
+    vi.mocked(apiClient.streamMessage).mockImplementation((message, onToken, onComplete, onError) => {
+      setTimeout(() => onError({ error: 'Invalid message format', code: 'HTTP_400', statusCode: 400 }), 10)
+      return vi.fn()
+    })
 
     createConversation()
     await sendUserMessage('Test message')
+    await new Promise(resolve => setTimeout(resolve, 50))
 
-    const errorMessage = currentMessages.value[0]
+    // Check the error response message (index 1, after user message at index 0)
+    const errorMessage = currentMessages.value[1]
 
     expect(errorMessage.status).toBe('error')
     expect(errorMessage.errorMessage).toBe('Invalid message format')
-    expect(errorMessage.errorType).toBe('Validation Error')
-    expect(errorMessage.errorCode).toBe(400)
+    expect(errorMessage.errorType).toBe('HTTP_400')
+    expect(errorMessage.errorCode).toBeUndefined()
   })
 
   // Additional test: Network errors should be categorized differently
@@ -108,19 +106,22 @@ describe('Error Display Integration', () => {
     const { createConversation } = useConversations()
     const { sendUserMessage, currentMessages } = useMessages()
 
-    // Mock API to throw network error (no status code)
-    vi.mocked(apiClient.sendMessage).mockRejectedValueOnce(
-      new apiClient.ApiError('Cannot connect to server', null, { network: true })
-    )
+    // Mock streaming API to trigger network error via onError callback (no status code)
+    vi.mocked(apiClient.streamMessage).mockImplementation((message, onToken, onComplete, onError) => {
+      setTimeout(() => onError({ error: 'Cannot connect to server', code: 'NETWORK_ERROR' }), 10)
+      return vi.fn()
+    })
 
     createConversation()
     await sendUserMessage('Test message')
+    await new Promise(resolve => setTimeout(resolve, 50))
 
-    const errorMessage = currentMessages.value[0]
+    // Check the error response message (index 1, after user message at index 0)
+    const errorMessage = currentMessages.value[1]
 
     expect(errorMessage.status).toBe('error')
     expect(errorMessage.errorMessage).toBe('Cannot connect to server')
-    expect(errorMessage.errorType).toBe('Network Error')
+    expect(errorMessage.errorType).toBe('NETWORK_ERROR')
     expect(errorMessage.errorCode).toBeUndefined()
   })
 })

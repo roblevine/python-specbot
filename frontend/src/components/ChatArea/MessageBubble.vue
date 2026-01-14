@@ -18,6 +18,13 @@
     >
       {{ message.model }}
     </div>
+    <!-- T020: Streaming indicator for status='streaming' -->
+    <div
+      v-if="message.status === 'streaming'"
+      class="streaming-indicator"
+    >
+      <span class="streaming-cursor">▊</span>
+    </div>
     <!-- T025-T027: Error section for status='error' -->
     <div
       v-if="message.status === 'error'"
@@ -74,10 +81,10 @@ export default {
       validator: msg => {
         return (
           msg.id &&
-          msg.text &&
+          (msg.text !== undefined) && // Allow empty string for streaming
           ['user', 'system'].includes(msg.sender) &&
           msg.timestamp &&
-          ['pending', 'sent', 'error'].includes(msg.status)
+          ['pending', 'sent', 'error', 'streaming'].includes(msg.status) // T020: Add streaming status
         )
       },
     },
@@ -88,6 +95,7 @@ export default {
       'message-system': props.message.sender === 'system',
       'message-pending': props.message.status === 'pending',
       'message-error': props.message.status === 'error',
+      'message-streaming': props.message.status === 'streaming', // T020: Add streaming class
     }))
 
     const formattedTime = computed(() => {
@@ -358,5 +366,41 @@ export default {
   max-height: 500px;
   opacity: 1;
   transform: translateY(0);
+}
+
+/* T020: Streaming indicator styles */
+.streaming-indicator {
+  display: inline-block;
+  margin-top: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-primary);
+  opacity: 0.8;
+}
+
+.streaming-cursor {
+  display: inline-block;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
+.message-streaming {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.95;
+  }
 }
 </style>

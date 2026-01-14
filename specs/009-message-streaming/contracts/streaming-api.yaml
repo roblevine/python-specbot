@@ -1,0 +1,372 @@
+openapi: 3.0.3
+info:
+  title: SpecBot Streaming API
+  description: |
+    Server-Sent Events (SSE) streaming API for real-time LLM response delivery.
+
+    This API extends the existing POST /api/v1/messages endpoint to support streaming
+    responses via Server-Sent Events. Clients can opt into streaming by setting the
+    Accept header to `text/event-stream`.
+
+    **Feature**: 009-message-streaming
+    **Date**: 2026-01-13
+  version: 1.0.0
+  contact:
+    name: SpecBot API Support
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local development server
+  - url: https://api.specbot.example.com/api/v1
+    description: Production server (placeholder)
+
+paths:
+  /messages:
+    post:
+      summary: Send message with optional streaming
+      description: |
+        Send a user message and receive an AI-generated response. The response format
+        depends on the Accept header:
+
+        - `application/json`: Standard synchronous JSON response (existing behavior)
+        - `text/event-stream`: Streaming SSE response (new behavior)
+
+        **Streaming Behavior**:
+        - Response arrives as a sequence of Server-Sent Events
+        - Each event contains a JSON payload in the `data` field
+        - Event types: `token` (content chunk), `complete` (success), `error` (failure)
+        - Connection remains open until stream completes or errors
+
+        **Backward Compatibility**:
+        - Existing clients (Accept: application/json) continue to work unchanged
+        - Streaming is opt-in via Accept header
+      operationId: sendMessage
+      tags:
+        - Messages
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageRequest'
+            examples:
+              simple:
+                summary: Simple message
+                value:
+                  message: "What is the capital of France?"
+                  conversationId: "conv-a1b2c3d4-5678-90ab-cdef-123456789abc"
+              withHistory:
+                summary: Message with conversation history
+                value:
+                  message: "What about Germany?"
+                  conversationId: "conv-a1b2c3d4-5678-90ab-cdef-123456789abc"
+                  history:
+                    - sender: "user"
+                      text: "What is the capital of France?"
+                    - sender: "system"
+                      text: "The capital of France is Paris."
+              withModel:
+                summary: Message with specific model
+                value:
+                  message: "Explain quantum computing"
+                  model: "gpt-4"
+                  conversationId: "conv-a1b2c3d4-5678-90ab-cdef-123456789abc"
+
+      responses:
+        '200':
+          description: Streaming response (Server-Sent Events)
+          headers:
+            Content-Type:
+              description: SSE content type
+              schema:
+                type: string
+                enum: ['text/event-stream']
+            Cache-Control:
+              description: Disable caching
+              schema:
+                type: string
+                enum: ['no-cache']
+            Connection:
+              description: Keep connection alive
+              schema:
+                type: string
+                enum: ['keep-alive']
+            X-Accel-Buffering:
+              description: Disable proxy buffering
+              schema:
+                type: string
+                enum: ['no']
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                format: sse
+                description: |
+                  Server-Sent Events stream. Each event has format:
+                  ```
+                  data: <JSON payload>\n\n
+                  ```
+
+                  Event sequence:
+                  1. One or more `token` events (streaming content)
+                  2. One `complete` event (success) OR one `error` event (failure)
+              examples:
+                successfulStream:
+                  summary: Successful streaming response
+                  value: |
+                    data: {"type": "token", "content": "The"}
+
+                    data: {"type": "token", "content": " capital"}
+
+                    data: {"type": "token", "content": " of"}
+
+                    data: {"type": "token", "content": " France"}
+
+                    data: {"type": "token", "content": " is"}
+
+                    data: {"type": "token", "content": " Paris"}
+
+                    data: {"type": "token", "content": "."}
+
+                    data: {"type": "complete", "model": "gpt-4", "totalTokens": 7}
+
+                errorStream:
+                  summary: Stream with error
+                  value: |
+                    data: {"type": "token", "content": "The"}
+
+                    data: {"type": "token", "content": " capital"}
+
+                    data: {"type": "error", "error": "Request timed out", "code": "TIMEOUT"}
+
+        '400':
+          description: Bad Request - Invalid message format or content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                emptyMessage:
+                  summary: Empty message
+                  value:
+                    status: "error"
+                    error: "Message cannot be empty"
+                    timestamp: "2026-01-13T10:30:45.123Z"
+                invalidModel:
+                  summary: Invalid model ID
+                  value:
+                    status: "error"
+                    error: "Invalid model: gpt-5. Available models: gpt-3.5-turbo, gpt-4, gpt-4-turbo"
+                    timestamp: "2026-01-13T10:30:45.123Z"
+
+        '422':
+          description: Unprocessable Entity - Schema validation failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+        '503':
+          description: Service Unavailable - AI service issues
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                rateLimitError:
+                  summary: Rate limit exceeded
+                  value:
+                    status: "error"
+                    error: "AI service is busy"
+                    timestamp: "2026-01-13T10:30:45.123Z"
+                authError:
+                  summary: Authentication error
+                  value:
+                    status: "error"
+                    error: "AI service configuration error"
+                    timestamp: "2026-01-13T10:30:45.123Z"
+
+        '504':
+          description: Gateway Timeout - AI request timed out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    MessageRequest:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          minLength: 1
+          maxLength: 10000
+          description: User message text
+          example: "What is the capital of France?"
+        conversationId:
+          type: string
+          pattern: '^conv-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$'
+          description: Optional conversation ID (with conv- prefix)
+          example: "conv-a1b2c3d4-5678-90ab-cdef-123456789abc"
+        timestamp:
+          type: string
+          format: date-time
+          description: Client-side timestamp (ISO-8601)
+          example: "2026-01-13T10:30:45.123Z"
+        history:
+          type: array
+          description: Optional conversation history for context-aware responses
+          items:
+            $ref: '#/components/schemas/HistoryMessage'
+        model:
+          type: string
+          description: Model ID to use for this request. If not provided, uses the configured default model.
+          example: "gpt-4"
+
+    HistoryMessage:
+      type: object
+      required:
+        - sender
+        - text
+      properties:
+        sender:
+          type: string
+          enum: ["user", "system"]
+          description: Message sender (user or system/AI)
+        text:
+          type: string
+          minLength: 1
+          description: Message content
+
+    StreamEvent:
+      oneOf:
+        - $ref: '#/components/schemas/TokenEvent'
+        - $ref: '#/components/schemas/CompleteEvent'
+        - $ref: '#/components/schemas/ErrorEvent'
+      discriminator:
+        propertyName: type
+        mapping:
+          token: '#/components/schemas/TokenEvent'
+          complete: '#/components/schemas/CompleteEvent'
+          error: '#/components/schemas/ErrorEvent'
+
+    TokenEvent:
+      type: object
+      required:
+        - type
+        - content
+      properties:
+        type:
+          type: string
+          enum: ["token"]
+          description: Event type identifier
+        content:
+          type: string
+          description: Token/chunk content from LLM
+          example: "Hello"
+      example:
+        type: "token"
+        content: "Hello"
+
+    CompleteEvent:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum: ["complete"]
+          description: Event type identifier
+        model:
+          type: string
+          description: Model ID that generated the response
+          example: "gpt-4"
+        totalTokens:
+          type: integer
+          description: Total number of tokens in the response (optional)
+          example: 150
+      example:
+        type: "complete"
+        model: "gpt-4"
+        totalTokens: 150
+
+    ErrorEvent:
+      type: object
+      required:
+        - type
+        - error
+        - code
+      properties:
+        type:
+          type: string
+          enum: ["error"]
+          description: Event type identifier
+        error:
+          type: string
+          description: Human-readable error message
+          example: "Request timed out"
+        code:
+          type: string
+          enum:
+            - "TIMEOUT"
+            - "RATE_LIMIT"
+            - "LLM_ERROR"
+            - "AUTH_ERROR"
+            - "CONNECTION_ERROR"
+            - "UNKNOWN"
+          description: Machine-readable error code
+          example: "TIMEOUT"
+      example:
+        type: "error"
+        error: "Request timed out"
+        code: "TIMEOUT"
+
+    ErrorResponse:
+      type: object
+      required:
+        - status
+        - error
+        - timestamp
+      properties:
+        status:
+          type: string
+          enum: ["error"]
+          description: Response status
+        error:
+          type: string
+          description: Human-readable error message
+          example: "Message cannot be empty"
+        detail:
+          type: object
+          description: Additional error context (optional)
+          additionalProperties: true
+        timestamp:
+          type: string
+          format: date-time
+          description: Server-side timestamp (ISO-8601)
+          example: "2026-01-13T10:30:45.123Z"
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for authentication (if required in production)
+
+security:
+  - {}  # No authentication required for local development
+  # - ApiKeyAuth: []  # Uncomment for production with API key auth
+
+tags:
+  - name: Messages
+    description: Message sending and streaming operations

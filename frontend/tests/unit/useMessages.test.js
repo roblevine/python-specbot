@@ -12,6 +12,7 @@ vi.mock('../../src/services/apiClient.js', () => ({
       timestamp: new Date().toISOString()
     })
   }),
+  streamMessage: vi.fn(),
   ApiError: class ApiError extends Error {
     constructor(message, statusCode = null, details = null) {
       super(message)
@@ -37,11 +38,20 @@ describe('useMessages', () => {
   })
 
   it('should send user message and create loopback', async () => {
+    const { streamMessage } = await import('../../src/services/apiClient.js')
     const { createConversation } = useConversations()
     const { sendUserMessage, currentMessages } = useMessages()
 
+    // Mock streaming to simulate loopback (correct signature: messageText, onToken, onComplete, onError, history, model)
+    streamMessage.mockImplementation((message, onToken, onComplete) => {
+      setTimeout(() => onToken(message), 10)
+      setTimeout(() => onComplete({ model: 'gpt-3.5-turbo' }), 20)
+      return vi.fn() // cleanup function
+    })
+
     createConversation()
     await sendUserMessage('Hello world')
+    await new Promise(resolve => setTimeout(resolve, 50))
 
     expect(currentMessages.value).toHaveLength(2)
     expect(currentMessages.value[0].sender).toBe('user')
@@ -51,22 +61,40 @@ describe('useMessages', () => {
   })
 
   it('should mark messages as sent', async () => {
+    const { streamMessage } = await import('../../src/services/apiClient.js')
     const { createConversation } = useConversations()
     const { sendUserMessage, currentMessages } = useMessages()
 
+    // Mock streaming
+    streamMessage.mockImplementation((message, onToken, onComplete) => {
+      setTimeout(() => onToken(message), 10)
+      setTimeout(() => onComplete({ model: 'gpt-3.5-turbo' }), 20)
+      return vi.fn()
+    })
+
     createConversation()
     await sendUserMessage('Test message')
+    await new Promise(resolve => setTimeout(resolve, 50))
 
     expect(currentMessages.value[0].status).toBe('sent')
     expect(currentMessages.value[1].status).toBe('sent')
   })
 
   it('should trim message text', async () => {
+    const { streamMessage } = await import('../../src/services/apiClient.js')
     const { createConversation } = useConversations()
     const { sendUserMessage, currentMessages } = useMessages()
 
+    // Mock streaming
+    streamMessage.mockImplementation((message, onToken, onComplete) => {
+      setTimeout(() => onToken(message), 10)
+      setTimeout(() => onComplete({ model: 'gpt-3.5-turbo' }), 20)
+      return vi.fn()
+    })
+
     createConversation()
     await sendUserMessage('  Message with spaces  ')
+    await new Promise(resolve => setTimeout(resolve, 50))
 
     expect(currentMessages.value[0].text).toBe('Message with spaces')
     expect(currentMessages.value[1].text).toBe('Message with spaces')
@@ -104,11 +132,20 @@ describe('useMessages', () => {
   })
 
   it('should save to storage after sending message', async () => {
+    const { streamMessage } = await import('../../src/services/apiClient.js')
     const { createConversation } = useConversations()
     const { sendUserMessage } = useMessages()
 
+    // Mock streaming
+    streamMessage.mockImplementation((message, onToken, onComplete) => {
+      setTimeout(() => onToken(message), 10)
+      setTimeout(() => onComplete({ model: 'gpt-3.5-turbo' }), 20)
+      return vi.fn()
+    })
+
     createConversation()
     await sendUserMessage('Test message')
+    await new Promise(resolve => setTimeout(resolve, 50))
 
     const stored = localStorage.getItem('chatInterface:v1:data')
     expect(stored).toBeTruthy()
@@ -123,13 +160,17 @@ describe('useMessages', () => {
     const { createConversation } = useConversations()
     const { sendUserMessage, currentMessages } = useMessages()
 
-    // Mock API to throw error
-    vi.mocked(apiClient.sendMessage).mockRejectedValueOnce(
-      new apiClient.ApiError('Cannot connect to server', null, {})
-    )
+    // Mock streaming to trigger error after some tokens
+    vi.mocked(apiClient.streamMessage).mockImplementation((message, onToken, onComplete, onError) => {
+      setTimeout(() => onToken('Partial '), 10)
+      setTimeout(() => onToken('response'), 15)
+      setTimeout(() => onError({ error: 'Cannot connect to server', code: 'Network Error' }), 20)
+      return vi.fn()
+    })
 
     createConversation()
     await sendUserMessage('Test message')
+    await new Promise(resolve => setTimeout(resolve, 50))
 
     const messages = currentMessages.value
     const errorMessage = messages[messages.length - 1]
@@ -144,16 +185,21 @@ describe('useMessages', () => {
     const { createConversation } = useConversations()
     const { sendUserMessage, currentMessages } = useMessages()
 
-    vi.mocked(apiClient.sendMessage).mockRejectedValueOnce(
-      new apiClient.ApiError('Network failure', null, {})
-    )
+    // Mock streaming to trigger error after some tokens
+    vi.mocked(apiClient.streamMessage).mockImplementation((message, onToken, onComplete, onError) => {
+      setTimeout(() => onToken('Partial '), 10)
+      setTimeout(() => onToken('text'), 15)
+      setTimeout(() => onError({ error: 'Network failure', code: 'Network Error' }), 20)
+      return vi.fn()
+    })
 
     createConversation()
     const beforeTime = new Date().toISOString()
     await sendUserMessage('Test message')
+    await new Promise(resolve => setTimeout(resolve, 50))
     const afterTime = new Date().toISOString()
 
-    const errorMessage = currentMessages.value[0]
+    const errorMessage = currentMessages.value[1] // User message is at [0], error is at [1]
 
     expect(errorMessage.errorMessage).toBe('Network failure')
     expect(errorMessage.errorType).toBe('Network Error')
@@ -167,13 +213,236 @@ describe('useMessages', () => {
     const { createConversation } = useConversations()
     const { sendUserMessage, currentMessages } = useMessages()
 
-    vi.mocked(apiClient.sendMessage).mockRejectedValueOnce(
-      new apiClient.ApiError('Timeout', null, {})
-    )
+    // Mock streaming to trigger error after some tokens
+    vi.mocked(apiClient.streamMessage).mockImplementation((message, onToken, onComplete, onError) => {
+      setTimeout(() => onToken('Some text'), 10)
+      setTimeout(() => onError({ error: 'Timeout', code: 'Network Error' }), 15)
+      return vi.fn()
+    })
 
     createConversation()
     await sendUserMessage('Test')
+    await new Promise(resolve => setTimeout(resolve, 50))
 
-    expect(currentMessages.value[0].errorType).toBe('Network Error')
+    expect(currentMessages.value[1].errorType).toBe('Network Error')
+  })
+
+  /**
+   * T017: Tests for streaming state management
+   * Feature: 009-message-streaming User Story 1
+   */
+  describe('Streaming', () => {
+    beforeEach(() => {
+      // Reset streaming state before each test
+      const { __resetStreamingState } = useMessages()
+      __resetStreamingState()
+    })
+
+    it('should have streamingMessage state initially null', () => {
+      const { streamingMessage } = useMessages()
+      expect(streamingMessage.value).toBeNull()
+    })
+
+    it('should have isStreaming state initially false', () => {
+      const { isStreaming } = useMessages()
+      expect(isStreaming.value).toBe(false)
+    })
+
+    it('should start streaming and create streamingMessage', () => {
+      const { createConversation } = useConversations()
+      const { startStreaming, streamingMessage, isStreaming } = useMessages()
+
+      createConversation()
+      const messageId = 'msg-stream-123'
+      const model = 'gpt-4'
+
+      startStreaming(messageId, model)
+
+      expect(streamingMessage.value).toBeDefined()
+      expect(streamingMessage.value.id).toBe(messageId)
+      expect(streamingMessage.value.text).toBe('')
+      expect(streamingMessage.value.sender).toBe('system')
+      expect(streamingMessage.value.status).toBe('streaming')
+      expect(streamingMessage.value.model).toBe(model)
+      expect(isStreaming.value).toBe(true)
+    })
+
+    it('should append tokens to streamingMessage', () => {
+      const { createConversation } = useConversations()
+      const { startStreaming, appendToken, streamingMessage } = useMessages()
+
+      createConversation()
+      startStreaming('msg-123')
+
+      appendToken('Hello')
+      expect(streamingMessage.value.text).toBe('Hello')
+
+      appendToken(' ')
+      expect(streamingMessage.value.text).toBe('Hello ')
+
+      appendToken('world')
+      expect(streamingMessage.value.text).toBe('Hello world')
+    })
+
+    it('should complete streaming and move to messages array', () => {
+      const { createConversation } = useConversations()
+      const { startStreaming, appendToken, completeStreaming, streamingMessage, isStreaming, currentMessages } = useMessages()
+
+      createConversation()
+      startStreaming('msg-123', 'gpt-3.5-turbo')
+      appendToken('Complete message')
+
+      completeStreaming()
+
+      expect(streamingMessage.value).toBeNull()
+      expect(isStreaming.value).toBe(false)
+      expect(currentMessages.value).toHaveLength(1)
+      expect(currentMessages.value[0].text).toBe('Complete message')
+      expect(currentMessages.value[0].status).toBe('sent')
+      expect(currentMessages.value[0].model).toBe('gpt-3.5-turbo')
+    })
+
+    it('should track isStreaming flag during streaming lifecycle', () => {
+      const { createConversation } = useConversations()
+      const { startStreaming, appendToken, completeStreaming, isStreaming } = useMessages()
+
+      createConversation()
+
+      expect(isStreaming.value).toBe(false)
+
+      startStreaming('msg-123')
+      expect(isStreaming.value).toBe(true)
+
+      appendToken('token1')
+      expect(isStreaming.value).toBe(true)
+
+      appendToken('token2')
+      expect(isStreaming.value).toBe(true)
+
+      completeStreaming()
+      expect(isStreaming.value).toBe(false)
+    })
+
+    it('should clean up stream when aborted', () => {
+      const { createConversation } = useConversations()
+      const { startStreaming, appendToken, abortStreaming, streamingMessage, isStreaming } = useMessages()
+
+      createConversation()
+      startStreaming('msg-123')
+      appendToken('Partial')
+
+      abortStreaming()
+
+      expect(streamingMessage.value).toBeNull()
+      expect(isStreaming.value).toBe(false)
+    })
+
+    it('should handle error during streaming', () => {
+      const { createConversation } = useConversations()
+      const { startStreaming, appendToken, errorStreaming, streamingMessage, isStreaming, currentMessages } = useMessages()
+
+      createConversation()
+      startStreaming('msg-123')
+      appendToken('Partial text')
+
+      const errorMessage = 'Rate limit exceeded'
+      const errorCode = 'RATE_LIMIT'
+
+      errorStreaming(errorMessage, errorCode)
+
+      expect(streamingMessage.value).toBeNull()
+      expect(isStreaming.value).toBe(false)
+      expect(currentMessages.value).toHaveLength(1)
+      expect(currentMessages.value[0].text).toBe('Partial text')
+      expect(currentMessages.value[0].status).toBe('error')
+      expect(currentMessages.value[0].errorMessage).toBe(errorMessage)
+      expect(currentMessages.value[0].errorType).toBe(errorCode)
+    })
+
+    it('should preserve token order during rapid streaming', () => {
+      const { createConversation } = useConversations()
+      const { startStreaming, appendToken, streamingMessage } = useMessages()
+
+      createConversation()
+      startStreaming('msg-123')
+
+      const tokens = ['The', ' ', 'quick', ' ', 'brown', ' ', 'fox']
+      tokens.forEach(token => appendToken(token))
+
+      expect(streamingMessage.value.text).toBe('The quick brown fox')
+    })
+
+    it('should handle unicode and special characters in tokens', () => {
+      const { createConversation } = useConversations()
+      const { startStreaming, appendToken, streamingMessage } = useMessages()
+
+      createConversation()
+      startStreaming('msg-123')
+
+      appendToken('Hello 🚀')
+      appendToken(' 世界')
+      appendToken(' @#$%')
+
+      expect(streamingMessage.value.text).toBe('Hello 🚀 世界 @#$%')
+    })
+
+    it('should not allow starting new stream while streaming', () => {
+      const { createConversation } = useConversations()
+      const { startStreaming, isStreaming, streamingMessage } = useMessages()
+
+      createConversation()
+      const firstId = 'msg-first'
+      const secondId = 'msg-second'
+
+      startStreaming(firstId)
+      expect(isStreaming.value).toBe(true)
+      expect(streamingMessage.value.id).toBe(firstId)
+
+      // Try to start another stream (should be ignored or throw error)
+      startStreaming(secondId)
+      expect(streamingMessage.value.id).toBe(firstId) // Should still be first
+    })
+  })
+
+  describe('Streaming Integration', () => {
+    it('should use streaming API when sending user message', async () => {
+      const { streamMessage } = await import('../../src/services/apiClient.js')
+      const { createConversation } = useConversations()
+      const { sendUserMessage, streamingMessage, isStreaming, currentMessages } = useMessages()
+
+      // Setup streaming mock to simulate token streaming
+      streamMessage.mockImplementation((message, onToken, onComplete) => {
+        // Simulate streaming tokens
+        setTimeout(() => onToken('Hello'), 10)
+        setTimeout(() => onToken(' from'), 20)
+        setTimeout(() => onToken(' streaming'), 30)
+        setTimeout(() => onComplete({ model: 'gpt-3.5-turbo' }), 40)
+        return vi.fn() // cleanup function
+      })
+
+      createConversation()
+
+      // Send a message - should trigger streaming
+      const sendPromise = sendUserMessage('Test streaming message')
+
+      // Should immediately start streaming
+      expect(streamMessage).toHaveBeenCalled()
+      expect(isStreaming.value).toBe(true)
+      expect(streamingMessage.value).toBeTruthy()
+
+      // Wait for streaming to complete
+      await sendPromise
+      await new Promise(resolve => setTimeout(resolve, 100))
+
+      // Verify final state
+      expect(isStreaming.value).toBe(false)
+      expect(streamingMessage.value).toBe(null)
+      expect(currentMessages.value.length).toBeGreaterThan(0)
+
+      // Should have user message and completed system message
+      const systemMessages = currentMessages.value.filter(m => m.sender === 'system')
+      expect(systemMessages.length).toBeGreaterThan(0)
+      expect(systemMessages[0].text).toContain('Hello from streaming')
+    })
   })
 })

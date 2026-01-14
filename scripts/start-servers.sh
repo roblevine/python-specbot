@@ -12,9 +12,9 @@ echo "🚀 Starting SpecBot Servers..."
 echo ""
 
 # Check if backend virtual environment exists
-if [ ! -d "backend/venv" ]; then
+if [ ! -d "backend/.venv" ]; then
     echo "❌ Backend virtual environment not found!"
-    echo "   Run: cd backend && python -m venv venv && venv/bin/pip install -r requirements.txt"
+    echo "   Run: cd backend && python -m venv .venv && .venv/bin/pip install -r requirements.txt"
     exit 1
 fi
 
@@ -39,7 +39,7 @@ echo ""
 
 # Start backend in background
 cd backend
-PYTHONPATH="${REPO_ROOT}/backend" venv/bin/python main.py > server.log 2>&1 &
+PYTHONPATH="${REPO_ROOT}/backend" .venv/bin/python main.py > server.log 2>&1 &
 BACKEND_PID=$!
 cd ..
 

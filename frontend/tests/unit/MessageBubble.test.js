@@ -386,3 +386,192 @@ describe('MessageBubble - Model Indicator', () => {
     expect(indicator.classes()).toContain('model-indicator')
   })
 })
+
+/**
+ * T019: Tests for streaming message display
+ * Feature: 009-message-streaming User Story 1
+ */
+describe('MessageBubble - Streaming', () => {
+  it('should display message with streaming status', () => {
+    const streamingMessage = {
+      id: 'msg-stream-1',
+      text: 'Partial response...',
+      sender: 'system',
+      timestamp: new Date().toISOString(),
+      status: 'streaming',
+      model: 'gpt-3.5-turbo'
+    }
+
+    const wrapper = mount(MessageBubble, {
+      props: { message: streamingMessage }
+    })
+
+    expect(wrapper.find('.message-text').exists()).toBe(true)
+    expect(wrapper.find('.message-text').text()).toBe('Partial response...')
+  })
+
+  it('should apply streaming class when status is streaming', () => {
+    const streamingMessage = {
+      id: 'msg-stream-1',
+      text: 'Streaming...',
+      sender: 'system',
+      timestamp: new Date().toISOString(),
+      status: 'streaming'
+    }
+
+    const wrapper = mount(MessageBubble, {
+      props: { message: streamingMessage }
+    })
+
+    expect(wrapper.classes()).toContain('message-streaming')
+  })
+
+  it('should update text reactively when message text changes', async () => {
+    const streamingMessage = {
+      id: 'msg-stream-1',
+      text: 'Hello',
+      sender: 'system',
+      timestamp: new Date().toISOString(),
+      status: 'streaming'
+    }
+
+    const wrapper = mount(MessageBubble, {
+      props: { message: streamingMessage }
+    })
+
+    expect(wrapper.find('.message-text').text()).toBe('Hello')
+
+    // Update message text (simulating token append)
+    await wrapper.setProps({
+      message: { ...streamingMessage, text: 'Hello world' }
+    })
+
+    expect(wrapper.find('.message-text').text()).toBe('Hello world')
+
+    // Update again
+    await wrapper.setProps({
+      message: { ...streamingMessage, text: 'Hello world!' }
+    })
+
+    expect(wrapper.find('.message-text').text()).toBe('Hello world!')
+  })
+
+  it('should show streaming indicator when streaming', () => {
+    const streamingMessage = {
+      id: 'msg-stream-1',
+      text: 'Generating response...',
+      sender: 'system',
+      timestamp: new Date().toISOString(),
+      status: 'streaming'
+    }
+
+    const wrapper = mount(MessageBubble, {
+      props: { message: streamingMessage }
+    })
+
+    expect(wrapper.find('.streaming-indicator').exists()).toBe(true)
+  })
+
+  it('should not show streaming indicator when not streaming', () => {
+    const sentMessage = {
+      id: 'msg-1',
+      text: 'Complete message',
+      sender: 'system',
+      timestamp: new Date().toISOString(),
+      status: 'sent'
+    }
+
+    const wrapper = mount(MessageBubble, {
+      props: { message: sentMessage }
+    })
+
+    expect(wrapper.find('.streaming-indicator').exists()).toBe(false)
+  })
+
+  it('should transition from streaming to sent status', async () => {
+    const streamingMessage = {
+      id: 'msg-stream-1',
+      text: 'Complete response',
+      sender: 'system',
+      timestamp: new Date().toISOString(),
+      status: 'streaming'
+    }
+
+    const wrapper = mount(MessageBubble, {
+      props: { message: streamingMessage }
+    })
+
+    expect(wrapper.classes()).toContain('message-streaming')
+    expect(wrapper.find('.streaming-indicator').exists()).toBe(true)
+
+    // Update to sent status
+    await wrapper.setProps({
+      message: { ...streamingMessage, status: 'sent' }
+    })
+
+    expect(wrapper.classes()).not.toContain('message-streaming')
+    expect(wrapper.find('.streaming-indicator').exists()).toBe(false)
+  })
+
+  it('should display model indicator for streaming messages', () => {
+    const streamingMessage = {
+      id: 'msg-stream-1',
+      text: 'Response from model...',
+      sender: 'system',
+      timestamp: new Date().toISOString(),
+      status: 'streaming',
+      model: 'gpt-4'
+    }
+
+    const wrapper = mount(MessageBubble, {
+      props: { message: streamingMessage }
+    })
+
+    const indicator = wrapper.find('.model-indicator')
+    expect(indicator.exists()).toBe(true)
+    expect(indicator.text()).toBe('gpt-4')
+  })
+
+  it('should handle empty streaming message text', () => {
+    const streamingMessage = {
+      id: 'msg-stream-1',
+      text: '',
+      sender: 'system',
+      timestamp: new Date().toISOString(),
+      status: 'streaming'
+    }
+
+    const wrapper = mount(MessageBubble, {
+      props: { message: streamingMessage }
+    })
+
+    expect(wrapper.find('.message-text').exists()).toBe(true)
+    expect(wrapper.find('.message-text').text()).toBe('')
+  })
+
+  it('should handle unicode and special characters in streaming text', async () => {
+    const streamingMessage = {
+      id: 'msg-stream-1',
+      text: 'Hello',
+      sender: 'system',
+      timestamp: new Date().toISOString(),
+      status: 'streaming'
+    }
+
+    const wrapper = mount(MessageBubble, {
+      props: { message: streamingMessage }
+    })
+
+    // Add emoji
+    await wrapper.setProps({
+      message: { ...streamingMessage, text: 'Hello 🚀' }
+    })
+    expect(wrapper.find('.message-text').text()).toBe('Hello 🚀')
+
+    // Add unicode
+    await wrapper.setProps({
+      message: { ...streamingMessage, text: 'Hello 🚀 世界' }
+    })
+    expect(wrapper.find('.message-text').text()).toBe('Hello 🚀 世界')
+  })
+})

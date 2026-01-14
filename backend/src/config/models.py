@@ -87,9 +87,8 @@ def load_model_configuration() -> ModelsConfiguration:
     """
     Load model configuration from environment variables.
 
-    Priority:
-    1. OPENAI_MODELS: JSON array of model configurations
-    2. OPENAI_MODEL: Single model ID (fallback)
+    Requires:
+        OPENAI_MODELS: JSON array of model configurations
 
     Returns:
         ModelsConfiguration: Validated model configuration
@@ -97,76 +96,48 @@ def load_model_configuration() -> ModelsConfiguration:
     Raises:
         ModelConfigurationError: If configuration is invalid or missing
     """
-    # Try OPENAI_MODELS first (multi-model configuration)
     openai_models_env = os.getenv('OPENAI_MODELS')
-    if openai_models_env:
-        try:
-            models_data = json.loads(openai_models_env)
-            if not isinstance(models_data, list):
-                raise ModelConfigurationError(
-                    "OPENAI_MODELS must be a JSON array",
-                    "Set OPENAI_MODELS to a JSON array: '[{\"id\": \"gpt-4\", \"name\": \"GPT-4\", "
-                    "\"description\": \"Most capable\", \"default\": true}]'"
-                )
 
-            if len(models_data) == 0:
-                raise ModelConfigurationError(
-                    "OPENAI_MODELS cannot be an empty array",
-                    "Add at least one model to the array, or unset OPENAI_MODELS to use OPENAI_MODEL fallback"
-                )
+    if not openai_models_env:
+        raise ModelConfigurationError(
+            "OPENAI_MODELS environment variable is required",
+            "Set OPENAI_MODELS to a JSON array with at least one model:\n"
+            "Example: OPENAI_MODELS='[{\"id\": \"gpt-3.5-turbo\", \"name\": \"GPT-3.5 Turbo\", "
+            "\"description\": \"Fast and efficient for most tasks\", \"default\": true}]'"
+        )
 
-            try:
-                models = [ModelConfig(**model_data) for model_data in models_data]
-                return ModelsConfiguration(models=models)
-            except ValueError as e:
-                # Re-raise pydantic validation errors with context
-                raise ModelConfigurationError(
-                    f"Invalid model configuration in OPENAI_MODELS: {str(e)}",
-                    "Each model must have: id (string), name (string), description (string), "
-                    "default (boolean). Exactly one model must have default=true."
-                ) from e
-
-        except json.JSONDecodeError as e:
+    try:
+        models_data = json.loads(openai_models_env)
+        if not isinstance(models_data, list):
             raise ModelConfigurationError(
-                f"Invalid JSON in OPENAI_MODELS: {str(e)}",
-                "Ensure OPENAI_MODELS contains valid JSON. Example: "
-                "'[{\"id\": \"gpt-4\", \"name\": \"GPT-4\", \"description\": \"Most capable\", \"default\": true}]'"
+                "OPENAI_MODELS must be a JSON array",
+                "Set OPENAI_MODELS to a JSON array: '[{\"id\": \"gpt-4\", \"name\": \"GPT-4\", "
+                "\"description\": \"Most capable\", \"default\": true}]'"
+            )
+
+        if len(models_data) == 0:
+            raise ModelConfigurationError(
+                "OPENAI_MODELS cannot be an empty array",
+                "Add at least one model to the array"
+            )
+
+        try:
+            models = [ModelConfig(**model_data) for model_data in models_data]
+            return ModelsConfiguration(models=models)
+        except ValueError as e:
+            # Re-raise pydantic validation errors with context
+            raise ModelConfigurationError(
+                f"Invalid model configuration in OPENAI_MODELS: {str(e)}",
+                "Each model must have: id (string), name (string), description (string), "
+                "default (boolean). Exactly one model must have default=true."
             ) from e
 
-    # Fallback to OPENAI_MODEL (single-model configuration)
-    openai_model_env = os.getenv('OPENAI_MODEL', 'gpt-3.5-turbo')
-
-    # Generate single model configuration with sensible defaults
-    model_name_map = {
-        'gpt-4': 'GPT-4',
-        'gpt-4-turbo': 'GPT-4 Turbo',
-        'gpt-3.5-turbo': 'GPT-3.5 Turbo',
-        'gpt-4o': 'GPT-4o',
-        'gpt-4o-mini': 'GPT-4o Mini',
-    }
-
-    model_description_map = {
-        'gpt-4': 'Most capable model for complex reasoning tasks',
-        'gpt-4-turbo': 'Faster GPT-4 with latest knowledge',
-        'gpt-3.5-turbo': 'Fast and efficient for most tasks',
-        'gpt-4o': 'High performance multimodal model',
-        'gpt-4o-mini': 'Affordable and efficient model',
-    }
-
-    model_name = model_name_map.get(openai_model_env, openai_model_env.upper())
-    model_description = model_description_map.get(
-        openai_model_env,
-        f"OpenAI model: {openai_model_env}"
-    )
-
-    single_model = ModelConfig(
-        id=openai_model_env,
-        name=model_name,
-        description=model_description,
-        default=True
-    )
-
-    return ModelsConfiguration(models=[single_model])
+    except json.JSONDecodeError as e:
+        raise ModelConfigurationError(
+            f"Invalid JSON in OPENAI_MODELS: {str(e)}",
+            "Ensure OPENAI_MODELS contains valid JSON. Example: "
+            "'[{\"id\": \"gpt-4\", \"name\": \"GPT-4\", \"description\": \"Most capable\", \"default\": true}]'"
+        ) from e
 
 
 def get_default_model(config: ModelsConfiguration) -> str:
