@@ -41,13 +41,6 @@ if [ -z "$VENV_DIR" ]; then
     echo ""
 fi
 
-# Verify pytest is installed
-if [ ! -f "$VENV_DIR/bin/pytest" ]; then
-    echo "⚠️  Warning: pytest not found in virtual environment. Installing dependencies..."
-    "$VENV_DIR/bin/pip" install -r requirements.txt
-    echo ""
-fi
-
 # Check if .env file exists
 if [ ! -f ".env" ]; then
     echo "⚠️  Warning: .env file not found. Copying from .env.example..."
@@ -56,16 +49,24 @@ if [ ! -f ".env" ]; then
     echo ""
 fi
 
-# Run tests using the venv's pytest directly
+# Verify pytest is available - use python -m pytest to avoid shebang issues
+echo "🔍 Verifying pytest installation..."
+if ! "$VENV_DIR/bin/python" -m pytest --version > /dev/null 2>&1; then
+    echo "⚠️  Warning: pytest not found in virtual environment. Installing dependencies..."
+    "$VENV_DIR/bin/pip" install -r requirements.txt
+    echo ""
+fi
+
+# Run tests using the venv's python with pytest module (avoids shebang issues)
 echo "🏃 Running backend tests..."
 echo ""
 
 if [ $# -eq 0 ]; then
     # Default: run all tests with verbose output
-    "$VENV_DIR/bin/pytest" tests/ -v
+    "$VENV_DIR/bin/python" -m pytest tests/ -v
 else
     # Pass through any arguments (e.g., --cov, -k test_name)
-    "$VENV_DIR/bin/pytest" "$@"
+    "$VENV_DIR/bin/python" -m pytest "$@"
 fi
 
 TEST_EXIT_CODE=$?
