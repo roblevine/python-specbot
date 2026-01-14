@@ -216,6 +216,25 @@ export async function fetchModels() {
 export function streamMessage(messageText, onToken, onComplete, onError = null, history = null, model = null) {
   logger.debug('Starting streaming message', { messageText, historyLength: history?.length, model })
 
+  // Validate callbacks are functions to prevent silent failures
+  if (typeof onToken !== 'function') {
+    const error = new Error('onToken must be a function')
+    logger.error('Invalid callback', { onToken })
+    if (onError && typeof onError === 'function') {
+      onError({ error: error.message, code: 'INVALID_CALLBACK' })
+    }
+    throw error
+  }
+
+  if (typeof onComplete !== 'function') {
+    const error = new Error('onComplete must be a function')
+    logger.error('Invalid callback', { onComplete })
+    if (onError && typeof onError === 'function') {
+      onError({ error: error.message, code: 'INVALID_CALLBACK' })
+    }
+    throw error
+  }
+
   // Create request payload
   const requestBody = {
     message: messageText,
@@ -233,6 +252,25 @@ export function streamMessage(messageText, onToken, onComplete, onError = null, 
   // Create abort controller for cleanup
   const controller = new AbortController()
 
+  // Track if we've received any tokens (for timeout detection)
+  let receivedFirstToken = false
+  let streamTimeout = null
+
+  // Set a timeout to detect if streaming hangs (no tokens received)
+  const STREAM_START_TIMEOUT = 30000 // 30 seconds to receive first token
+  streamTimeout = setTimeout(() => {
+    if (!receivedFirstToken) {
+      logger.error('Streaming timeout - no tokens received')
+      if (onError && typeof onError === 'function') {
+        onError({
+          error: 'Streaming request timed out. No response received from server.',
+          code: 'STREAM_TIMEOUT',
+        })
+      }
+      controller.abort()
+    }
+  }, STREAM_START_TIMEOUT)
+
   // Start streaming in background (don't await)
   const streamPromise = (async () => {
     try {
@@ -249,10 +287,11 @@ export function streamMessage(messageText, onToken, onComplete, onError = null, 
 
       // Handle HTTP errors
       if (!response.ok) {
+        clearTimeout(streamTimeout)
         const errorData = await response.json().catch(() => ({ error: response.statusText }))
         logger.warn('Streaming request failed', { status: response.status, error: errorData })
 
-        if (onError) {
+        if (onError && typeof onError === 'function') {
           onError({
             error: errorData.error || 'Request failed',
             code: `HTTP_${response.status}`,
@@ -273,6 +312,7 @@ export function streamMessage(messageText, onToken, onComplete, onError = null, 
 
         if (done) {
           logger.debug('Stream completed')
+          clearTimeout(streamTimeout)
           break
         }
 
@@ -298,20 +338,56 @@ export function streamMessage(messageText, onToken, onComplete, onError = null, 
 
             // Handle different event types
             if (event.type === 'token') {
-              onToken(event.content)
+              receivedFirstToken = true
+              clearTimeout(streamTimeout) // Clear timeout once we start receiving tokens
+
+              try {
+                onToken(event.content)
+              } catch (callbackError) {
+                logger.error('Error in onToken callback', callbackError)
+                // Report callback errors to user
+                if (onError && typeof onError === 'function') {
+                  onError({
+                    error: 'Error processing streamed token',
+                    code: 'CALLBACK_ERROR',
+                    originalError: callbackError.message,
+                  })
+                }
+              }
             } else if (event.type === 'complete') {
-              onComplete(event)
+              try {
+                onComplete(event)
+              } catch (callbackError) {
+                logger.error('Error in onComplete callback', callbackError)
+                if (onError && typeof onError === 'function') {
+                  onError({
+                    error: 'Error completing stream',
+                    code: 'CALLBACK_ERROR',
+                    originalError: callbackError.message,
+                  })
+                }
+              }
             } else if (event.type === 'error') {
-              if (onError) {
+              if (onError && typeof onError === 'function') {
                 onError(event)
               }
             }
           } catch (parseError) {
             logger.error('Failed to parse SSE event', { eventString, error: parseError })
+            // Report parse errors to user instead of silently failing
+            if (onError && typeof onError === 'function') {
+              onError({
+                error: 'Error parsing server response',
+                code: 'PARSE_ERROR',
+                originalError: parseError.message,
+              })
+            }
           }
         }
       }
     } catch (error) {
+      clearTimeout(streamTimeout)
+
       // Handle abort (cleanup called)
       if (error.name === 'AbortError') {
         logger.debug('Stream aborted by user')
@@ -321,7 +397,7 @@ export function streamMessage(messageText, onToken, onComplete, onError = null, 
       // Handle network errors
       logger.error('Streaming error', error)
 
-      if (onError) {
+      if (onError && typeof onError === 'function') {
         onError({
           error: error.message || 'Network error',
           code: 'NETWORK_ERROR',
@@ -334,6 +410,7 @@ export function streamMessage(messageText, onToken, onComplete, onError = null, 
   // Return cleanup function
   return () => {
     logger.debug('Aborting stream')
+    clearTimeout(streamTimeout)
     controller.abort()
   }
 }
