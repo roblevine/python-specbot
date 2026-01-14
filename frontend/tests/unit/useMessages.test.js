@@ -38,11 +38,20 @@ describe('useMessages', () => {
   })
 
   it('should send user message and create loopback', async () => {
+    const { streamMessage } = await import('../../src/services/apiClient.js')
     const { createConversation } = useConversations()
     const { sendUserMessage, currentMessages } = useMessages()
 
+    // Mock streaming to simulate loopback
+    streamMessage.mockImplementation((message, conversationId, history, model, callbacks) => {
+      setTimeout(() => callbacks.onToken(message), 10)
+      setTimeout(() => callbacks.onComplete({ model: 'gpt-3.5-turbo' }), 20)
+      return vi.fn() // cleanup function
+    })
+
     createConversation()
     await sendUserMessage('Hello world')
+    await new Promise(resolve => setTimeout(resolve, 50))
 
     expect(currentMessages.value).toHaveLength(2)
     expect(currentMessages.value[0].sender).toBe('user')
@@ -52,22 +61,40 @@ describe('useMessages', () => {
   })
 
   it('should mark messages as sent', async () => {
+    const { streamMessage } = await import('../../src/services/apiClient.js')
     const { createConversation } = useConversations()
     const { sendUserMessage, currentMessages } = useMessages()
 
+    // Mock streaming
+    streamMessage.mockImplementation((message, conversationId, history, model, callbacks) => {
+      setTimeout(() => callbacks.onToken(message), 10)
+      setTimeout(() => callbacks.onComplete({ model: 'gpt-3.5-turbo' }), 20)
+      return vi.fn()
+    })
+
     createConversation()
     await sendUserMessage('Test message')
+    await new Promise(resolve => setTimeout(resolve, 50))
 
     expect(currentMessages.value[0].status).toBe('sent')
     expect(currentMessages.value[1].status).toBe('sent')
   })
 
   it('should trim message text', async () => {
+    const { streamMessage } = await import('../../src/services/apiClient.js')
     const { createConversation } = useConversations()
     const { sendUserMessage, currentMessages } = useMessages()
 
+    // Mock streaming
+    streamMessage.mockImplementation((message, conversationId, history, model, callbacks) => {
+      setTimeout(() => callbacks.onToken(message), 10)
+      setTimeout(() => callbacks.onComplete({ model: 'gpt-3.5-turbo' }), 20)
+      return vi.fn()
+    })
+
     createConversation()
     await sendUserMessage('  Message with spaces  ')
+    await new Promise(resolve => setTimeout(resolve, 50))
 
     expect(currentMessages.value[0].text).toBe('Message with spaces')
     expect(currentMessages.value[1].text).toBe('Message with spaces')
@@ -105,11 +132,20 @@ describe('useMessages', () => {
   })
 
   it('should save to storage after sending message', async () => {
+    const { streamMessage } = await import('../../src/services/apiClient.js')
     const { createConversation } = useConversations()
     const { sendUserMessage } = useMessages()
 
+    // Mock streaming
+    streamMessage.mockImplementation((message, conversationId, history, model, callbacks) => {
+      setTimeout(() => callbacks.onToken(message), 10)
+      setTimeout(() => callbacks.onComplete({ model: 'gpt-3.5-turbo' }), 20)
+      return vi.fn()
+    })
+
     createConversation()
     await sendUserMessage('Test message')
+    await new Promise(resolve => setTimeout(resolve, 50))
 
     const stored = localStorage.getItem('chatInterface:v1:data')
     expect(stored).toBeTruthy()
@@ -124,13 +160,17 @@ describe('useMessages', () => {
     const { createConversation } = useConversations()
     const { sendUserMessage, currentMessages } = useMessages()
 
-    // Mock API to throw error
-    vi.mocked(apiClient.sendMessage).mockRejectedValueOnce(
-      new apiClient.ApiError('Cannot connect to server', null, {})
-    )
+    // Mock streaming to trigger error after some tokens
+    vi.mocked(apiClient.streamMessage).mockImplementation((message, conversationId, history, model, callbacks) => {
+      setTimeout(() => callbacks.onToken('Partial '), 10)
+      setTimeout(() => callbacks.onToken('response'), 15)
+      setTimeout(() => callbacks.onError('Cannot connect to server', 'Network Error'), 20)
+      return vi.fn()
+    })
 
     createConversation()
     await sendUserMessage('Test message')
+    await new Promise(resolve => setTimeout(resolve, 50))
 
     const messages = currentMessages.value
     const errorMessage = messages[messages.length - 1]
@@ -145,16 +185,21 @@ describe('useMessages', () => {
     const { createConversation } = useConversations()
     const { sendUserMessage, currentMessages } = useMessages()
 
-    vi.mocked(apiClient.sendMessage).mockRejectedValueOnce(
-      new apiClient.ApiError('Network failure', null, {})
-    )
+    // Mock streaming to trigger error after some tokens
+    vi.mocked(apiClient.streamMessage).mockImplementation((message, conversationId, history, model, callbacks) => {
+      setTimeout(() => callbacks.onToken('Partial '), 10)
+      setTimeout(() => callbacks.onToken('text'), 15)
+      setTimeout(() => callbacks.onError('Network failure', 'Network Error'), 20)
+      return vi.fn()
+    })
 
     createConversation()
     const beforeTime = new Date().toISOString()
     await sendUserMessage('Test message')
+    await new Promise(resolve => setTimeout(resolve, 50))
     const afterTime = new Date().toISOString()
 
-    const errorMessage = currentMessages.value[0]
+    const errorMessage = currentMessages.value[1] // User message is at [0], error is at [1]
 
     expect(errorMessage.errorMessage).toBe('Network failure')
     expect(errorMessage.errorType).toBe('Network Error')
@@ -168,14 +213,18 @@ describe('useMessages', () => {
     const { createConversation } = useConversations()
     const { sendUserMessage, currentMessages } = useMessages()
 
-    vi.mocked(apiClient.sendMessage).mockRejectedValueOnce(
-      new apiClient.ApiError('Timeout', null, {})
-    )
+    // Mock streaming to trigger error after some tokens
+    vi.mocked(apiClient.streamMessage).mockImplementation((message, conversationId, history, model, callbacks) => {
+      setTimeout(() => callbacks.onToken('Some text'), 10)
+      setTimeout(() => callbacks.onError('Timeout', 'Network Error'), 15)
+      return vi.fn()
+    })
 
     createConversation()
     await sendUserMessage('Test')
+    await new Promise(resolve => setTimeout(resolve, 50))
 
-    expect(currentMessages.value[0].errorType).toBe('Network Error')
+    expect(currentMessages.value[1].errorType).toBe('Network Error')
   })
 
   /**
