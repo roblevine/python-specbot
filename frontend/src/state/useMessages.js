@@ -126,29 +126,31 @@ export function useMessages() {
       // Set up streaming callbacks
       cleanupFunction = apiStreamMessage(
         text.trim(),
-        activeConversation.value.id,
+        // onToken callback
+        (content) => {
+          appendToken(content)
+        },
+        // onComplete callback
+        (metadata) => {
+          completeStreaming()
+          setProcessing(false)
+          setStatus('Message sent', 'ready')
+          logger.info('Streaming completed', {
+            messageId: streamMessageId,
+            model: metadata.model
+          })
+        },
+        // onError callback
+        (errorEvent) => {
+          errorStreaming(errorEvent.error, errorEvent.code)
+          setProcessing(false)
+          setError(`Streaming error: ${errorEvent.error}`)
+          logger.error('Streaming error', { error: errorEvent.error, code: errorEvent.code })
+        },
+        // history
         conversationHistory,
-        selectedModelId.value,
-        {
-          onToken: (content) => {
-            appendToken(content)
-          },
-          onComplete: (metadata) => {
-            completeStreaming()
-            setProcessing(false)
-            setStatus('Message sent', 'ready')
-            logger.info('Streaming completed', {
-              messageId: streamMessageId,
-              model: metadata.model
-            })
-          },
-          onError: (error, code) => {
-            errorStreaming(error, code)
-            setProcessing(false)
-            setError(`Streaming error: ${error}`)
-            logger.error('Streaming error', { error, code })
-          }
-        }
+        // model
+        selectedModelId.value
       )
     } catch (error) {
       // Handle errors

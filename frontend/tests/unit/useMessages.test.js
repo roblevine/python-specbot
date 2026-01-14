@@ -42,10 +42,10 @@ describe('useMessages', () => {
     const { createConversation } = useConversations()
     const { sendUserMessage, currentMessages } = useMessages()
 
-    // Mock streaming to simulate loopback
-    streamMessage.mockImplementation((message, conversationId, history, model, callbacks) => {
-      setTimeout(() => callbacks.onToken(message), 10)
-      setTimeout(() => callbacks.onComplete({ model: 'gpt-3.5-turbo' }), 20)
+    // Mock streaming to simulate loopback (correct signature: messageText, onToken, onComplete, onError, history, model)
+    streamMessage.mockImplementation((message, onToken, onComplete) => {
+      setTimeout(() => onToken(message), 10)
+      setTimeout(() => onComplete({ model: 'gpt-3.5-turbo' }), 20)
       return vi.fn() // cleanup function
     })
 
@@ -66,9 +66,9 @@ describe('useMessages', () => {
     const { sendUserMessage, currentMessages } = useMessages()
 
     // Mock streaming
-    streamMessage.mockImplementation((message, conversationId, history, model, callbacks) => {
-      setTimeout(() => callbacks.onToken(message), 10)
-      setTimeout(() => callbacks.onComplete({ model: 'gpt-3.5-turbo' }), 20)
+    streamMessage.mockImplementation((message, onToken, onComplete) => {
+      setTimeout(() => onToken(message), 10)
+      setTimeout(() => onComplete({ model: 'gpt-3.5-turbo' }), 20)
       return vi.fn()
     })
 
@@ -86,9 +86,9 @@ describe('useMessages', () => {
     const { sendUserMessage, currentMessages } = useMessages()
 
     // Mock streaming
-    streamMessage.mockImplementation((message, conversationId, history, model, callbacks) => {
-      setTimeout(() => callbacks.onToken(message), 10)
-      setTimeout(() => callbacks.onComplete({ model: 'gpt-3.5-turbo' }), 20)
+    streamMessage.mockImplementation((message, onToken, onComplete) => {
+      setTimeout(() => onToken(message), 10)
+      setTimeout(() => onComplete({ model: 'gpt-3.5-turbo' }), 20)
       return vi.fn()
     })
 
@@ -137,9 +137,9 @@ describe('useMessages', () => {
     const { sendUserMessage } = useMessages()
 
     // Mock streaming
-    streamMessage.mockImplementation((message, conversationId, history, model, callbacks) => {
-      setTimeout(() => callbacks.onToken(message), 10)
-      setTimeout(() => callbacks.onComplete({ model: 'gpt-3.5-turbo' }), 20)
+    streamMessage.mockImplementation((message, onToken, onComplete) => {
+      setTimeout(() => onToken(message), 10)
+      setTimeout(() => onComplete({ model: 'gpt-3.5-turbo' }), 20)
       return vi.fn()
     })
 
@@ -161,10 +161,10 @@ describe('useMessages', () => {
     const { sendUserMessage, currentMessages } = useMessages()
 
     // Mock streaming to trigger error after some tokens
-    vi.mocked(apiClient.streamMessage).mockImplementation((message, conversationId, history, model, callbacks) => {
-      setTimeout(() => callbacks.onToken('Partial '), 10)
-      setTimeout(() => callbacks.onToken('response'), 15)
-      setTimeout(() => callbacks.onError('Cannot connect to server', 'Network Error'), 20)
+    vi.mocked(apiClient.streamMessage).mockImplementation((message, onToken, onComplete, onError) => {
+      setTimeout(() => onToken('Partial '), 10)
+      setTimeout(() => onToken('response'), 15)
+      setTimeout(() => onError({ error: 'Cannot connect to server', code: 'Network Error' }), 20)
       return vi.fn()
     })
 
@@ -186,10 +186,10 @@ describe('useMessages', () => {
     const { sendUserMessage, currentMessages } = useMessages()
 
     // Mock streaming to trigger error after some tokens
-    vi.mocked(apiClient.streamMessage).mockImplementation((message, conversationId, history, model, callbacks) => {
-      setTimeout(() => callbacks.onToken('Partial '), 10)
-      setTimeout(() => callbacks.onToken('text'), 15)
-      setTimeout(() => callbacks.onError('Network failure', 'Network Error'), 20)
+    vi.mocked(apiClient.streamMessage).mockImplementation((message, onToken, onComplete, onError) => {
+      setTimeout(() => onToken('Partial '), 10)
+      setTimeout(() => onToken('text'), 15)
+      setTimeout(() => onError({ error: 'Network failure', code: 'Network Error' }), 20)
       return vi.fn()
     })
 
@@ -214,9 +214,9 @@ describe('useMessages', () => {
     const { sendUserMessage, currentMessages } = useMessages()
 
     // Mock streaming to trigger error after some tokens
-    vi.mocked(apiClient.streamMessage).mockImplementation((message, conversationId, history, model, callbacks) => {
-      setTimeout(() => callbacks.onToken('Some text'), 10)
-      setTimeout(() => callbacks.onError('Timeout', 'Network Error'), 15)
+    vi.mocked(apiClient.streamMessage).mockImplementation((message, onToken, onComplete, onError) => {
+      setTimeout(() => onToken('Some text'), 10)
+      setTimeout(() => onError({ error: 'Timeout', code: 'Network Error' }), 15)
       return vi.fn()
     })
 
@@ -411,12 +411,12 @@ describe('useMessages', () => {
       const { sendUserMessage, streamingMessage, isStreaming, currentMessages } = useMessages()
 
       // Setup streaming mock to simulate token streaming
-      streamMessage.mockImplementation((message, conversationId, history, model, callbacks) => {
+      streamMessage.mockImplementation((message, onToken, onComplete) => {
         // Simulate streaming tokens
-        setTimeout(() => callbacks.onToken('Hello'), 10)
-        setTimeout(() => callbacks.onToken(' from'), 20)
-        setTimeout(() => callbacks.onToken(' streaming'), 30)
-        setTimeout(() => callbacks.onComplete({ model: 'gpt-3.5-turbo' }), 40)
+        setTimeout(() => onToken('Hello'), 10)
+        setTimeout(() => onToken(' from'), 20)
+        setTimeout(() => onToken(' streaming'), 30)
+        setTimeout(() => onComplete({ model: 'gpt-3.5-turbo' }), 40)
         return vi.fn() // cleanup function
       })
 
