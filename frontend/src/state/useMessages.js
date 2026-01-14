@@ -61,7 +61,7 @@ export function useMessages() {
   })
 
   /**
-   * T043, T044: Sends a user message to backend API and receives loopback response
+   * Feature 009: Sends a user message and receives streaming response
    * @param {string} text - Message text to send
    * @returns {Promise<void>}
    */
@@ -101,11 +101,11 @@ export function useMessages() {
       // Add user message to conversation
       addMessage(activeConversation.value.id, userMessage)
 
-      // T026: Gather conversation history (all messages before current one)
+      // Gather conversation history
       const conversationHistory = activeConversation.value.messages
-        .filter(msg => msg.status === 'sent') // Only include successfully sent messages
+        .filter(msg => msg.status === 'sent')
         .map(msg => ({
-          sender: msg.sender, // 'user' or 'system'
+          sender: msg.sender,
           text: msg.text
         }))
 
@@ -115,46 +115,43 @@ export function useMessages() {
         selectedModel: selectedModelId.value
       })
 
-      // T043: Call backend API with conversation history and selected model
-      const response = await apiSendMessage(
+      // Feature 009: Use streaming API
+      const streamMessageId = generateId('msg')
+      startStreaming(streamMessageId, selectedModelId.value)
+
+      // Mark user message as sent
+      userMessage.status = 'sent'
+      saveToStorage()
+
+      // Set up streaming callbacks
+      cleanupFunction = apiStreamMessage(
         text.trim(),
         activeConversation.value.id,
-        conversationHistory, // T026: Include history for context-aware responses
-        selectedModelId.value // Feature 008 T030: Include selected model
-      )
-
-      // T044: Handle API response format (status, message, timestamp, model)
-      if (response.status === 'success') {
-        // Create system message from API response
-        const systemMessage = {
-          id: generateId('msg'),
-          text: response.message, // Backend response with "api says: " prefix
-          sender: 'system',
-          timestamp: response.timestamp,
-          status: 'sent',
-          model: response.model, // Feature 008 T033: Store model that generated response
+        conversationHistory,
+        selectedModelId.value,
+        {
+          onToken: (content) => {
+            appendToken(content)
+          },
+          onComplete: (metadata) => {
+            completeStreaming()
+            setProcessing(false)
+            setStatus('Message sent', 'ready')
+            logger.info('Streaming completed', {
+              messageId: streamMessageId,
+              model: metadata.model
+            })
+          },
+          onError: (error, code) => {
+            errorStreaming(error, code)
+            setProcessing(false)
+            setError(`Streaming error: ${error}`)
+            logger.error('Streaming error', { error, code })
+          }
         }
-
-        // Add system message from API
-        addMessage(activeConversation.value.id, systemMessage)
-
-        // Mark user message as sent
-        userMessage.status = 'sent'
-
-        // Save to storage
-        saveToStorage()
-
-        setStatus('Message sent', 'ready')
-        logger.info('Message sent successfully', {
-          messageId: userMessage.id,
-          responseTimestamp: response.timestamp,
-        })
-      } else {
-        // Unexpected response format
-        throw new Error('Unexpected response format from API')
-      }
+      )
     } catch (error) {
-      // T022-T024, T038-T039, T060: Create error message with error fields
+      // Handle errors
       const errorMessage = {
         id: generateId('msg'),
         text: text.trim(),
@@ -162,16 +159,14 @@ export function useMessages() {
         timestamp: new Date().toISOString(),
         status: 'error',
         errorMessage: error.message,
-        errorType: categorizeError(error), // T038: Categorize based on statusCode
+        errorType: categorizeError(error),
         errorTimestamp: new Date().toISOString(),
       }
 
-      // T039: Add errorCode field if statusCode exists
       if (error.statusCode) {
         errorMessage.errorCode = error.statusCode
       }
 
-      // T060: Add errorDetails field if details exist
       if (error.details && Object.keys(error.details).length > 0) {
         errorMessage.errorDetails = JSON.stringify(error.details)
       }
@@ -183,10 +178,8 @@ export function useMessages() {
         conversationMessages[lastMessageIndex] = errorMessage
       }
 
-      // Save to storage
       saveToStorage()
 
-      // Handle API errors with specific messages
       if (error instanceof ApiError) {
         setError(`Error: ${error.message}`)
         logger.error('API error sending message', {
@@ -198,7 +191,7 @@ export function useMessages() {
         setError('Failed to send message')
         logger.error('Failed to send message', error)
       }
-    } finally {
+
       setProcessing(false)
     }
   }

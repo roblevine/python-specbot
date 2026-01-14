@@ -12,6 +12,7 @@ vi.mock('../../src/services/apiClient.js', () => ({
       timestamp: new Date().toISOString()
     })
   }),
+  streamMessage: vi.fn(),
   ApiError: class ApiError extends Error {
     constructor(message, statusCode = null, details = null) {
       super(message)
@@ -351,6 +352,48 @@ describe('useMessages', () => {
       // Try to start another stream (should be ignored or throw error)
       startStreaming(secondId)
       expect(streamingMessage.value.id).toBe(firstId) // Should still be first
+    })
+  })
+
+  describe('Streaming Integration', () => {
+    it('should use streaming API when sending user message', async () => {
+      const { streamMessage } = await import('../../src/services/apiClient.js')
+      const { createConversation } = useConversations()
+      const { sendUserMessage, streamingMessage, isStreaming, currentMessages } = useMessages()
+
+      // Setup streaming mock to simulate token streaming
+      streamMessage.mockImplementation((message, conversationId, history, model, callbacks) => {
+        // Simulate streaming tokens
+        setTimeout(() => callbacks.onToken('Hello'), 10)
+        setTimeout(() => callbacks.onToken(' from'), 20)
+        setTimeout(() => callbacks.onToken(' streaming'), 30)
+        setTimeout(() => callbacks.onComplete({ model: 'gpt-3.5-turbo' }), 40)
+        return vi.fn() // cleanup function
+      })
+
+      createConversation()
+
+      // Send a message - should trigger streaming
+      const sendPromise = sendUserMessage('Test streaming message')
+
+      // Should immediately start streaming
+      expect(streamMessage).toHaveBeenCalled()
+      expect(isStreaming.value).toBe(true)
+      expect(streamingMessage.value).toBeTruthy()
+
+      // Wait for streaming to complete
+      await sendPromise
+      await new Promise(resolve => setTimeout(resolve, 100))
+
+      // Verify final state
+      expect(isStreaming.value).toBe(false)
+      expect(streamingMessage.value).toBe(null)
+      expect(currentMessages.value.length).toBeGreaterThan(0)
+
+      // Should have user message and completed system message
+      const systemMessages = currentMessages.value.filter(m => m.sender === 'system')
+      expect(systemMessages.length).toBeGreaterThan(0)
+      expect(systemMessages[0].text).toContain('Hello from streaming')
     })
   })
 })
