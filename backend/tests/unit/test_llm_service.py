@@ -55,7 +55,7 @@ def test_config_loading_from_environment():
     # Mock environment variables
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'env-test-key',
-        'OPENAI_MODEL': 'gpt-4'
+        'OPENAI_MODELS': '[{"id": "gpt-4", "name": "GPT-4", "description": "Most capable", "default": true}]'
     }):
         config = load_config()
 
@@ -64,25 +64,26 @@ def test_config_loading_from_environment():
 
 
 @pytest.mark.unit
-def test_config_loading_with_default_model():
+def test_config_loading_requires_openai_models():
     """
-    T004: Unit test for default model when OPENAI_MODEL not set.
+    T004: Unit test for error when OPENAI_MODELS not set.
 
-    Validates that gpt-3.5-turbo is used as default when OPENAI_MODEL
-    is not provided in environment.
+    Validates that an error is raised when OPENAI_MODELS
+    is not configured (required since removal of OPENAI_MODEL fallback).
 
     Expected: FAIL (service not implemented yet)
     """
     from src.services.llm_service import load_config
+    from src.config.models import ModelConfigurationError
 
-    # Mock environment with only API key (no model)
+    # Mock environment with only API key (no OPENAI_MODELS)
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key'
     }, clear=True):
-        config = load_config()
+        with pytest.raises(ModelConfigurationError) as exc_info:
+            load_config()
 
-        assert config['api_key'] == 'test-key'
-        assert config['model'] == 'gpt-3.5-turbo'  # Default
+        assert "OPENAI_MODELS environment variable is required" in str(exc_info.value)
 
 
 @pytest.mark.unit
@@ -121,7 +122,7 @@ def test_llm_service_singleton_pattern():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODEL': 'gpt-3.5-turbo'
+        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
     }):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             mock_instance = Mock()
@@ -161,8 +162,7 @@ async def test_get_ai_response_basic_invocation():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODEL': 'gpt-3.5-turbo',
-        'OPENAI_MODELS': ''  # Clear OPENAI_MODELS so OPENAI_MODEL fallback is used
+        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
     }):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             # Setup mock LLM
@@ -208,8 +208,7 @@ async def test_get_ai_response_preserves_special_characters():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODEL': 'gpt-3.5-turbo',
-        'OPENAI_MODELS': ''  # Clear OPENAI_MODELS so OPENAI_MODEL fallback is used
+        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
     }):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             # Setup mock LLM
@@ -251,7 +250,7 @@ async def test_authentication_error_mapping():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODEL': 'gpt-3.5-turbo'
+        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
     }):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             # Setup mock LLM
@@ -302,7 +301,7 @@ async def test_rate_limit_error_mapping():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODEL': 'gpt-3.5-turbo'
+        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
     }):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             # Setup mock LLM
@@ -353,7 +352,7 @@ async def test_timeout_error_mapping():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODEL': 'gpt-3.5-turbo'
+        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
     }):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             # Setup mock LLM
@@ -398,7 +397,7 @@ async def test_get_ai_response_with_specific_model():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODEL': 'gpt-3.5-turbo'  # Default model
+        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'  # Default model
     }):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat, \
              patch('src.services.llm_service.load_model_configuration') as mock_load_config, \
@@ -456,7 +455,7 @@ async def test_get_ai_response_uses_default_model_when_not_specified():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODEL': 'gpt-3.5-turbo'
+        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
     }):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat, \
              patch('src.services.llm_service.load_model_configuration') as mock_load_config, \
@@ -518,7 +517,7 @@ async def test_get_ai_response_validates_model_id():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODEL': 'gpt-3.5-turbo'
+        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
     }):
         with patch('src.services.llm_service.load_model_configuration') as mock_load_config, \
              patch('src.services.llm_service.validate_model_id') as mock_validate, \
@@ -562,7 +561,7 @@ async def test_get_ai_response_with_conversation_history_and_model():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODEL': 'gpt-3.5-turbo'
+        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
     }):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat, \
              patch('src.services.llm_service.load_model_configuration') as mock_load_config, \
@@ -651,7 +650,7 @@ async def test_stream_ai_response_yields_tokens():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODEL': 'gpt-3.5-turbo'
+        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
     }):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             # Setup mock LLM
@@ -716,7 +715,7 @@ async def test_stream_ai_response_yields_complete_event():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODEL': 'gpt-3.5-turbo'
+        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
     }):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             mock_llm = Mock()
@@ -763,7 +762,7 @@ async def test_stream_ai_response_with_conversation_history():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODEL': 'gpt-3.5-turbo'
+        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
     }):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             mock_llm = Mock()
@@ -821,7 +820,7 @@ async def test_stream_ai_response_with_custom_model():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODEL': 'gpt-3.5-turbo'
+        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
     }):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat, \
              patch('src.services.llm_service.load_model_configuration') as mock_load_config, \
@@ -884,7 +883,7 @@ async def test_stream_ai_response_handles_authentication_error():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODEL': 'gpt-3.5-turbo'
+        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
     }):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             mock_llm = Mock()
@@ -938,7 +937,7 @@ async def test_stream_ai_response_handles_rate_limit_error():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODEL': 'gpt-3.5-turbo'
+        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
     }):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             mock_llm = Mock()
@@ -987,7 +986,7 @@ async def test_stream_ai_response_handles_timeout():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODEL': 'gpt-3.5-turbo'
+        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
     }):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             mock_llm = Mock()
@@ -1031,7 +1030,7 @@ async def test_stream_ai_response_handles_empty_response():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODEL': 'gpt-3.5-turbo'
+        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
     }):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             mock_llm = Mock()
@@ -1075,7 +1074,7 @@ async def test_stream_ai_response_handles_special_characters():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODEL': 'gpt-3.5-turbo'
+        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
     }):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             mock_llm = Mock()

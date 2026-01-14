@@ -241,28 +241,14 @@ class TestLoadModelConfiguration:
         assert config.models[0].id == "gpt-4"
         assert config.models[1].id == "gpt-3.5-turbo"
 
-    def test_fallback_to_openai_model_env_var(self, monkeypatch):
-        """Test fallback to OPENAI_MODEL when OPENAI_MODELS not set."""
+    def test_requires_openai_models_env_var(self, monkeypatch):
+        """Test that missing OPENAI_MODELS raises an error."""
         monkeypatch.delenv('OPENAI_MODELS', raising=False)
-        monkeypatch.setenv('OPENAI_MODEL', 'gpt-4')
 
-        config = load_model_configuration()
+        with pytest.raises(ModelConfigurationError) as exc_info:
+            load_model_configuration()
 
-        assert len(config.models) == 1
-        assert config.models[0].id == "gpt-4"
-        assert config.models[0].name == "GPT-4"
-        assert config.models[0].default is True
-
-    def test_fallback_to_default_gpt35_turbo(self, monkeypatch):
-        """Test fallback to gpt-3.5-turbo when no env vars set."""
-        monkeypatch.delenv('OPENAI_MODELS', raising=False)
-        monkeypatch.delenv('OPENAI_MODEL', raising=False)
-
-        config = load_model_configuration()
-
-        assert len(config.models) == 1
-        assert config.models[0].id == "gpt-3.5-turbo"
-        assert config.models[0].default is True
+        assert "OPENAI_MODELS environment variable is required" in str(exc_info.value)
 
     def test_rejects_invalid_json(self, monkeypatch):
         """Test that invalid JSON in OPENAI_MODELS raises error."""

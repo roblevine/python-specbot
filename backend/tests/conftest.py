@@ -28,12 +28,13 @@ def mock_test_env_vars(monkeypatch):
     Args:
         monkeypatch: pytest fixture for modifying environment variables
     """
-    # CRITICAL: Unset OPENAI_MODELS to prevent it from overriding OPENAI_MODEL
-    # The config loader prioritizes OPENAI_MODELS over OPENAI_MODEL (see config/models.py:101-137)
-    monkeypatch.delenv("OPENAI_MODELS", raising=False)
-
     # Set predictable test values BEFORE any imports that load config
-    monkeypatch.setenv("OPENAI_MODEL", "gpt-3.5-turbo")
+    # Use OPENAI_MODELS (JSON array) with gpt-3.5-turbo as the default model
+    monkeypatch.setenv(
+        "OPENAI_MODELS",
+        '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", '
+        '"description": "Fast and efficient for most tasks", "default": true}]'
+    )
     monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-12345")
 
     # Clear any cached LLM instances to force reload with new env vars
@@ -43,7 +44,7 @@ def mock_test_env_vars(monkeypatch):
     except (ImportError, AttributeError):
         pass  # Module not imported yet or no cache to clear
 
-    # Note: Individual tests can still override these with their own patch.dict
+    # Note: Individual tests can still override these with their own monkeypatch
     # if they need to test different configurations
 
 

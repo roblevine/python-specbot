@@ -78,22 +78,26 @@ def load_config() -> Dict[str, str]:
     """
     T007: Load LLM configuration from environment variables.
 
-    Loads OPENAI_API_KEY (required) and OPENAI_MODEL (optional, defaults to gpt-3.5-turbo).
+    Loads OPENAI_API_KEY (required) and OPENAI_MODELS (required).
+    Uses the default model from OPENAI_MODELS configuration.
 
     Returns:
         Dictionary with 'api_key' and 'model' keys
 
     Raises:
         ValueError: If OPENAI_API_KEY is not set
+        ModelConfigurationError: If OPENAI_MODELS is invalid or missing
 
     Examples:
-        >>> # With environment: OPENAI_API_KEY=sk-abc123, OPENAI_MODEL=gpt-4
+        >>> # With environment: OPENAI_API_KEY=sk-abc123, OPENAI_MODELS='[{"id": "gpt-4", ...}]'
         >>> config = load_config()
         >>> config['api_key']
         'sk-abc123'
         >>> config['model']
         'gpt-4'
     """
+    from src.config.models import load_model_configuration, get_default_model
+
     api_key = os.getenv('OPENAI_API_KEY')
 
     if not api_key:
@@ -103,8 +107,9 @@ def load_config() -> Dict[str, str]:
             "Please set it in your .env file or environment."
         )
 
-    # Default to gpt-3.5-turbo if OPENAI_MODEL not specified
-    model = os.getenv('OPENAI_MODEL', 'gpt-3.5-turbo')
+    # Load model configuration and get default model
+    model_config = load_model_configuration()
+    model = get_default_model(model_config)
 
     logger.info(f"Loaded LLM config: model={model}, api_key={'*' * 8}...{api_key[-4:]}")
 
