@@ -23,21 +23,29 @@ fi
 
 cd "$BACKEND_DIR"
 
-# Check if virtual environment exists
-if [ ! -d ".venv" ] && [ ! -d "venv" ]; then
+# Detect virtual environment location
+VENV_DIR=""
+if [ -d ".venv" ]; then
+    VENV_DIR=".venv"
+elif [ -d "venv" ]; then
+    VENV_DIR="venv"
+fi
+
+# Create venv if it doesn't exist
+if [ -z "$VENV_DIR" ]; then
     echo "⚠️  Warning: No virtual environment found. Creating one..."
     python3 -m venv .venv
-    source .venv/bin/activate
+    VENV_DIR=".venv"
     echo "📦 Installing backend dependencies..."
-    pip install -r requirements.txt
+    "$VENV_DIR/bin/pip" install -r requirements.txt
     echo ""
-else
-    # Activate virtual environment if it exists
-    if [ -d ".venv" ]; then
-        source .venv/bin/activate
-    elif [ -d "venv" ]; then
-        source venv/bin/activate
-    fi
+fi
+
+# Verify pytest is installed
+if [ ! -f "$VENV_DIR/bin/pytest" ]; then
+    echo "⚠️  Warning: pytest not found in virtual environment. Installing dependencies..."
+    "$VENV_DIR/bin/pip" install -r requirements.txt
+    echo ""
 fi
 
 # Check if .env file exists
@@ -48,16 +56,16 @@ if [ ! -f ".env" ]; then
     echo ""
 fi
 
-# Run tests
+# Run tests using the venv's pytest directly
 echo "🏃 Running backend tests..."
 echo ""
 
 if [ $# -eq 0 ]; then
     # Default: run all tests with verbose output
-    pytest tests/ -v
+    "$VENV_DIR/bin/pytest" tests/ -v
 else
     # Pass through any arguments (e.g., --cov, -k test_name)
-    pytest "$@"
+    "$VENV_DIR/bin/pytest" "$@"
 fi
 
 TEST_EXIT_CODE=$?
