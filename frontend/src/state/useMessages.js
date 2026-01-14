@@ -298,8 +298,10 @@ export function useMessages() {
     }
 
     // Create error message with partial text
+    // Ensure text field has content (use partial response if available, otherwise placeholder)
     const errorMessage = {
       ...streamingMessage.value,
+      text: streamingMessage.value.text || '[Response generation failed]',
       status: 'error',
       errorMessage: errorMsg,
       errorType: errorCode,
