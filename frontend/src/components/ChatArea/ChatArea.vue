@@ -4,19 +4,25 @@
     class="chat-area"
   >
     <div
-      v-if="messages.length === 0"
+      v-if="messages.length === 0 && !streamingMessage"
       class="empty-state"
     >
       <p>No messages yet. Start typing below!</p>
     </div>
     <div
-      v-else
+      v-if="messages.length > 0 || streamingMessage"
       class="messages-container"
     >
       <MessageBubble
         v-for="message in messages"
         :key="message.id"
         :message="message"
+      />
+      <!-- T021: Display streaming message below regular messages -->
+      <MessageBubble
+        v-if="streamingMessage"
+        :key="'streaming-' + streamingMessage.id"
+        :message="streamingMessage"
       />
     </div>
     <div
@@ -31,6 +37,7 @@
 <script>
 import { ref, watch, nextTick } from 'vue'
 import MessageBubble from './MessageBubble.vue'
+import { useMessages } from '../../state/useMessages.js'
 
 export default {
   name: 'ChatArea',
@@ -49,20 +56,32 @@ export default {
   },
   setup(props) {
     const chatArea = ref(null)
+    const { streamingMessage, isStreaming } = useMessages()
+
+    // Auto-scroll to bottom helper
+    const scrollToBottom = async () => {
+      await nextTick()
+      if (chatArea.value) {
+        chatArea.value.scrollTop = chatArea.value.scrollHeight
+      }
+    }
 
     // Auto-scroll to bottom when messages change
     watch(
       () => props.messages.length,
-      async () => {
-        await nextTick()
-        if (chatArea.value) {
-          chatArea.value.scrollTop = chatArea.value.scrollHeight
-        }
-      }
+      scrollToBottom
+    )
+
+    // T021: Auto-scroll when streaming message text changes
+    watch(
+      () => streamingMessage.value?.text,
+      scrollToBottom
     )
 
     return {
       chatArea,
+      streamingMessage,
+      isStreaming,
     }
   },
 }
