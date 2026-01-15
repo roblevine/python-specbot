@@ -120,7 +120,7 @@ describe('streamMessage', () => {
     await new Promise(resolve => setTimeout(resolve, 10))
 
     expect(global.fetch).toHaveBeenCalledWith(
-      'http://localhost:8000/api/v1/messages',
+      '/api/v1/messages',
       expect.objectContaining({
         method: 'POST',
         headers: expect.objectContaining({

@@ -10,7 +10,9 @@
 import * as logger from '../utils/logger.js'
 
 // API Configuration
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+// Default to empty string (relative URLs) to use Vite proxy in development
+// Set VITE_API_BASE_URL for production or direct backend access
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 const API_TIMEOUT = 120000 // 120 seconds (2 minutes) - increased to support large LLM responses
 
 /**
