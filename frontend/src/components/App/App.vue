@@ -60,6 +60,7 @@ export default {
       conversations,
       activeConversationId,
       createConversation,
+      setActiveConversation,
       loadFromStorage,
       saveToStorage,
     } = useConversations()
@@ -98,9 +99,15 @@ export default {
 
     // Handle selecting a conversation
     function handleSelectConversation(conversationId) {
-      logger.info('Conversation selected', { conversationId })
-      // For P1, we only have one conversation so this is a no-op
-      // P2 will implement switching between conversations
+      try {
+        logger.info('Selecting conversation', { conversationId })
+        setActiveConversation(conversationId)
+        saveToStorage()
+        logger.info('Conversation selected successfully', { conversationId })
+      } catch (error) {
+        logger.error('Failed to select conversation', error)
+        setError('Failed to select conversation')
+      }
     }
 
     // Handle creating a new conversation

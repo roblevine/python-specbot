@@ -197,4 +197,47 @@ describe('useConversations', () => {
     expect(conversations.value).toHaveLength(1)
     expect(activeConversationId.value).toBe('conv-test-123')
   })
+
+  describe('setActiveConversation', () => {
+    it('should set the active conversation by ID', () => {
+      const { createConversation, setActiveConversation, activeConversationId } = useConversations()
+
+      const conv1 = createConversation()
+      const conv2 = createConversation()
+
+      // conv2 should be active after creation
+      expect(activeConversationId.value).toBe(conv2.id)
+
+      // Switch to conv1
+      setActiveConversation(conv1.id)
+
+      expect(activeConversationId.value).toBe(conv1.id)
+    })
+
+    it('should throw error when setting non-existent conversation as active', () => {
+      const { setActiveConversation } = useConversations()
+
+      expect(() => setActiveConversation('conv-nonexistent')).toThrow(
+        'Conversation not found: conv-nonexistent'
+      )
+    })
+
+    it('should allow switching between multiple conversations', () => {
+      const { createConversation, setActiveConversation, activeConversationId } = useConversations()
+
+      const conv1 = createConversation()
+      const conv2 = createConversation()
+      const conv3 = createConversation()
+
+      // Switch through all conversations
+      setActiveConversation(conv1.id)
+      expect(activeConversationId.value).toBe(conv1.id)
+
+      setActiveConversation(conv3.id)
+      expect(activeConversationId.value).toBe(conv3.id)
+
+      setActiveConversation(conv2.id)
+      expect(activeConversationId.value).toBe(conv2.id)
+    })
+  })
 })
