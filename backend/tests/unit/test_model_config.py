@@ -241,14 +241,18 @@ class TestLoadModelConfiguration:
         assert config.models[0].id == "gpt-4"
         assert config.models[1].id == "gpt-3.5-turbo"
 
-    def test_requires_openai_models_env_var(self, monkeypatch):
-        """Test that missing OPENAI_MODELS raises an error."""
+    def test_requires_models_env_var_when_provider_enabled(self, monkeypatch):
+        """Test that missing OPENAI_MODELS raises an error when OpenAI is enabled.
+
+        Updated for 011-anthropic-support: Error message changed to multi-provider message.
+        """
         monkeypatch.delenv('OPENAI_MODELS', raising=False)
 
         with pytest.raises(ModelConfigurationError) as exc_info:
             load_model_configuration()
 
-        assert "OPENAI_MODELS environment variable is required" in str(exc_info.value)
+        # Error message updated for multi-provider architecture
+        assert "No models configured for enabled providers" in str(exc_info.value)
 
     def test_rejects_invalid_json(self, monkeypatch):
         """Test that invalid JSON in OPENAI_MODELS raises error."""

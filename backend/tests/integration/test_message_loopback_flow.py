@@ -30,10 +30,7 @@ def test_send_message_receives_loopback_response(
     Updated for OpenAI LangChain integration.
     """
     # Mock the LLM service
-    with patch('src.api.routes.messages.load_config') as mock_load_config, \
-         patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
-
-        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
+    with patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
         mock_get_ai.return_value = ("This is an AI response.", "gpt-3.5-turbo")
 
         # Send message
@@ -65,10 +62,7 @@ def test_loopback_preserves_special_characters(
     Updated for OpenAI LangChain integration.
     """
     # Mock the LLM service to handle special characters
-    with patch('src.api.routes.messages.load_config') as mock_load_config, \
-         patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
-
-        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
+    with patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
         mock_get_ai.return_value = ("AI response with special chars: 🚀 世界", "gpt-3.5-turbo")
 
         # Send message with special characters
@@ -98,10 +92,7 @@ def test_loopback_response_time_under_2_seconds(
     Updated for OpenAI LangChain integration.
     """
     # Mock the LLM service for fast response
-    with patch('src.api.routes.messages.load_config') as mock_load_config, \
-         patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
-
-        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
+    with patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
         mock_get_ai.return_value = ("Quick AI response.", "gpt-3.5-turbo")
 
         # Measure response time
@@ -132,11 +123,7 @@ def test_multiple_messages_in_sequence(client: TestClient):
     Updated for OpenAI LangChain integration.
     """
     # Mock the LLM service
-    with patch('src.api.routes.messages.load_config') as mock_load_config, \
-         patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
-
-        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
-
+    with patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
         messages = [
             "First message",
             "Second message",
@@ -167,10 +154,7 @@ def test_minimal_message_request(client: TestClient):
     Updated for OpenAI LangChain integration.
     """
     # Mock the LLM service
-    with patch('src.api.routes.messages.load_config') as mock_load_config, \
-         patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
-
-        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
+    with patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
         mock_get_ai.return_value = ("AI response to minimal request.", "gpt-3.5-turbo")
 
         response = client.post("/api/v1/messages", json={"message": "Test"})
@@ -189,10 +173,7 @@ def test_message_with_conversation_id(client: TestClient):
     Updated for OpenAI LangChain integration.
     """
     # Mock the LLM service
-    with patch('src.api.routes.messages.load_config') as mock_load_config, \
-         patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
-
-        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
+    with patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
         mock_get_ai.return_value = ("AI response with conversation context.", "gpt-3.5-turbo")
 
         request_data = {
@@ -218,10 +199,7 @@ def test_multiline_message_preserved(client: TestClient):
     Updated for OpenAI LangChain integration.
     """
     # Mock the LLM service
-    with patch('src.api.routes.messages.load_config') as mock_load_config, \
-         patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
-
-        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
+    with patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
         mock_get_ai.return_value = ("AI response to multiline message.", "gpt-3.5-turbo")
 
         multiline_message = "Line 1\nLine 2\nLine 3\n\nLine 5 after blank"

@@ -22,7 +22,6 @@ from src.services.message_service import validate_message
 from src.services.llm_service import (
     get_ai_response,
     stream_ai_response,
-    load_config,
     LLMServiceError,
     LLMAuthenticationError,
     LLMRateLimitError,
@@ -336,13 +335,8 @@ async def send_message(http_request: Request, request: MessageRequest) -> Union[
 
     except Exception as e:
         # T015: Log LLM error
-        try:
-            config = load_config()
-            model = config['model']
-            llm_request_error(request.message, model, e)
-        except:
-            # If we can't load config, just log the error normally
-            logger.error(f"LLM error (config unavailable): {e}", exc_info=True)
+        model_for_logging = request.model or "unknown"
+        llm_request_error(request.message, model_for_logging, e)
 
         # T036: Handle unexpected errors (500 Internal Server Error)
         logger.error(f"Unexpected error processing message: {e}", exc_info=True)
