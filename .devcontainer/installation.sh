@@ -4,7 +4,7 @@ echo "* starting installation script"
 echo "** update and install apt packages"
 sudo apt update
 sudo apt upgrade -y
-sudo apt install -y vim iputils-ping dos2unix telnet openssh-server
+sudo apt install -y vim iputils-ping dos2unix telnet tmux openssh-server
 
 # Create symlink for libcrypt on ARM machines
 if [ "$(uname -m)" = "aarch64" ]; then
