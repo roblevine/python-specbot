@@ -1,0 +1,366 @@
+openapi: 3.1.0
+info:
+  title: Conversations API
+  description: Server-side conversation storage API for chat application
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local development server
+
+paths:
+  /conversations:
+    get:
+      operationId: listConversations
+      summary: List all conversations
+      description: Returns a list of conversation summaries (without full message content)
+      responses:
+        '200':
+          description: List of conversation summaries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationListResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      operationId: createConversation
+      summary: Create a new conversation
+      description: Creates a new conversation with optional initial data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateConversationRequest'
+      responses:
+        '201':
+          description: Conversation created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /conversations/{conversationId}:
+    parameters:
+      - name: conversationId
+        in: path
+        required: true
+        description: Unique conversation identifier
+        schema:
+          type: string
+          pattern: '^conv-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$'
+
+    get:
+      operationId: getConversation
+      summary: Get a single conversation
+      description: Returns a conversation with all its messages
+      responses:
+        '200':
+          description: Conversation found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationResponse'
+        '404':
+          description: Conversation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      operationId: updateConversation
+      summary: Update a conversation
+      description: Updates conversation data (title, messages)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateConversationRequest'
+      responses:
+        '200':
+          description: Conversation updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Conversation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      operationId: deleteConversation
+      summary: Delete a conversation
+      description: Permanently deletes a conversation and all its messages
+      responses:
+        '204':
+          description: Conversation deleted successfully (no content)
+        '404':
+          description: Conversation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    Message:
+      type: object
+      required:
+        - id
+        - text
+        - sender
+        - timestamp
+        - status
+      properties:
+        id:
+          type: string
+          pattern: '^msg-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$'
+          description: Unique message identifier
+          example: msg-12345678-1234-1234-1234-123456789abc
+        text:
+          type: string
+          minLength: 1
+          maxLength: 10000
+          description: Message content
+          example: How do I read a file in Python?
+        sender:
+          type: string
+          enum: [user, system]
+          description: Who sent the message
+          example: user
+        timestamp:
+          type: string
+          format: date-time
+          description: When the message was created (ISO 8601)
+          example: '2026-01-15T10:00:00.000Z'
+        status:
+          type: string
+          enum: [pending, sent, error]
+          description: Message delivery status
+          example: sent
+        model:
+          type: string
+          description: Model ID used for system responses
+          example: gpt-4
+        errorMessage:
+          type: string
+          description: Error description (only if status is error)
+        errorType:
+          type: string
+          description: Error category (only if status is error)
+        errorCode:
+          type: integer
+          description: Error code (only if status is error)
+
+    Conversation:
+      type: object
+      required:
+        - id
+        - title
+        - createdAt
+        - updatedAt
+        - messages
+      properties:
+        id:
+          type: string
+          pattern: '^conv-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$'
+          description: Unique conversation identifier
+          example: conv-12345678-1234-1234-1234-123456789abc
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Conversation title
+          example: Discussion about Python
+        createdAt:
+          type: string
+          format: date-time
+          description: When the conversation was created (ISO 8601)
+          example: '2026-01-15T10:00:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: When the conversation was last modified (ISO 8601)
+          example: '2026-01-15T10:05:30.000Z'
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+          description: Ordered list of messages (chronological)
+
+    ConversationSummary:
+      type: object
+      required:
+        - id
+        - title
+        - createdAt
+        - updatedAt
+        - messageCount
+      properties:
+        id:
+          type: string
+          pattern: '^conv-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$'
+          description: Unique conversation identifier
+          example: conv-12345678-1234-1234-1234-123456789abc
+        title:
+          type: string
+          description: Conversation title
+          example: Discussion about Python
+        createdAt:
+          type: string
+          format: date-time
+          description: When the conversation was created
+          example: '2026-01-15T10:00:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: When the conversation was last modified
+          example: '2026-01-15T10:05:30.000Z'
+        messageCount:
+          type: integer
+          minimum: 0
+          description: Number of messages in conversation
+          example: 5
+
+    ConversationListResponse:
+      type: object
+      required:
+        - status
+        - conversations
+      properties:
+        status:
+          type: string
+          enum: [success]
+          example: success
+        conversations:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConversationSummary'
+
+    ConversationResponse:
+      type: object
+      required:
+        - status
+        - conversation
+      properties:
+        status:
+          type: string
+          enum: [success]
+          example: success
+        conversation:
+          $ref: '#/components/schemas/Conversation'
+
+    CreateConversationRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          pattern: '^conv-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$'
+          description: Optional client-generated conversation ID
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Optional title (defaults to "New Conversation")
+          example: My new chat
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+          description: Optional initial messages
+
+    UpdateConversationRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Updated conversation title
+          example: Updated title
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+          description: Complete messages array (replaces existing)
+
+    ErrorResponse:
+      type: object
+      required:
+        - status
+        - error
+      properties:
+        status:
+          type: string
+          enum: [error]
+          example: error
+        error:
+          type: string
+          description: Error message
+          example: Conversation not found
+        code:
+          type: string
+          enum:
+            - CONVERSATION_NOT_FOUND
+            - VALIDATION_ERROR
+            - STORAGE_READ_ERROR
+            - STORAGE_WRITE_ERROR
+            - INTERNAL_ERROR
+          description: Error code for programmatic handling
+          example: CONVERSATION_NOT_FOUND
+        detail:
+          type: string
+          description: Additional error details
+          example: No conversation found with ID conv-12345678-1234-1234-1234-123456789abc
+        timestamp:
+          type: string
+          format: date-time
+          description: When the error occurred
+          example: '2026-01-15T10:00:00.000Z'
