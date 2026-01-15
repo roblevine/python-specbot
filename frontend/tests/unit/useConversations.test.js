@@ -217,11 +217,11 @@ describe('useConversations', () => {
   })
 
   describe('setActiveConversation', () => {
-    it('should set the active conversation by ID', () => {
+    it('should set the active conversation by ID', async () => {
       const { createConversation, setActiveConversation, activeConversationId } = useConversations()
 
-      const conv1 = createConversation()
-      const conv2 = createConversation()
+      const conv1 = await createConversation()
+      const conv2 = await createConversation()
 
       // conv2 should be active after creation
       expect(activeConversationId.value).toBe(conv2.id)
@@ -240,12 +240,12 @@ describe('useConversations', () => {
       )
     })
 
-    it('should allow switching between multiple conversations', () => {
+    it('should allow switching between multiple conversations', async () => {
       const { createConversation, setActiveConversation, activeConversationId } = useConversations()
 
-      const conv1 = createConversation()
-      const conv2 = createConversation()
-      const conv3 = createConversation()
+      const conv1 = await createConversation()
+      const conv2 = await createConversation()
+      const conv3 = await createConversation()
 
       // Switch through all conversations
       setActiveConversation(conv1.id)
