@@ -79,6 +79,21 @@ export function useConversations() {
   }
 
   /**
+   * Sets the active conversation by ID
+   * @param {string} conversationId - ID of the conversation to activate
+   */
+  function setActiveConversation(conversationId) {
+    const conversation = conversations.value.find(c => c.id === conversationId)
+    if (!conversation) {
+      logger.error('Cannot set active conversation - not found', { conversationId })
+      throw new Error(`Conversation not found: ${conversationId}`)
+    }
+
+    activeConversationId.value = conversationId
+    logger.info('Set active conversation', { conversationId })
+  }
+
+  /**
    * Loads conversations from storage
    */
   function loadFromStorage() {
@@ -142,6 +157,7 @@ export function useConversations() {
     activeConversation,
     createConversation,
     addMessage,
+    setActiveConversation,
     loadFromStorage,
     saveToStorage,
     __resetState,
