@@ -58,9 +58,9 @@ As a system administrator, I want to configure which providers are available so 
 
 ### Edge Cases
 
-- What happens when a user switches from an OpenAI model to a Claude model mid-conversation? System handles the switch seamlessly; conversation context is passed to the new provider.
+- What happens when a user wants to switch models mid-conversation? System prevents model changes once a conversation has started; the model selector is disabled for active conversations. Users must start a new conversation to use a different model.
 - How does the system handle different context window sizes between providers? System passes conversation history appropriate to each model's capabilities.
-- What happens if the selected model's provider becomes unavailable? System displays a clear error and allows the user to select a different model.
+- What happens if the selected model's provider becomes unavailable? System displays a clear error; user must start a new conversation with a different model.
 - How does the system behave when model configuration includes models from unconfigured providers? Models from unconfigured providers are hidden or clearly marked as unavailable.
 - What happens when both providers experience rate limiting simultaneously? Each provider's error is handled independently with appropriate messaging.
 
@@ -74,7 +74,7 @@ As a system administrator, I want to configure which providers are available so 
 - **FR-004**: System MUST display provider information for each model in the selector
 - **FR-005**: System MUST require the `ANTHROPIC_API_KEY` environment variable to enable Claude models
 - **FR-006**: System MUST gracefully hide or disable models when their provider's API key is not configured
-- **FR-007**: System MUST maintain conversation context when switching between providers
+- **FR-007**: System MUST lock model selection once a conversation has started (model selector disabled/hidden for active conversations)
 - **FR-008**: System MUST support streaming responses from Anthropic models (consistent with existing OpenAI streaming)
 - **FR-009**: System MUST handle Anthropic-specific API errors with user-friendly messages (consistent with existing error handling patterns)
 - **FR-010**: System MUST validate that the selected model's provider is properly configured before making API calls
@@ -93,12 +93,18 @@ As a system administrator, I want to configure which providers are available so 
 ### Measurable Outcomes
 
 - **SC-001**: Users can select and use at least 2 different Anthropic Claude models
-- **SC-002**: Model selection across providers is reflected in chat responses within the same interaction (no page refresh required)
+- **SC-002**: Model selection is available when starting a new conversation and correctly routes to the chosen provider (no page refresh required)
 - **SC-003**: Users can identify which provider and model generated each response at a glance
 - **SC-004**: System functions correctly with any combination of configured providers (OpenAI only, Anthropic only, or both)
 - **SC-005**: Provider-specific errors display user-friendly messages without exposing technical details
 - **SC-006**: Streaming responses from Claude models display at the same quality level as OpenAI streaming
 - **SC-007**: Users can complete model selection across providers in under 5 seconds
+
+## Clarifications
+
+### Session 2026-01-15
+
+- Q: What happens when a user switches models mid-conversation? → A: Prevent model changes after conversation starts; model selector locked for active conversations.
 
 ## Assumptions
 
