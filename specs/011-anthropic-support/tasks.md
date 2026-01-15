@@ -22,8 +22,8 @@
 
 **Purpose**: Add langchain-anthropic dependency and update configuration schema
 
-- [ ] T001 Add langchain-anthropic>=0.2.0 to backend/requirements.txt
-- [ ] T002 [P] Update backend/.env.example with ANTHROPIC_API_KEY and ANTHROPIC_MODELS examples
+- [x] T001 Add langchain-anthropic>=0.2.0 to backend/requirements.txt
+- [x] T002 [P] Update backend/.env.example with ANTHROPIC_API_KEY and ANTHROPIC_MODELS examples
 
 ---
 
@@ -33,13 +33,13 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Add `provider` field to ModelConfig Pydantic model in backend/src/config/models.py
-- [ ] T004 Add provider validation (enum: "openai", "anthropic") in backend/src/config/models.py
-- [ ] T005 Add backward compatibility for OPENAI_MODELS without provider field (default to "openai") in backend/src/config/models.py
-- [ ] T006 Add PROVIDERS registry constant in backend/src/config/models.py
-- [ ] T007 Create load_anthropic_models() function in backend/src/config/models.py
-- [ ] T008 Update load_model_configuration() to merge OpenAI and Anthropic models in backend/src/config/models.py
-- [ ] T009 Add validation for exactly one default model across all providers in backend/src/config/models.py
+- [x] T003 Add `provider` field to ModelConfig Pydantic model in backend/src/config/models.py
+- [x] T004 Add provider validation (enum: "openai", "anthropic") in backend/src/config/models.py
+- [x] T005 Add backward compatibility for OPENAI_MODELS without provider field (default to "openai") in backend/src/config/models.py
+- [x] T006 Add PROVIDERS registry constant in backend/src/config/models.py
+- [x] T007 Create load_anthropic_models() function in backend/src/config/models.py
+- [x] T008 Update load_model_configuration() to merge OpenAI and Anthropic models in backend/src/config/models.py
+- [x] T009 Add validation for exactly one default model across all providers in backend/src/config/models.py
 
 **Checkpoint**: Foundation ready - provider configuration working, user story implementation can begin
 
@@ -59,13 +59,13 @@
 
 ### Implementation for User Story 1
 
-- [ ] T013 [US1] Import ChatAnthropic from langchain_anthropic in backend/src/services/llm_service.py
-- [ ] T014 [US1] Create get_llm_for_model() factory function with provider routing in backend/src/services/llm_service.py
-- [ ] T015 [US1] Update get_chat_response() to use get_llm_for_model() factory in backend/src/services/llm_service.py
-- [ ] T016 [US1] Update get_streaming_chat_response() to use get_llm_for_model() factory in backend/src/services/llm_service.py
-- [ ] T017 [US1] Import Anthropic error types (AuthenticationError, RateLimitError, etc.) in backend/src/services/llm_service.py
-- [ ] T018 [US1] Add Anthropic exception handling in error mapper in backend/src/services/llm_service.py
-- [ ] T019 [US1] Update models route to include provider field in response in backend/src/api/routes/models.py
+- [x] T013 [US1] Import ChatAnthropic from langchain_anthropic in backend/src/services/llm_service.py
+- [x] T014 [US1] Create get_llm_for_model() factory function with provider routing in backend/src/services/llm_service.py
+- [x] T015 [US1] Update get_chat_response() to use get_llm_for_model() factory in backend/src/services/llm_service.py
+- [x] T016 [US1] Update get_streaming_chat_response() to use get_llm_for_model() factory in backend/src/services/llm_service.py
+- [x] T017 [US1] Import Anthropic error types (AuthenticationError, RateLimitError, etc.) in backend/src/services/llm_service.py
+- [x] T018 [US1] Add Anthropic exception handling in error mapper in backend/src/services/llm_service.py
+- [x] T019 [US1] Update models route to include provider field in response in backend/src/api/routes/models.py
 
 **Checkpoint**: User Story 1 complete - Claude models selectable and functional via API
 
