@@ -6,6 +6,9 @@ Based on contracts/message-api.yaml and data-model.md.
 
 Feature: 003-backend-api-loopback (extended by 006-openai-langchain-chat, 009-message-streaming)
 Tasks: T030, T031, T032, T020, T021, T007 (streaming events)
+
+Feature: 010-server-side-conversations
+Tasks: T004, T005, T006 (conversation storage schemas)
 """
 
 from datetime import datetime
@@ -295,3 +298,207 @@ class ErrorEvent(BaseModel):
         """
         json_str = self.model_dump_json()
         return f"data: {json_str}\n\n"
+
+
+# ============================================================================
+# Conversation Storage Schemas (Feature: 010-server-side-conversations)
+# ============================================================================
+
+class ConversationMessage(BaseModel):
+    """
+    T004: Full message schema for conversation storage.
+
+    Extends HistoryMessage with additional metadata for persistence.
+
+    Feature: 010-server-side-conversations Task T004
+    """
+
+    id: str = Field(
+        ...,
+        description="Unique message identifier",
+        pattern=r'^msg-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$',
+        examples=["msg-12345678-1234-1234-1234-123456789abc"]
+    )
+    text: str = Field(
+        ...,
+        min_length=1,
+        max_length=10000,
+        description="Message content"
+    )
+    sender: Literal["user", "system"] = Field(
+        ...,
+        description="Message sender (user or system/AI)"
+    )
+    timestamp: str = Field(
+        ...,
+        description="When the message was created (ISO-8601)",
+        examples=["2026-01-15T10:00:00.000Z"]
+    )
+    status: Literal["pending", "sent", "error"] = Field(
+        ...,
+        description="Message delivery status"
+    )
+    model: Optional[str] = Field(
+        None,
+        description="Model ID used for system responses",
+        examples=["gpt-4", "gpt-3.5-turbo"]
+    )
+    errorMessage: Optional[str] = Field(
+        None,
+        description="Error description (only if status is error)"
+    )
+    errorType: Optional[str] = Field(
+        None,
+        description="Error category (only if status is error)"
+    )
+    errorCode: Optional[int] = Field(
+        None,
+        description="Error code (only if status is error)"
+    )
+
+
+class Conversation(BaseModel):
+    """
+    T005: Full conversation schema for storage.
+
+    Contains all conversation metadata and messages.
+
+    Feature: 010-server-side-conversations Task T005
+    """
+
+    id: str = Field(
+        ...,
+        description="Unique conversation identifier",
+        pattern=r'^conv-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$',
+        examples=["conv-12345678-1234-1234-1234-123456789abc"]
+    )
+    title: str = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description="Conversation title"
+    )
+    createdAt: str = Field(
+        ...,
+        description="When the conversation was created (ISO-8601)",
+        examples=["2026-01-15T10:00:00.000Z"]
+    )
+    updatedAt: str = Field(
+        ...,
+        description="When the conversation was last modified (ISO-8601)",
+        examples=["2026-01-15T10:05:30.000Z"]
+    )
+    messages: List[ConversationMessage] = Field(
+        default_factory=list,
+        description="Ordered list of messages (chronological)"
+    )
+
+
+class ConversationSummary(BaseModel):
+    """
+    T005: Lightweight conversation representation for listing.
+
+    Excludes full message content for performance.
+
+    Feature: 010-server-side-conversations Task T005
+    """
+
+    id: str = Field(
+        ...,
+        description="Unique conversation identifier",
+        pattern=r'^conv-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$'
+    )
+    title: str = Field(
+        ...,
+        description="Conversation title"
+    )
+    createdAt: str = Field(
+        ...,
+        description="When the conversation was created"
+    )
+    updatedAt: str = Field(
+        ...,
+        description="When the conversation was last modified"
+    )
+    messageCount: int = Field(
+        ...,
+        ge=0,
+        description="Number of messages in conversation"
+    )
+
+
+class CreateConversationRequest(BaseModel):
+    """
+    T006: Request payload for creating a new conversation.
+
+    Feature: 010-server-side-conversations Task T006
+    """
+
+    id: Optional[str] = Field(
+        None,
+        description="Optional client-generated conversation ID",
+        pattern=r'^conv-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$'
+    )
+    title: Optional[str] = Field(
+        None,
+        min_length=1,
+        max_length=100,
+        description="Optional title (defaults to 'New Conversation')"
+    )
+    messages: Optional[List[ConversationMessage]] = Field(
+        None,
+        description="Optional initial messages"
+    )
+
+
+class UpdateConversationRequest(BaseModel):
+    """
+    T006: Request payload for updating a conversation.
+
+    Feature: 010-server-side-conversations Task T006
+    """
+
+    title: Optional[str] = Field(
+        None,
+        min_length=1,
+        max_length=100,
+        description="Updated conversation title"
+    )
+    messages: Optional[List[ConversationMessage]] = Field(
+        None,
+        description="Complete messages array (replaces existing)"
+    )
+
+
+class ConversationResponse(BaseModel):
+    """
+    T006: Response payload for single conversation operations.
+
+    Feature: 010-server-side-conversations Task T006
+    """
+
+    status: Literal["success"] = Field(
+        default="success",
+        description="Response status"
+    )
+    conversation: Conversation = Field(
+        ...,
+        description="The conversation data"
+    )
+
+
+class ConversationListResponse(BaseModel):
+    """
+    T006: Response payload for listing conversations.
+
+    Feature: 010-server-side-conversations Task T006
+    """
+
+    status: Literal["success"] = Field(
+        default="success",
+        description="Response status"
+    )
+    conversations: List[ConversationSummary] = Field(
+        default_factory=list,
+        description="List of conversation summaries"
+    )

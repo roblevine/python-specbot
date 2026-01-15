@@ -12,6 +12,8 @@ Auto-generated from all feature plans. Last updated: 2026-01-12
 - Python 3.13 (backend), JavaScript ES6+ (frontend) + FastAPI 0.115.0, LangChain, langchain-openai, Vue 3.4.0, Vite 5.0.0 (006-openai-langchain-chat)
 - LocalStorage (frontend, existing), N/A for backend (stateless) (006-openai-langchain-chat)
 - Browser LocalStorage (schema v1.1.0) - no changes required for streaming (009-message-streaming)
+- Python 3.11 (backend), JavaScript ES6+ (frontend) + FastAPI 0.115.0, Pydantic 2.10.0, Vue 3.4.0, Vite 5.0.0 (010-server-side-conversations)
+- File-based JSON storage with abstraction layer for future database migration (010-server-side-conversations)
 
 ## Project Structure
 
@@ -50,6 +52,7 @@ cd backend && pytest -m unit               # Unit tests only
 : Follow standard conventions
 
 ## Recent Changes
+- 010-server-side-conversations: Added Python 3.11 (backend), JavaScript ES6+ (frontend) + FastAPI 0.115.0, Pydantic 2.10.0, Vue 3.4.0, Vite 5.0.0
 
 ### 009-message-streaming (2026-01-14) ✅ MVP COMPLETE
 **Real-time LLM response streaming with Server-Sent Events (SSE)**
@@ -59,42 +62,18 @@ cd backend && pytest -m unit               # Unit tests only
 **Backend Implementation**:
 - Server-Sent Events (SSE) endpoint: `POST /api/v1/messages` with `Accept: text/event-stream`
 - LangChain `astream()` integration for token-by-token streaming
-- Event schemas: `TokenEvent`, `CompleteEvent`, `ErrorEvent` with SSE serialization
-- Backward compatible: `Accept: application/json` still returns synchronous responses
-- Performance: First token latency <1s, supports 100+ concurrent streams
 
 **Frontend Implementation**:
-- `streamMessage()` in `apiClient.js`: fetch + ReadableStream for POST SSE (EventSource doesn't support POST)
-- Streaming state management in `useMessages.js`: `streamingMessage`, `isStreaming`, token accumulation
-- UI components: `ChatArea.vue` displays streaming messages, `MessageBubble.vue` shows animated cursor
-- Auto-scroll during streaming, completed messages saved to localStorage
 
 **Error Handling & Robustness** (Bonus improvements beyond spec):
-- ✅ 30-second timeout with user notification if no tokens received
-- ✅ Callback validation prevents silent failures (validates `onToken`, `onComplete` are functions)
-- ✅ Callback error wrapping catches and reports errors in token processing
-- ✅ Parse error reporting shows user-facing errors instead of silent console logs
-- ✅ Timeout cleanup prevents memory leaks
 
 **Testing**:
-- All 23 unit tests passing in `useMessages.test.js`
-- Integration tests verify SSE event flow
-- E2E tests cover full streaming user journey
-- Manual testing checklist: 22 scenarios validated
 
 **Key Files Modified**:
-- Backend: `src/api/routes/messages.py`, `src/services/llm_service.py`, `src/schemas.py`
-- Frontend: `src/services/apiClient.js`, `src/state/useMessages.js`, `src/components/ChatArea/ChatArea.vue`
-- Tests: `frontend/tests/unit/useMessages.test.js` (all passing)
 
 **Critical Bug Fixes**:
-- Fixed function signature mismatch in `streamMessage()` call (was passing callbacks as object, now individual params)
-- Added robust error handling to prevent "silent failure" (blinking cursor with no error message)
 
 **Remaining Work** (Optional enhancements):
-- User Story 2 (P2): Visual indicators (8 tasks) - animated cursor, status bar, input disabling
-- User Story 3 (P3): Advanced error handling (10 tasks) - partial response preservation, retry logic
-- Polish: Release notes, full test suite validation
 
 **How to Use**:
 ```javascript
