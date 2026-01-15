@@ -23,9 +23,9 @@
 
 **Purpose**: Project initialization and dependency setup
 
-- [ ] T001 Add `filelock>=3.0.0` to backend/requirements.txt for concurrent file access
-- [ ] T002 Create backend/data/ directory for conversation storage with .gitkeep
-- [ ] T003 [P] Add STORAGE_PATH environment variable to backend/.env.example
+- [x] T001 Add `filelock>=3.0.0` to backend/requirements.txt for concurrent file access
+- [x] T002 Create backend/data/ directory for conversation storage with .gitkeep
+- [x] T003 [P] Add STORAGE_PATH environment variable to backend/.env.example
 
 ---
 
@@ -35,13 +35,13 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Create Pydantic schemas for Message in backend/src/schemas.py (add to existing file)
-- [ ] T005 Create Pydantic schemas for Conversation and ConversationSummary in backend/src/schemas.py
-- [ ] T006 Create Pydantic schemas for API request/response types in backend/src/schemas.py (CreateConversationRequest, UpdateConversationRequest, ConversationResponse, ConversationListResponse)
-- [ ] T007 [P] Create abstract storage interface in backend/src/storage/base.py with ConversationStorage ABC
-- [ ] T008 Create file-based storage implementation in backend/src/storage/file_storage.py with FileStorage class
-- [ ] T009 Create storage service in backend/src/services/storage_service.py that initializes and provides storage instance
-- [ ] T010 [P] Create backend/src/storage/__init__.py with exports
+- [x] T004 Create Pydantic schemas for Message in backend/src/schemas.py (add to existing file)
+- [x] T005 Create Pydantic schemas for Conversation and ConversationSummary in backend/src/schemas.py
+- [x] T006 Create Pydantic schemas for API request/response types in backend/src/schemas.py (CreateConversationRequest, UpdateConversationRequest, ConversationResponse, ConversationListResponse)
+- [x] T007 [P] Create abstract storage interface in backend/src/storage/base.py with ConversationStorage ABC
+- [x] T008 Create file-based storage implementation in backend/src/storage/file_storage.py with FileStorage class
+- [x] T009 Create storage service in backend/src/services/storage_service.py that initializes and provides storage instance
+- [x] T010 [P] Create backend/src/storage/__init__.py with exports
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -55,14 +55,14 @@
 
 ### Implementation for User Story 1
 
-- [ ] T011 [US1] Implement GET /api/v1/conversations endpoint in backend/src/api/routes/conversations.py (list all)
-- [ ] T012 [US1] Implement GET /api/v1/conversations/{id} endpoint in backend/src/api/routes/conversations.py (get single)
-- [ ] T013 [US1] Register conversations router in backend/main.py
-- [ ] T014 [P] [US1] Add getConversations() function to frontend/src/services/apiClient.js
-- [ ] T015 [P] [US1] Add getConversation(id) function to frontend/src/services/apiClient.js
-- [ ] T016 [US1] Update useConversations.js loadFromStorage() to call server API instead of localStorage in frontend/src/state/useConversations.js
-- [ ] T017 [US1] Add loading state and error handling for conversation retrieval in frontend/src/state/useConversations.js
-- [ ] T018 [US1] Add structured logging for conversation retrieval operations in backend/src/api/routes/conversations.py
+- [x] T011 [US1] Implement GET /api/v1/conversations endpoint in backend/src/api/routes/conversations.py (list all)
+- [x] T012 [US1] Implement GET /api/v1/conversations/{id} endpoint in backend/src/api/routes/conversations.py (get single)
+- [x] T013 [US1] Register conversations router in backend/main.py
+- [x] T014 [P] [US1] Add getConversations() function to frontend/src/services/apiClient.js
+- [x] T015 [P] [US1] Add getConversation(id) function to frontend/src/services/apiClient.js
+- [x] T016 [US1] Update useConversations.js loadFromStorage() to call server API instead of localStorage in frontend/src/state/useConversations.js
+- [x] T017 [US1] Add loading state and error handling for conversation retrieval in frontend/src/state/useConversations.js
+- [x] T018 [US1] Add structured logging for conversation retrieval operations in backend/src/api/routes/conversations.py
 
 **Checkpoint**: User Story 1 complete - conversations load from server on app open
 
@@ -76,15 +76,15 @@
 
 ### Implementation for User Story 2
 
-- [ ] T019 [US2] Implement POST /api/v1/conversations endpoint in backend/src/api/routes/conversations.py (create new)
-- [ ] T020 [US2] Implement PUT /api/v1/conversations/{id} endpoint in backend/src/api/routes/conversations.py (update existing)
-- [ ] T021 [P] [US2] Add createConversation() function to frontend/src/services/apiClient.js
-- [ ] T022 [P] [US2] Add updateConversation(id, data) function to frontend/src/services/apiClient.js
-- [ ] T023 [US2] Update useConversations.js saveToStorage() to call server API in frontend/src/state/useConversations.js
-- [ ] T024 [US2] Update useConversations.js createConversation() to persist to server in frontend/src/state/useConversations.js
-- [ ] T025 [US2] Update useMessages.js to trigger save after message send/receive in frontend/src/state/useMessages.js
-- [ ] T026 [US2] Add save error handling with user feedback in frontend/src/state/useConversations.js
-- [ ] T027 [US2] Add structured logging for save operations in backend/src/api/routes/conversations.py
+- [x] T019 [US2] Implement POST /api/v1/conversations endpoint in backend/src/api/routes/conversations.py (create new)
+- [x] T020 [US2] Implement PUT /api/v1/conversations/{id} endpoint in backend/src/api/routes/conversations.py (update existing)
+- [x] T021 [P] [US2] Add createConversation() function to frontend/src/services/apiClient.js
+- [x] T022 [P] [US2] Add updateConversation(id, data) function to frontend/src/services/apiClient.js
+- [x] T023 [US2] Update useConversations.js saveToStorage() to call server API in frontend/src/state/useConversations.js
+- [x] T024 [US2] Update useConversations.js createConversation() to persist to server in frontend/src/state/useConversations.js
+- [x] T025 [US2] Update useMessages.js to trigger save after message send/receive in frontend/src/state/useMessages.js
+- [x] T026 [US2] Add save error handling with user feedback in frontend/src/state/useConversations.js
+- [x] T027 [US2] Add structured logging for save operations in backend/src/api/routes/conversations.py
 
 **Checkpoint**: User Story 2 complete - conversations persist to server automatically
 
@@ -98,11 +98,11 @@
 
 ### Implementation for User Story 3
 
-- [ ] T028 [US3] Implement DELETE /api/v1/conversations/{id} endpoint in backend/src/api/routes/conversations.py
-- [ ] T029 [P] [US3] Add deleteConversation(id) function to frontend/src/services/apiClient.js
-- [ ] T030 [US3] Update useConversations.js deleteConversation() to call server API in frontend/src/state/useConversations.js
-- [ ] T031 [US3] Add delete confirmation and error handling in frontend/src/state/useConversations.js
-- [ ] T032 [US3] Add structured logging for delete operations in backend/src/api/routes/conversations.py
+- [x] T028 [US3] Implement DELETE /api/v1/conversations/{id} endpoint in backend/src/api/routes/conversations.py
+- [x] T029 [P] [US3] Add deleteConversation(id) function to frontend/src/services/apiClient.js
+- [x] T030 [US3] Update useConversations.js deleteConversation() to call server API in frontend/src/state/useConversations.js
+- [x] T031 [US3] Add delete confirmation and error handling in frontend/src/state/useConversations.js
+- [x] T032 [US3] Add structured logging for delete operations in backend/src/api/routes/conversations.py
 
 **Checkpoint**: User Story 3 complete - conversation management works with server persistence
 
@@ -116,11 +116,11 @@
 
 ### Implementation for User Story 4
 
-- [ ] T033 [US4] Add connection error detection and retry logic in frontend/src/services/apiClient.js
-- [ ] T034 [US4] Add user-friendly error messages for server unavailability in frontend/src/state/useConversations.js
-- [ ] T035 [US4] Preserve user-entered text on send failure in frontend/src/state/useMessages.js
-- [ ] T036 [US4] Add retry button/action when operations fail in frontend/src/state/useConversations.js
-- [ ] T037 [US4] Add connection status indicator support in frontend/src/state/useAppState.js
+- [x] T033 [US4] Add connection error detection and retry logic in frontend/src/services/apiClient.js
+- [x] T034 [US4] Add user-friendly error messages for server unavailability in frontend/src/state/useConversations.js
+- [x] T035 [US4] Preserve user-entered text on send failure in frontend/src/state/useMessages.js
+- [x] T036 [US4] Add retry button/action when operations fail in frontend/src/state/useConversations.js
+- [x] T037 [US4] Add connection status indicator support in frontend/src/state/useAppState.js
 
 **Checkpoint**: User Story 4 complete - graceful error handling implemented
 
@@ -130,12 +130,12 @@
 
 **Purpose**: One-time localStorage migration and cross-cutting improvements
 
-- [ ] T038 Implement one-time localStorage migration logic in frontend/src/state/useConversations.js
-- [ ] T039 Add migration status check (server empty + localStorage has data) in frontend/src/state/useConversations.js
-- [ ] T040 Clear localStorage after successful migration in frontend/src/state/useConversations.js
-- [ ] T041 [P] Update architecture.md with storage layer documentation
-- [ ] T042 [P] Run quickstart.md validation to verify feature works end-to-end
-- [ ] T043 Code review and cleanup across all modified files
+- [x] T038 Implement one-time localStorage migration logic in frontend/src/state/useConversations.js
+- [x] T039 Add migration status check (server empty + localStorage has data) in frontend/src/state/useConversations.js
+- [x] T040 Clear localStorage after successful migration in frontend/src/state/useConversations.js
+- [x] T041 [P] Update architecture.md with storage layer documentation
+- [x] T042 [P] Run quickstart.md validation to verify feature works end-to-end
+- [x] T043 Code review and cleanup across all modified files
 
 ---
 

@@ -127,9 +127,11 @@ async def health_check():
 # T038: Register API routes
 from src.api.routes.messages import router as messages_router
 from src.api.routes.models import router as models_router
+from src.api.routes.conversations import router as conversations_router
 
 app.include_router(messages_router, prefix="/api/v1")
 app.include_router(models_router, prefix="/api/v1")
+app.include_router(conversations_router)  # Already has /api/v1 prefix
 
 
 if __name__ == "__main__":

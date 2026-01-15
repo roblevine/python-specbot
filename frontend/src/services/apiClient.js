@@ -13,6 +13,14 @@ import * as logger from '../utils/logger.js'
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 const API_TIMEOUT = 120000 // 120 seconds (2 minutes) - increased to support large LLM responses
 
+// T033: Retry configuration
+const DEFAULT_RETRY_OPTIONS = {
+  maxRetries: 3,
+  baseDelayMs: 1000,
+  maxDelayMs: 10000,
+  retryableStatusCodes: [408, 429, 500, 502, 503, 504], // Request Timeout, Too Many Requests, Server Errors
+}
+
 /**
  * Custom error class for API errors
  */
@@ -23,6 +31,56 @@ export class ApiError extends Error {
     this.statusCode = statusCode
     this.details = details
   }
+}
+
+/**
+ * T033: Retry helper with exponential backoff
+ * Wraps an async function with retry logic for transient failures
+ *
+ * @param {Function} fn - Async function to retry
+ * @param {object} options - Retry options
+ * @returns {Promise<any>} - Result of the function call
+ * @throws {ApiError} - After all retries exhausted
+ */
+async function withRetry(fn, options = {}) {
+  const opts = { ...DEFAULT_RETRY_OPTIONS, ...options }
+  let lastError = null
+
+  for (let attempt = 0; attempt <= opts.maxRetries; attempt++) {
+    try {
+      return await fn()
+    } catch (error) {
+      lastError = error
+
+      // Check if error is retryable
+      const isNetworkError = error instanceof TypeError && error.message.includes('fetch')
+      const isRetryableStatus = error.statusCode && opts.retryableStatusCodes.includes(error.statusCode)
+
+      if (!isNetworkError && !isRetryableStatus) {
+        // Non-retryable error, throw immediately
+        throw error
+      }
+
+      if (attempt < opts.maxRetries) {
+        // Calculate delay with exponential backoff + jitter
+        const delay = Math.min(
+          opts.baseDelayMs * Math.pow(2, attempt) + Math.random() * 1000,
+          opts.maxDelayMs
+        )
+
+        logger.debug(`Retry attempt ${attempt + 1}/${opts.maxRetries} after ${delay}ms`, {
+          error: error.message,
+          statusCode: error.statusCode,
+        })
+
+        await new Promise(resolve => setTimeout(resolve, delay))
+      }
+    }
+  }
+
+  // All retries exhausted
+  logger.error('All retries exhausted', { error: lastError?.message })
+  throw lastError
 }
 
 /**
@@ -435,3 +493,311 @@ export async function checkHealth() {
     throw new ApiError('Backend health check failed', null, { originalError: error })
   }
 }
+
+// ============================================================================
+// Conversation API (Feature: 010-server-side-conversations)
+// ============================================================================
+
+/**
+ * T014: Get all conversations from server
+ *
+ * Feature: 010-server-side-conversations User Story 1
+ *
+ * @returns {Promise<{status: string, conversations: Array}>}
+ * @throws {ApiError} - On network or HTTP errors
+ */
+export async function getConversations() {
+  logger.debug('Fetching conversations from server')
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/conversations`, {
+      method: 'GET',
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+
+      logger.warn('Failed to fetch conversations', {
+        status: response.status,
+        error: errorData,
+      })
+
+      throw new ApiError(
+        errorData.error || 'Failed to fetch conversations',
+        response.status,
+        errorData
+      )
+    }
+
+    const data = await response.json()
+    logger.info('Conversations fetched successfully', { count: data.conversations?.length })
+
+    return data
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      logger.error('Cannot connect to backend to fetch conversations', error)
+      throw new ApiError('Cannot connect to server', null, { network: true })
+    }
+
+    if (error instanceof ApiError) {
+      throw error
+    }
+
+    logger.error('Unexpected error fetching conversations', error)
+    throw new ApiError('Failed to fetch conversations', null, { originalError: error })
+  }
+}
+
+/**
+ * T015: Get a single conversation by ID
+ *
+ * Feature: 010-server-side-conversations User Story 1
+ *
+ * @param {string} conversationId - The conversation ID to fetch
+ * @returns {Promise<{status: string, conversation: object}>}
+ * @throws {ApiError} - On network or HTTP errors
+ */
+export async function getConversation(conversationId) {
+  logger.debug('Fetching conversation from server', { conversationId })
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/conversations/${conversationId}`, {
+      method: 'GET',
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+
+      logger.warn('Failed to fetch conversation', {
+        conversationId,
+        status: response.status,
+        error: errorData,
+      })
+
+      if (response.status === 404) {
+        throw new ApiError('Conversation not found', response.status, errorData)
+      }
+
+      throw new ApiError(
+        errorData.error || 'Failed to fetch conversation',
+        response.status,
+        errorData
+      )
+    }
+
+    const data = await response.json()
+    logger.info('Conversation fetched successfully', { conversationId })
+
+    return data
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      logger.error('Cannot connect to backend to fetch conversation', error)
+      throw new ApiError('Cannot connect to server', null, { network: true })
+    }
+
+    if (error instanceof ApiError) {
+      throw error
+    }
+
+    logger.error('Unexpected error fetching conversation', error)
+    throw new ApiError('Failed to fetch conversation', null, { originalError: error })
+  }
+}
+
+/**
+ * T021: Create a new conversation on server
+ *
+ * Feature: 010-server-side-conversations User Story 2
+ *
+ * @param {object} conversationData - Optional conversation data (id, title, messages)
+ * @returns {Promise<{status: string, conversation: object}>}
+ * @throws {ApiError} - On network or HTTP errors
+ */
+export async function createConversation(conversationData = {}) {
+  logger.debug('Creating conversation on server', { conversationData })
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/conversations`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(conversationData),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+
+      logger.warn('Failed to create conversation', {
+        status: response.status,
+        error: errorData,
+      })
+
+      throw new ApiError(
+        errorData.error || 'Failed to create conversation',
+        response.status,
+        errorData
+      )
+    }
+
+    const data = await response.json()
+    logger.info('Conversation created successfully', { conversationId: data.conversation?.id })
+
+    return data
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      logger.error('Cannot connect to backend to create conversation', error)
+      throw new ApiError('Cannot connect to server', null, { network: true })
+    }
+
+    if (error instanceof ApiError) {
+      throw error
+    }
+
+    logger.error('Unexpected error creating conversation', error)
+    throw new ApiError('Failed to create conversation', null, { originalError: error })
+  }
+}
+
+/**
+ * T022: Update a conversation on server
+ *
+ * Feature: 010-server-side-conversations User Story 2
+ *
+ * @param {string} conversationId - The conversation ID to update
+ * @param {object} updateData - Data to update (title, messages)
+ * @returns {Promise<{status: string, conversation: object}>}
+ * @throws {ApiError} - On network or HTTP errors
+ */
+export async function updateConversation(conversationId, updateData) {
+  logger.debug('Updating conversation on server', { conversationId, updateData })
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/conversations/${conversationId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updateData),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+
+      logger.warn('Failed to update conversation', {
+        conversationId,
+        status: response.status,
+        error: errorData,
+      })
+
+      if (response.status === 404) {
+        throw new ApiError('Conversation not found', response.status, errorData)
+      }
+
+      throw new ApiError(
+        errorData.error || 'Failed to update conversation',
+        response.status,
+        errorData
+      )
+    }
+
+    const data = await response.json()
+    logger.info('Conversation updated successfully', { conversationId })
+
+    return data
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      logger.error('Cannot connect to backend to update conversation', error)
+      throw new ApiError('Cannot connect to server', null, { network: true })
+    }
+
+    if (error instanceof ApiError) {
+      throw error
+    }
+
+    logger.error('Unexpected error updating conversation', error)
+    throw new ApiError('Failed to update conversation', null, { originalError: error })
+  }
+}
+
+/**
+ * T029: Delete a conversation from server
+ *
+ * Feature: 010-server-side-conversations User Story 3
+ *
+ * @param {string} conversationId - The conversation ID to delete
+ * @returns {Promise<void>}
+ * @throws {ApiError} - On network or HTTP errors
+ */
+export async function deleteConversation(conversationId) {
+  logger.debug('Deleting conversation from server', { conversationId })
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/conversations/${conversationId}`, {
+      method: 'DELETE',
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+
+      logger.warn('Failed to delete conversation', {
+        conversationId,
+        status: response.status,
+        error: errorData,
+      })
+
+      if (response.status === 404) {
+        throw new ApiError('Conversation not found', response.status, errorData)
+      }
+
+      throw new ApiError(
+        errorData.error || 'Failed to delete conversation',
+        response.status,
+        errorData
+      )
+    }
+
+    logger.info('Conversation deleted successfully', { conversationId })
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      logger.error('Cannot connect to backend to delete conversation', error)
+      throw new ApiError('Cannot connect to server', null, { network: true })
+    }
+
+    if (error instanceof ApiError) {
+      throw error
+    }
+
+    logger.error('Unexpected error deleting conversation', error)
+    throw new ApiError('Failed to delete conversation', null, { originalError: error })
+  }
+}
+
+/**
+ * T033: Check server connectivity
+ * Performs a quick health check to determine if server is reachable
+ *
+ * @returns {Promise<boolean>} - True if server is reachable
+ */
+export async function isServerReachable() {
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
+
+    const response = await fetch(`${API_BASE_URL}/health`, {
+      method: 'GET',
+      signal: controller.signal,
+    })
+
+    clearTimeout(timeoutId)
+    return response.ok
+  } catch (error) {
+    return false
+  }
+}
+
+/**
+ * T033: Export withRetry for use by consumers
+ * Allows wrapping any async function with retry logic
+ */
+export { withRetry }

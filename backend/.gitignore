@@ -36,3 +36,8 @@ coverage.xml
 # OS
 .DS_Store
 Thumbs.db
+
+# Conversation storage (keep .gitkeep)
+data/*.json
+data/*.json.lock
+!data/.gitkeep

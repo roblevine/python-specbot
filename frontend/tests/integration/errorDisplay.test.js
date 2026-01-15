@@ -7,6 +7,23 @@ import { ApiError } from '../../src/services/apiClient.js'
 vi.mock('../../src/services/apiClient.js', () => ({
   sendMessage: vi.fn(),
   streamMessage: vi.fn(),
+  // Conversation API mocks for server-side storage
+  getConversations: vi.fn().mockResolvedValue({ conversations: [] }),
+  getConversation: vi.fn().mockResolvedValue({ conversation: null }),
+  createConversation: vi.fn().mockImplementation((data) =>
+    Promise.resolve({
+      conversation: {
+        ...data,
+        id: data?.id || 'conv-mock-123',
+        title: data?.title || 'New Conversation',
+        createdAt: data?.createdAt || new Date().toISOString(),
+        updatedAt: data?.updatedAt || new Date().toISOString(),
+        messages: data?.messages || []
+      }
+    })
+  ),
+  updateConversation: vi.fn().mockResolvedValue({ conversation: {} }),
+  deleteConversation: vi.fn().mockResolvedValue(undefined),
   ApiError: class ApiError extends Error {
     constructor(message, statusCode = null, details = null) {
       super(message)
@@ -37,7 +54,7 @@ describe('Error Display Integration', () => {
       return vi.fn()
     })
 
-    createConversation()
+    await createConversation()
     await sendUserMessage('Test message')
     await new Promise(resolve => setTimeout(resolve, 50))
 
@@ -62,7 +79,7 @@ describe('Error Display Integration', () => {
       return vi.fn()
     })
 
-    createConversation()
+    await createConversation()
     await sendUserMessage('Test message')
     await new Promise(resolve => setTimeout(resolve, 50))
 
@@ -87,7 +104,7 @@ describe('Error Display Integration', () => {
       return vi.fn()
     })
 
-    createConversation()
+    await createConversation()
     await sendUserMessage('Test message')
     await new Promise(resolve => setTimeout(resolve, 50))
 
@@ -112,7 +129,7 @@ describe('Error Display Integration', () => {
       return vi.fn()
     })
 
-    createConversation()
+    await createConversation()
     await sendUserMessage('Test message')
     await new Promise(resolve => setTimeout(resolve, 50))
 

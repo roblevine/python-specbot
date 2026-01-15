@@ -11,6 +11,11 @@ const isProcessing = ref(false)
 const status = ref('Ready')
 const statusType = ref('ready') // 'ready', 'processing', 'error'
 
+// T037: Connection status state
+const isConnected = ref(true) // Optimistically assume connected
+const connectionStatus = ref('connected') // 'connected', 'disconnected', 'reconnecting'
+const lastConnectionCheck = ref(null)
+
 export function useAppState() {
   /**
    * Sets the processing state
@@ -59,13 +64,58 @@ export function useAppState() {
     setStatus('Ready', 'ready')
   }
 
+  /**
+   * T037: Set connection status
+   * @param {boolean} connected - Whether connected to server
+   */
+  function setConnected(connected) {
+    isConnected.value = connected
+    connectionStatus.value = connected ? 'connected' : 'disconnected'
+    lastConnectionCheck.value = new Date().toISOString()
+
+    if (!connected) {
+      logger.warn('Connection to server lost')
+    } else {
+      logger.info('Connection to server restored')
+    }
+  }
+
+  /**
+   * T037: Set reconnecting status
+   */
+  function setReconnecting() {
+    connectionStatus.value = 'reconnecting'
+    logger.info('Attempting to reconnect to server')
+  }
+
+  /**
+   * T037: Mark connection as failed after network error
+   * @param {Error} error - The error that caused the connection failure
+   */
+  function handleConnectionError(error) {
+    const isNetworkError = error?.details?.network === true ||
+      (error instanceof TypeError && error.message.includes('fetch'))
+
+    if (isNetworkError) {
+      setConnected(false)
+    }
+  }
+
   return {
     isProcessing: computed(() => isProcessing.value),
     status: computed(() => status.value),
     statusType: computed(() => statusType.value),
+    // T037: Connection status
+    isConnected: computed(() => isConnected.value),
+    connectionStatus: computed(() => connectionStatus.value),
+    lastConnectionCheck: computed(() => lastConnectionCheck.value),
     setProcessing,
     setStatus,
     setError,
     clearStatus,
+    // T037: Connection functions
+    setConnected,
+    setReconnecting,
+    handleConnectionError,
   }
 }
