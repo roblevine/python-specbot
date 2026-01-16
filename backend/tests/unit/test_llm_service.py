@@ -874,3 +874,162 @@ async def test_stream_ai_response_no_debug_info_when_debug_disabled():
             # CRITICAL: In non-DEBUG mode, debug_info must NOT be present
             assert events[0].debug_info is None, \
                 "debug_info must NOT be present when DEBUG=false (security)"
+
+
+# ============================================================================
+# Anthropic Exception Handling Tests (Bug Fix: Uncaught Exceptions)
+# ============================================================================
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_stream_ai_response_handles_anthropic_not_found_error():
+    """
+    BUG FIX TEST: Verify Anthropic NotFoundError is properly caught.
+
+    This test would have caught the bug where Anthropic NotFoundError
+    (e.g., invalid model ID) was not being caught and fell through
+    to the generic Exception handler with "AI service error occurred".
+
+    The bug manifests when:
+    1. User selects an Anthropic model
+    2. Model ID is valid in config but not recognized by Anthropic API
+    3. Anthropic API returns 404 NotFoundError
+    4. Error is NOT caught specifically, falls to generic handler
+    5. User sees unhelpful "AI service error occurred" message
+
+    EXPECTED: NotFoundError should be caught and return "LLM_ERROR" code
+    with a message like "Model not found" or similar.
+    """
+    from src.services.llm_service import stream_ai_response
+    from src.schemas import ErrorEvent
+    from anthropic import NotFoundError
+
+    # Use clear=True to remove any inherited env vars (like OPENAI_MODELS)
+    with patch.dict('os.environ', {
+        'ANTHROPIC_API_KEY': 'test-key',
+        'ANTHROPIC_MODELS': '[{"id": "claude-invalid-model", "name": "Invalid Claude", "description": "Test", "provider": "anthropic", "default": true}]',
+        'DEBUG': 'true'
+    }, clear=True):
+        with patch('src.services.llm_service.ChatAnthropic') as mock_chat:
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+
+            # Mock astream to raise NotFoundError (model not found)
+            async def mock_astream(messages):
+                mock_response = Mock()
+                mock_response.status_code = 404
+                raise NotFoundError(
+                    "Error code: 404 - model_not_found",
+                    response=mock_response,
+                    body={"error": {"type": "not_found_error", "message": "model: claude-invalid-model"}}
+                )
+                yield
+
+            mock_llm.astream = mock_astream
+
+            events = []
+            async for event in stream_ai_response("Test", model="claude-invalid-model"):
+                events.append(event)
+
+            # Should yield exactly one ErrorEvent
+            assert len(events) == 1
+            assert isinstance(events[0], ErrorEvent)
+
+            # BUG: Without fix, this would be "UNKNOWN" with "AI service error occurred"
+            # EXPECTED: Should be "LLM_ERROR" with meaningful message
+            assert events[0].code == "LLM_ERROR", \
+                f"NotFoundError should map to LLM_ERROR code, got {events[0].code}"
+            assert "not found" in events[0].error.lower() or "model" in events[0].error.lower(), \
+                f"Error message should indicate model/resource not found, got: {events[0].error}"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_stream_ai_response_handles_anthropic_permission_denied_error():
+    """
+    BUG FIX TEST: Verify Anthropic PermissionDeniedError is properly caught.
+
+    This test ensures PermissionDeniedError (403) is mapped to AUTH_ERROR
+    rather than falling through to generic handler.
+    """
+    from src.services.llm_service import stream_ai_response
+    from src.schemas import ErrorEvent
+    from anthropic import PermissionDeniedError
+
+    # Use clear=True to remove any inherited env vars
+    with patch.dict('os.environ', {
+        'ANTHROPIC_API_KEY': 'test-key',
+        'ANTHROPIC_MODELS': '[{"id": "claude-3-5-sonnet-20241022", "name": "Claude", "description": "Test", "provider": "anthropic", "default": true}]'
+    }, clear=True):
+        with patch('src.services.llm_service.ChatAnthropic') as mock_chat:
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+
+            async def mock_astream(messages):
+                mock_response = Mock()
+                mock_response.status_code = 403
+                raise PermissionDeniedError(
+                    "Error code: 403 - permission_denied",
+                    response=mock_response,
+                    body={"error": {"type": "permission_error", "message": "Access denied"}}
+                )
+                yield
+
+            mock_llm.astream = mock_astream
+
+            events = []
+            async for event in stream_ai_response("Test", model="claude-3-5-sonnet-20241022"):
+                events.append(event)
+
+            assert len(events) == 1
+            assert isinstance(events[0], ErrorEvent)
+
+            # PermissionDeniedError should map to AUTH_ERROR (permission/auth related)
+            assert events[0].code == "AUTH_ERROR", \
+                f"PermissionDeniedError should map to AUTH_ERROR, got {events[0].code}"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_stream_ai_response_handles_anthropic_internal_server_error():
+    """
+    BUG FIX TEST: Verify Anthropic InternalServerError is properly caught.
+
+    This test ensures InternalServerError (500) is mapped to LLM_ERROR
+    rather than falling through to generic handler.
+    """
+    from src.services.llm_service import stream_ai_response
+    from src.schemas import ErrorEvent
+    from anthropic import InternalServerError
+
+    # Use clear=True to remove any inherited env vars
+    with patch.dict('os.environ', {
+        'ANTHROPIC_API_KEY': 'test-key',
+        'ANTHROPIC_MODELS': '[{"id": "claude-3-5-sonnet-20241022", "name": "Claude", "description": "Test", "provider": "anthropic", "default": true}]'
+    }, clear=True):
+        with patch('src.services.llm_service.ChatAnthropic') as mock_chat:
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+
+            async def mock_astream(messages):
+                mock_response = Mock()
+                mock_response.status_code = 500
+                raise InternalServerError(
+                    "Error code: 500 - internal_error",
+                    response=mock_response,
+                    body={"error": {"type": "internal_error", "message": "Internal server error"}}
+                )
+                yield
+
+            mock_llm.astream = mock_astream
+
+            events = []
+            async for event in stream_ai_response("Test", model="claude-3-5-sonnet-20241022"):
+                events.append(event)
+
+            assert len(events) == 1
+            assert isinstance(events[0], ErrorEvent)
+
+            # InternalServerError should map to LLM_ERROR (service problem)
+            assert events[0].code == "LLM_ERROR", \
+                f"InternalServerError should map to LLM_ERROR, got {events[0].code}"

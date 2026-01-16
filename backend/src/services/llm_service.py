@@ -24,12 +24,17 @@ from openai import (
     APITimeoutError as OpenAIAPITimeoutError
 )
 # T017: Import Anthropic error types
+# BUG FIX: Added NotFoundError, PermissionDeniedError, InternalServerError
+# which were previously uncaught and caused "AI service error occurred" generic errors
 from anthropic import (
     AuthenticationError as AnthropicAuthenticationError,
     RateLimitError as AnthropicRateLimitError,
     APIConnectionError as AnthropicAPIConnectionError,
     BadRequestError as AnthropicBadRequestError,
-    APITimeoutError as AnthropicAPITimeoutError
+    APITimeoutError as AnthropicAPITimeoutError,
+    NotFoundError as AnthropicNotFoundError,
+    PermissionDeniedError as AnthropicPermissionDeniedError,
+    InternalServerError as AnthropicInternalServerError
 )
 from src.utils.logger import get_logger
 from src.config.models import (
@@ -347,6 +352,28 @@ async def get_ai_response(
         # Re-raise LLM service errors as-is
         raise
 
+    # BUG FIX: Add handlers for previously uncaught Anthropic exceptions
+    except AnthropicPermissionDeniedError as e:
+        logger.error(f"Anthropic permission denied: {type(e).__name__}")
+        raise LLMAuthenticationError(
+            message="AI service access denied",
+            original_error=e
+        )
+
+    except AnthropicNotFoundError as e:
+        logger.error(f"Anthropic resource not found: {type(e).__name__}: {str(e)}")
+        raise LLMServiceError(
+            message="Model or resource not found",
+            original_error=e
+        )
+
+    except AnthropicInternalServerError as e:
+        logger.error(f"Anthropic internal server error: {type(e).__name__}: {str(e)}")
+        raise LLMServiceError(
+            message="AI service temporarily unavailable",
+            original_error=e
+        )
+
     except Exception as e:
         logger.error(f"Unexpected LLM error: {type(e).__name__}: {str(e)}")
         raise LLMServiceError("AI service error occurred", original_error=e)
@@ -493,6 +520,37 @@ async def stream_ai_response(
             error=e.message,
             code="AUTH_ERROR",
             debug_info=_build_debug_info(e, "LLMAuthenticationError")
+        )
+
+    # BUG FIX: Add handlers for previously uncaught Anthropic exceptions
+    except AnthropicPermissionDeniedError as e:
+        logger.error(f"Anthropic permission denied during streaming: {type(e).__name__}")
+        if _is_debug_mode():
+            logger.warning("DEBUG mode enabled - including detailed error info in streaming response")
+        yield ErrorEvent(
+            error="AI service access denied",
+            code="AUTH_ERROR",
+            debug_info=_build_debug_info(e, type(e).__name__)
+        )
+
+    except AnthropicNotFoundError as e:
+        logger.error(f"Anthropic resource not found during streaming: {type(e).__name__}: {str(e)}")
+        if _is_debug_mode():
+            logger.warning("DEBUG mode enabled - including detailed error info in streaming response")
+        yield ErrorEvent(
+            error="Model or resource not found",
+            code="LLM_ERROR",
+            debug_info=_build_debug_info(e, type(e).__name__)
+        )
+
+    except AnthropicInternalServerError as e:
+        logger.error(f"Anthropic internal server error during streaming: {type(e).__name__}: {str(e)}")
+        if _is_debug_mode():
+            logger.warning("DEBUG mode enabled - including detailed error info in streaming response")
+        yield ErrorEvent(
+            error="AI service temporarily unavailable",
+            code="LLM_ERROR",
+            debug_info=_build_debug_info(e, type(e).__name__)
         )
 
     except Exception as e:
