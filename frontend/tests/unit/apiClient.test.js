@@ -1,4 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+
+// Mock VITE_API_BASE_URL before importing apiClient to ensure consistent test behavior
+// This prevents tests from failing when .env file sets a base URL
+vi.stubEnv('VITE_API_BASE_URL', '')
+
 import { ApiError, streamMessage } from '../../src/services/apiClient.js'
 
 describe('ApiError', () => {
