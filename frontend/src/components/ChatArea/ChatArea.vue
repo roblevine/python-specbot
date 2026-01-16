@@ -99,6 +99,10 @@ export default {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
+  max-width: var(--chat-max-width);
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 var(--spacing-md);
 }
 
 .empty-state {

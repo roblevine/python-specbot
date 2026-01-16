@@ -7,27 +7,28 @@
 
 /* CSS Variables */
 :root {
-  /* Grey palette (UI Redesign 007) */
-  --color-grey-bg: #f5f5f7;
-  --color-grey-surface: #ffffff;
-  --color-grey-border: #d1d1d6;
-  --color-grey-text-primary: #1d1d1f;
-  --color-grey-text-secondary: #86868b;
+  /* Warm palette (UI Redesign 013) */
+  --color-warm-cream: #FFDBBB;
+  --color-warm-tan: #CCBEB1;
+  --color-warm-brown: #997E67;
+  --color-warm-dark: #664930;
 
-  /* Pastel blue accents (UI Redesign 007) */
-  --color-blue-primary: #a8c9e8;
-  --color-blue-hover: #8fb3d9;
-  --color-blue-light: #d4e4f5;
+  /* Layout constraints (UI Redesign 013) */
+  --chat-max-width: 768px;
+  --collapsed-sidebar-margin: 12px;
 
-  /* Legacy colors (kept for compatibility) */
-  --color-primary: var(--color-blue-primary);
-  --color-primary-hover: var(--color-blue-hover);
-  --color-secondary: var(--color-grey-text-secondary);
-  --color-background: var(--color-grey-bg);
-  --color-surface: var(--color-grey-surface);
-  --color-border: var(--color-grey-border);
-  --color-text: var(--color-grey-text-primary);
-  --color-text-secondary: var(--color-grey-text-secondary);
+  /* Font sizes (UI Redesign 013) */
+  --font-size-xs: 0.75rem;
+
+  /* Semantic colors (UI Redesign 013 - warm palette) */
+  --color-primary: var(--color-warm-brown);
+  --color-primary-hover: var(--color-warm-dark);
+  --color-secondary: var(--color-warm-dark);
+  --color-background: var(--color-warm-cream);
+  --color-surface: var(--color-warm-cream);
+  --color-border: var(--color-warm-brown);
+  --color-text: #1d1d1f;
+  --color-text-secondary: #664930;
 
   /* Status colors (unchanged) */
   --color-error: #ef4444;
@@ -36,15 +37,15 @@
   --color-success: #22c55e;
   --color-warning: #f59e0b;
 
-  /* User message colors (UI Redesign 007) */
-  --color-user-message-bg: var(--color-blue-primary);
-  --color-user-message-text: var(--color-grey-text-primary);
+  /* User message colors (UI Redesign 013 - warm palette) */
+  --color-user-message-bg: var(--color-warm-tan);
+  --color-user-message-text: #1d1d1f;
 
-  /* System message colors (UI Redesign 007) */
-  --color-system-message-bg: var(--color-grey-surface);
-  --color-system-message-text: var(--color-grey-text-primary);
-  --color-assistant-message-bg: var(--color-grey-surface);
-  --color-assistant-message-text: var(--color-grey-text-primary);
+  /* System message colors (UI Redesign 013 - no bubble) */
+  --color-system-message-bg: transparent;
+  --color-system-message-text: #1d1d1f;
+  --color-assistant-message-bg: transparent;
+  --color-assistant-message-text: #1d1d1f;
 
   /* Spacing */
   --spacing-xs: 0.25rem;

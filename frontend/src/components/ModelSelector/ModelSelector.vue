@@ -87,37 +87,37 @@ onMounted(async () => {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem;
-  background-color: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .model-selector__label {
-  font-size: 0.9rem;
+  font-size: var(--font-size-xs);
   font-weight: 500;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .model-selector__select {
   padding: 0.375rem 0.75rem;
-  font-size: 0.9rem;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
+  font-size: var(--font-size-xs);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-sm);
+  background-color: var(--color-surface);
+  color: var(--color-text);
   cursor: pointer;
   transition: border-color 0.2s;
-  min-width: 300px;
-  max-width: 500px;
+  min-width: 200px;
+  max-width: 400px;
 }
 
 .model-selector__select:hover:not(:disabled) {
-  border-color: var(--primary-color);
+  border-color: var(--color-primary);
 }
 
 .model-selector__select:focus {
   outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px var(--primary-shadow);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(153, 126, 103, 0.25);
 }
 
 .model-selector__select:disabled {
@@ -131,19 +131,7 @@ onMounted(async () => {
 }
 
 .model-selector__error {
-  font-size: 0.85rem;
-  color: var(--error-color);
-}
-
-/* Support for light/dark mode variables */
-:root {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f5f5f5;
-  --text-primary: #333333;
-  --text-secondary: #666666;
-  --border-color: #ddd;
-  --primary-color: #007bff;
-  --primary-shadow: rgba(0, 123, 255, 0.25);
-  --error-color: #dc3545;
+  font-size: var(--font-size-xs);
+  color: var(--color-error);
 }
 </style>

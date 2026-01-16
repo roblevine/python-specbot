@@ -24,9 +24,9 @@
 
 **Purpose**: Verify current state and prepare for styling changes
 
-- [ ] T001 Verify frontend dev server runs without errors: `cd frontend && npm run dev`
-- [ ] T002 [P] Review current color variables in frontend/public/styles/global.css
-- [ ] T003 [P] Take screenshots of current UI for before/after comparison
+- [x] T001 Verify frontend dev server runs without errors: `cd frontend && npm run dev`
+- [x] T002 [P] Review current color variables in frontend/public/styles/global.css
+- [x] T003 [P] Take screenshots of current UI for before/after comparison
 
 **Checkpoint**: Development environment ready, baseline established
 
@@ -38,10 +38,10 @@
 
 **⚠️ CRITICAL**: User stories 1-6 depend on these variables being defined first
 
-- [ ] T004 Add warm palette color variables to :root in frontend/public/styles/global.css
-- [ ] T005 Add --chat-max-width: 768px variable in frontend/public/styles/global.css
-- [ ] T006 Add --font-size-xs: 0.75rem variable in frontend/public/styles/global.css
-- [ ] T007 Add --collapsed-sidebar-margin: 12px variable in frontend/public/styles/global.css
+- [x] T004 Add warm palette color variables to :root in frontend/public/styles/global.css
+- [x] T005 Add --chat-max-width: 768px variable in frontend/public/styles/global.css
+- [x] T006 Add --font-size-xs: 0.75rem variable in frontend/public/styles/global.css
+- [x] T007 Add --collapsed-sidebar-margin: 12px variable in frontend/public/styles/global.css
 
 **Checkpoint**: All new CSS variables defined - user story implementation can begin
 
@@ -55,14 +55,14 @@
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Update --color-background to var(--color-warm-cream) in frontend/public/styles/global.css
-- [ ] T009 [US1] Update --color-surface to var(--color-warm-cream) in frontend/public/styles/global.css
-- [ ] T010 [US1] Update --color-border to var(--color-warm-brown) in frontend/public/styles/global.css
-- [ ] T011 [US1] Update --color-text-secondary to #664930 in frontend/public/styles/global.css
-- [ ] T012 [US1] Update --color-user-message-bg to var(--color-warm-tan) in frontend/public/styles/global.css
-- [ ] T013 [US1] Update sidebar background to use --color-warm-brown in frontend/src/components/HistoryBar/HistoryBar.vue
-- [ ] T014 [US1] Verify text contrast meets WCAG AA (4.5:1) for all color combinations
-- [ ] T015 [US1] Remove legacy --color-grey-* and --color-blue-* variables in frontend/public/styles/global.css
+- [x] T008 [US1] Update --color-background to var(--color-warm-cream) in frontend/public/styles/global.css
+- [x] T009 [US1] Update --color-surface to var(--color-warm-cream) in frontend/public/styles/global.css
+- [x] T010 [US1] Update --color-border to var(--color-warm-brown) in frontend/public/styles/global.css
+- [x] T011 [US1] Update --color-text-secondary to #664930 in frontend/public/styles/global.css
+- [x] T012 [US1] Update --color-user-message-bg to var(--color-warm-tan) in frontend/public/styles/global.css
+- [x] T013 [US1] Update sidebar background to use --color-warm-brown in frontend/src/components/HistoryBar/HistoryBar.vue
+- [x] T014 [US1] Verify text contrast meets WCAG AA (4.5:1) for all color combinations
+- [x] T015 [US1] Remove legacy --color-grey-* and --color-blue-* variables in frontend/public/styles/global.css
 
 **Checkpoint**: Application displays warm color palette. Verify:
 - Cream background (#FFDBBB)
@@ -79,13 +79,13 @@
 
 ### Implementation for User Story 2
 
-- [ ] T016 [US2] Update --color-system-message-bg to transparent in frontend/public/styles/global.css
-- [ ] T017 [US2] Remove border-radius from system message styling in frontend/src/components/ChatArea/MessageBubble.vue
-- [ ] T018 [US2] Remove padding/margin bubble styling from system messages in frontend/src/components/ChatArea/MessageBubble.vue
-- [ ] T019 [US2] Set system message width to 100% (full container) in frontend/src/components/ChatArea/MessageBubble.vue
-- [ ] T020 [US2] Ensure user messages remain right-aligned (flex-end) in frontend/src/components/ChatArea/MessageBubble.vue
-- [ ] T021 [US2] Set user message max-width to 80% in frontend/src/components/ChatArea/MessageBubble.vue
-- [ ] T022 [US2] Verify user message uses tan bubble background (--color-warm-tan) in frontend/src/components/ChatArea/MessageBubble.vue
+- [x] T016 [US2] Update --color-system-message-bg to transparent in frontend/public/styles/global.css
+- [x] T017 [US2] Remove border-radius from system message styling in frontend/src/components/ChatArea/MessageBubble.vue
+- [x] T018 [US2] Remove padding/margin bubble styling from system messages in frontend/src/components/ChatArea/MessageBubble.vue
+- [x] T019 [US2] Set system message width to 100% (full container) in frontend/src/components/ChatArea/MessageBubble.vue
+- [x] T020 [US2] Ensure user messages remain right-aligned (flex-end) in frontend/src/components/ChatArea/MessageBubble.vue
+- [x] T021 [US2] Set user message max-width to 80% in frontend/src/components/ChatArea/MessageBubble.vue
+- [x] T022 [US2] Verify user message uses tan bubble background (--color-warm-tan) in frontend/src/components/ChatArea/MessageBubble.vue
 
 **Checkpoint**: Message layout complete. Verify:
 - System messages flow as main content (no bubbles)
@@ -102,10 +102,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T023 [US3] Add max-width and auto margins to messages container in frontend/src/components/ChatArea/ChatArea.vue
-- [ ] T024 [US3] Add max-width and auto margins to input container in frontend/src/components/InputArea/InputArea.vue
-- [ ] T025 [US3] Add horizontal padding for narrow viewport graceful degradation in frontend/src/components/ChatArea/ChatArea.vue
-- [ ] T026 [US3] Verify responsive behavior on narrow screens (<768px) in frontend/src/components/ChatArea/ChatArea.vue
+- [x] T023 [US3] Add max-width and auto margins to messages container in frontend/src/components/ChatArea/ChatArea.vue
+- [x] T024 [US3] Add max-width and auto margins to input container in frontend/src/components/InputArea/InputArea.vue
+- [x] T025 [US3] Add horizontal padding for narrow viewport graceful degradation in frontend/src/components/ChatArea/ChatArea.vue
+- [x] T026 [US3] Verify responsive behavior on narrow screens (<768px) in frontend/src/components/ChatArea/ChatArea.vue
 
 **Checkpoint**: Width constraints working. Verify:
 - Chat content centered on wide screens
@@ -123,10 +123,10 @@
 
 ### Implementation for User Story 4
 
-- [ ] T027 [P] [US4] Update timestamp styling to use --font-size-xs in frontend/src/components/ChatArea/MessageBubble.vue
-- [ ] T028 [P] [US4] Update model indicator styling to use --font-size-xs in frontend/src/components/ModelSelector/ModelSelector.vue
-- [ ] T029 [P] [US4] Update StatusBar metadata to use --font-size-xs in frontend/src/components/StatusBar/StatusBar.vue
-- [ ] T030 [US4] Apply --color-text-secondary to all metadata elements for reduced prominence
+- [x] T027 [P] [US4] Update timestamp styling to use --font-size-xs in frontend/src/components/ChatArea/MessageBubble.vue
+- [x] T028 [P] [US4] Update model indicator styling to use --font-size-xs in frontend/src/components/ModelSelector/ModelSelector.vue
+- [x] T029 [P] [US4] Update StatusBar metadata to use --font-size-xs in frontend/src/components/StatusBar/StatusBar.vue
+- [x] T030 [US4] Apply --color-text-secondary to all metadata elements for reduced prominence
 
 **Checkpoint**: Metadata typography refined. Verify:
 - Timestamps smaller than message text
@@ -143,12 +143,12 @@
 
 ### Implementation for User Story 5
 
-- [ ] T031 [P] [US5] Update New Conversation button to ghost style in frontend/src/components/HistoryBar/HistoryBar.vue
-- [ ] T032 [P] [US5] Update collapse/expand button to ghost style in frontend/src/components/HistoryBar/HistoryBar.vue
-- [ ] T033 [P] [US5] Update send button to ghost style in frontend/src/components/InputArea/InputArea.vue
-- [ ] T034 [US5] Ensure all buttons have transparent background with subtle border
-- [ ] T035 [US5] Reduce hover effect intensity (subtle background change)
-- [ ] T036 [US5] Verify focus indicators meet accessibility requirements (visible outline)
+- [x] T031 [P] [US5] Update New Conversation button to ghost style in frontend/src/components/HistoryBar/HistoryBar.vue
+- [x] T032 [P] [US5] Update collapse/expand button to ghost style in frontend/src/components/HistoryBar/HistoryBar.vue
+- [x] T033 [P] [US5] Update send button to ghost style in frontend/src/components/InputArea/InputArea.vue
+- [x] T034 [US5] Ensure all buttons have transparent background with subtle border
+- [x] T035 [US5] Reduce hover effect intensity (subtle background change)
+- [x] T036 [US5] Verify focus indicators meet accessibility requirements (visible outline)
 
 **Checkpoint**: Button styling complete. Verify:
 - Buttons appear modest/subtle
@@ -165,10 +165,10 @@
 
 ### Implementation for User Story 6
 
-- [ ] T037 [US6] Add right padding/margin to collapsed sidebar expand button in frontend/src/components/HistoryBar/HistoryBar.vue
-- [ ] T038 [US6] Use --collapsed-sidebar-margin (12px) for consistent spacing
-- [ ] T039 [US6] Verify clickable area remains reasonable (min 32px tap target)
-- [ ] T040 [US6] Test collapsed/expanded transition animation for smooth behavior
+- [x] T037 [US6] Add right padding/margin to collapsed sidebar expand button in frontend/src/components/HistoryBar/HistoryBar.vue
+- [x] T038 [US6] Use --collapsed-sidebar-margin (12px) for consistent spacing
+- [x] T039 [US6] Verify clickable area remains reasonable (min 32px tap target)
+- [x] T040 [US6] Test collapsed/expanded transition animation for smooth behavior
 
 **Checkpoint**: Sidebar margin fixed. Verify:
 - Expand button has visible margin from edge
@@ -181,14 +181,14 @@
 
 **Purpose**: Final cleanup and validation
 
-- [ ] T041 [P] Run frontend test suite: `cd frontend && npm test`
-- [ ] T042 [P] Run E2E visual tests if available: `cd frontend && npm run test:e2e`
-- [ ] T043 Verify all WCAG AA contrast requirements met (use browser dev tools)
-- [ ] T044 Test in multiple browsers (Chrome, Firefox, Safari, Edge)
-- [ ] T045 Take after screenshots for comparison with T003 baseline
-- [ ] T046 Verify streaming indicator displays correctly in new layout
-- [ ] T047 Verify error messages display correctly with new color scheme
-- [ ] T048 Final code cleanup - remove any unused CSS
+- [x] T041 [P] Run frontend test suite: `cd frontend && npm test`
+- [x] T042 [P] Run E2E visual tests if available: `cd frontend && npm run test:e2e`
+- [x] T043 Verify all WCAG AA contrast requirements met (use browser dev tools)
+- [x] T044 Test in multiple browsers (Chrome, Firefox, Safari, Edge)
+- [x] T045 Take after screenshots for comparison with T003 baseline
+- [x] T046 Verify streaming indicator displays correctly in new layout
+- [x] T047 Verify error messages display correctly with new color scheme
+- [x] T048 Final code cleanup - remove any unused CSS
 
 ---
 

@@ -114,14 +114,21 @@ export default {
   display: flex;
   flex-direction: column;
   width: var(--history-bar-width);
-  background-color: var(--color-surface);
-  border-right: 1px solid var(--color-border);
+  background-color: var(--color-warm-brown);
+  border-right: 1px solid var(--color-warm-dark);
   transition: width 300ms ease-in-out;
   overflow: hidden;
+  color: #1d1d1f;
 }
 
 .history-bar.collapsed {
   width: 48px;
+}
+
+/* T037-T038: Add margin to collapsed sidebar expand button */
+.history-bar.collapsed .history-header {
+  justify-content: center;
+  padding: var(--spacing-md) var(--collapsed-sidebar-margin);
 }
 
 /* Respect reduced motion preference */
@@ -137,7 +144,7 @@ export default {
   justify-content: space-between;
   padding: var(--spacing-md);
   padding-bottom: var(--spacing-sm);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-warm-dark);
   min-height: 56px;
 }
 
@@ -151,8 +158,8 @@ export default {
 
 .collapse-button {
   padding: var(--spacing-xs);
-  background: var(--color-grey-surface);
-  border: 1px solid var(--color-grey-border);
+  background: transparent;
+  border: 1px solid var(--color-warm-dark);
   border-radius: var(--border-radius-sm);
   cursor: pointer;
   transition: all 200ms ease;
@@ -161,16 +168,16 @@ export default {
   justify-content: center;
   min-width: 32px;
   min-height: 32px;
-  color: var(--color-text);
+  color: #1d1d1f;
 }
 
 .collapse-button:hover {
-  background: var(--color-blue-light);
-  border-color: var(--color-blue-primary);
+  background: rgba(0, 0, 0, 0.1);
+  border-color: var(--color-warm-dark);
 }
 
 .collapse-button:focus-visible {
-  outline: 2px solid var(--color-blue-primary);
+  outline: 2px solid var(--color-warm-dark);
   outline-offset: 2px;
 }
 
@@ -181,36 +188,34 @@ export default {
 
 .button-container {
   padding: var(--spacing-sm) var(--spacing-md);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-warm-dark);
 }
 
 .new-conversation-btn {
   width: 100%;
   padding: var(--spacing-sm) var(--spacing-md);
-  background-color: var(--color-grey-surface);
-  color: var(--color-grey-text-primary);
-  border: 1px solid var(--color-grey-border);
+  background-color: transparent;
+  color: #1d1d1f;
+  border: 1px solid var(--color-warm-dark);
   border-radius: var(--border-radius-md);
   cursor: pointer;
   font-size: var(--font-size-sm);
   font-weight: 500;
   transition: all 200ms ease;
-  box-shadow: var(--shadow-sm);
 }
 
 .new-conversation-btn:hover {
-  background-color: var(--color-blue-light);
-  border-color: var(--color-blue-primary);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background-color: rgba(0, 0, 0, 0.1);
+  border-color: var(--color-warm-dark);
 }
 
 .new-conversation-btn:active {
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+  background-color: rgba(0, 0, 0, 0.15);
   transform: translateY(1px);
 }
 
 .new-conversation-btn:focus-visible {
-  outline: 2px solid var(--color-blue-primary);
+  outline: 2px solid var(--color-warm-dark);
   outline-offset: 2px;
 }
 
@@ -221,17 +226,18 @@ export default {
 
 .conversation-item {
   padding: var(--spacing-md);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-warm-dark);
   cursor: pointer;
   transition: background-color 0.2s;
+  color: #1d1d1f;
 }
 
 .conversation-item:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: rgba(0, 0, 0, 0.1);
 }
 
 .conversation-item.active {
-  background-color: var(--color-primary);
+  background-color: var(--color-warm-dark);
   color: white;
 }
 
@@ -255,7 +261,7 @@ export default {
 .empty-history {
   padding: var(--spacing-lg);
   text-align: center;
-  color: var(--color-text-secondary);
+  color: var(--color-warm-dark);
   font-size: var(--font-size-sm);
 }
 </style>

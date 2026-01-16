@@ -50,7 +50,7 @@ export default {
   height: var(--status-bar-height);
   background-color: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
 }
 
 .status-indicator {
