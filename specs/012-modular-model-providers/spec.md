@@ -7,21 +7,34 @@
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - Unified Provider Configuration (Priority: P1)
+### User Story 1 - Unified Model Configuration (Priority: P1)
 
-As a developer configuring the application, I want to define all model providers and their models in a single consolidated configuration structure, so that I can easily see all available models across providers and add new providers without modifying multiple configuration locations.
+As a developer configuring the application, I want to define all available models in a single `MODELS` environment variable (regardless of provider), so that I can easily see all available models in one place and manage the model list without understanding which provider-specific variable to edit.
 
 **Why this priority**: This is the foundation for all other consolidation work. Without a unified configuration structure, the system cannot properly support modular providers. This directly addresses the user's primary concern about "models for OpenAI and Anthropic listed separately."
 
-**Independent Test**: Can be fully tested by configuring a new provider entry and verifying it appears in the models list without code changes to provider-specific loading functions.
+**Configuration Format**: A single `MODELS` environment variable containing a JSON array of model objects. Each model object includes a `provider` field to identify which provider handles that model. API keys remain in separate environment variables (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`).
+
+**Example**:
+```
+MODELS='[
+  {"id": "gpt-4", "name": "GPT-4", "description": "Most capable OpenAI model", "provider": "openai", "default": false},
+  {"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "provider": "openai", "default": true},
+  {"id": "claude-3-5-sonnet-20241022", "name": "Claude 3.5 Sonnet", "description": "Most capable Claude model", "provider": "anthropic", "default": false}
+]'
+```
+
+**Independent Test**: Can be fully tested by configuring a single `MODELS` variable with models from multiple providers and verifying they all appear correctly.
 
 **Acceptance Scenarios**:
 
-1. **Given** a configuration with multiple providers defined, **When** the application starts, **Then** all models from all enabled providers are available in a single consolidated list with provider information included.
+1. **Given** a `MODELS` configuration with models from multiple providers, **When** the application starts, **Then** all models are loaded from the single configuration variable and available in the models list.
 
-2. **Given** a provider configuration entry, **When** the required API key environment variable is not set, **Then** models for that provider are excluded from the available models list and the system logs a clear message.
+2. **Given** a model in the `MODELS` configuration whose provider API key is not set, **When** the application loads, **Then** that specific model is excluded from the available models list while other models remain available.
 
-3. **Given** a new provider needs to be added, **When** a developer adds the provider configuration, **Then** no changes are required to existing provider code or loading logic.
+3. **Given** the legacy `OPENAI_MODELS` and `ANTHROPIC_MODELS` variables are set, **When** the application starts, **Then** they are ignored in favor of the unified `MODELS` variable (if present), OR the system falls back to legacy variables for backward compatibility.
+
+4. **Given** neither `MODELS` nor legacy variables are configured, **When** the application starts, **Then** a clear error message indicates how to configure models.
 
 ---
 

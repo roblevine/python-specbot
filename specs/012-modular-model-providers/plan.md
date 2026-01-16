@@ -9,6 +9,37 @@ Consolidate and modularize the existing OpenAI and Anthropic provider implementa
 
 **Technical Approach**: Introduce a provider abstraction layer that encapsulates provider-specific initialization, error mapping, and configuration. Each provider becomes a self-contained module that implements a common interface, allowing the core LLM service to remain provider-agnostic.
 
+## Configuration Consolidation
+
+**Current State (to be replaced)**:
+```bash
+# Separate env vars per provider
+OPENAI_MODELS='[{"id":"gpt-4",...}]'
+ANTHROPIC_MODELS='[{"id":"claude-3-5-sonnet-20241022",...}]'
+```
+
+**Target State**:
+```bash
+# Single unified MODELS env var
+MODELS='[
+  {"id":"gpt-4","name":"GPT-4","description":"...","provider":"openai","default":false},
+  {"id":"gpt-3.5-turbo","name":"GPT-3.5 Turbo","description":"...","provider":"openai","default":true},
+  {"id":"claude-3-5-sonnet-20241022","name":"Claude 3.5 Sonnet","description":"...","provider":"anthropic","default":false}
+]'
+
+# API keys remain separate (as they should)
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+**Filtering Logic**: When loading the configuration:
+1. Parse all models from the unified `MODELS` variable
+2. Check which provider API keys are configured (e.g., `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`)
+3. Filter out models whose provider API key is not set
+4. Return only models that can actually be used
+
+**Backward Compatibility**: If the new `MODELS` variable is not set, fall back to loading from the legacy `OPENAI_MODELS` and `ANTHROPIC_MODELS` variables.
+
 ## Technical Context
 
 **Language/Version**: Python 3.13 (backend), JavaScript ES6+ (frontend)
