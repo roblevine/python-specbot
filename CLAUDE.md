@@ -16,6 +16,8 @@ Auto-generated from all feature plans. Last updated: 2026-01-12
 - File-based JSON storage with abstraction layer for future database migration (010-server-side-conversations)
 - Python 3.13 (backend), JavaScript ES6+ (frontend) + FastAPI 0.115.0, LangChain, langchain-openai, langchain-anthropic, Vue 3.4.0, Vite 5.0.0 (011-anthropic-support)
 - File-based JSON storage (existing), Browser LocalStorage (frontend) (011-anthropic-support)
+- Python 3.13 (backend), JavaScript ES6+ (frontend) + FastAPI 0.115.0, Pydantic 2.10.0, LangChain 0.3+, langchain-openai 0.2+, langchain-anthropic 0.2+, Vue 3.4.0, Vite 5.0.0 (012-modular-model-providers)
+- File-based JSON storage (unchanged by this feature) (012-modular-model-providers)
 
 ## Project Structure
 
@@ -54,6 +56,7 @@ cd backend && pytest -m unit               # Unit tests only
 : Follow standard conventions
 
 ## Recent Changes
+- 012-modular-model-providers: Added Python 3.13 (backend), JavaScript ES6+ (frontend) + FastAPI 0.115.0, Pydantic 2.10.0, LangChain 0.3+, langchain-openai 0.2+, langchain-anthropic 0.2+, Vue 3.4.0, Vite 5.0.0
 - 011-anthropic-support: Added Python 3.13 (backend), JavaScript ES6+ (frontend) + FastAPI 0.115.0, LangChain, langchain-openai, langchain-anthropic, Vue 3.4.0, Vite 5.0.0
 - 010-server-side-conversations: Added Python 3.11 (backend), JavaScript ES6+ (frontend) + FastAPI 0.115.0, Pydantic 2.10.0, Vue 3.4.0, Vite 5.0.0
 
@@ -63,7 +66,6 @@ cd backend && pytest -m unit               # Unit tests only
 **Status**: User Story 1 (MVP) complete and production-ready
 
 **Backend Implementation**:
-- Server-Sent Events (SSE) endpoint: `POST /api/v1/messages` with `Accept: text/event-stream`
 
 **Frontend Implementation**:
 
