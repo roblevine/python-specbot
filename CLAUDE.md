@@ -18,6 +18,8 @@ Auto-generated from all feature plans. Last updated: 2026-01-12
 - File-based JSON storage (existing), Browser LocalStorage (frontend) (011-anthropic-support)
 - Python 3.13 (backend), JavaScript ES6+ (frontend) + FastAPI 0.115.0, Pydantic 2.10.0, LangChain 0.3+, langchain-openai 0.2+, langchain-anthropic 0.2+, Vue 3.4.0, Vite 5.0.0 (012-modular-model-providers)
 - File-based JSON storage (unchanged by this feature) (012-modular-model-providers)
+- JavaScript (ES6+) + Vue 3.4.0, Vite 5.0.0 (013-redesign-frontend-palette)
+- N/A (styling changes only) (013-redesign-frontend-palette)
 
 ## Project Structure
 
@@ -56,9 +58,9 @@ cd backend && pytest -m unit               # Unit tests only
 : Follow standard conventions
 
 ## Recent Changes
+- 013-redesign-frontend-palette: Added JavaScript (ES6+) + Vue 3.4.0, Vite 5.0.0
 - 012-modular-model-providers: Added Python 3.13 (backend), JavaScript ES6+ (frontend) + FastAPI 0.115.0, Pydantic 2.10.0, LangChain 0.3+, langchain-openai 0.2+, langchain-anthropic 0.2+, Vue 3.4.0, Vite 5.0.0
 - 011-anthropic-support: Added Python 3.13 (backend), JavaScript ES6+ (frontend) + FastAPI 0.115.0, LangChain, langchain-openai, langchain-anthropic, Vue 3.4.0, Vite 5.0.0
-- 010-server-side-conversations: Added Python 3.11 (backend), JavaScript ES6+ (frontend) + FastAPI 0.115.0, Pydantic 2.10.0, Vue 3.4.0, Vite 5.0.0
 
 ### 009-message-streaming (2026-01-14) ✅ MVP COMPLETE
 **Real-time LLM response streaming with Server-Sent Events (SSE)**
