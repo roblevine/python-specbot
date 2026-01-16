@@ -136,7 +136,7 @@ def test_model_config_loaded_from_environment():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'sk-integration-test-key-12345',
-        'OPENAI_MODELS': '[{"id": "gpt-4", "name": "GPT-4", "description": "Most capable", "default": true}]'
+        'MODELS': '[{"id": "gpt-4", "name": "GPT-4", "description": "Most capable", "provider": "openai", "default": true}]'
     }, clear=True):
         config = load_model_configuration()
 
@@ -240,7 +240,7 @@ async def test_single_message_ai_response_flow():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-integration-key',
-        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
+        'MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "provider": "openai", "default": true}]'
     }, clear=True):
         with patch('src.services.providers.openai.ChatOpenAI') as mock_chat:
             # Setup mock LLM with realistic AI response

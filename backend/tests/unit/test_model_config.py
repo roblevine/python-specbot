@@ -3,8 +3,7 @@ Unit Tests for Model Configuration
 
 Tests the model configuration schema, loader, and validation.
 
-Feature: 008-openai-model-selector User Story 1
-Task: T014 (TDD - these should FAIL before implementation is complete)
+Feature: 012-modular-model-providers
 """
 
 import pytest
@@ -32,12 +31,14 @@ class TestModelConfig:
             id="gpt-4",
             name="GPT-4",
             description="Most capable model",
+            provider="openai",
             default=False
         )
 
         assert model.id == "gpt-4"
         assert model.name == "GPT-4"
         assert model.description == "Most capable model"
+        assert model.provider == "openai"
         assert model.default is False
 
     def test_model_config_with_default_true(self):
@@ -46,6 +47,7 @@ class TestModelConfig:
             id="gpt-3.5-turbo",
             name="GPT-3.5 Turbo",
             description="Fast and efficient",
+            provider="openai",
             default=True
         )
 
@@ -57,6 +59,7 @@ class TestModelConfig:
             id="  gpt-4  ",
             name="  GPT-4  ",
             description="  Description  ",
+            provider="openai",
             default=False
         )
 
@@ -71,6 +74,7 @@ class TestModelConfig:
                 id="",
                 name="GPT-4",
                 description="Description",
+                provider="openai",
                 default=False
             )
 
@@ -83,6 +87,7 @@ class TestModelConfig:
                 id="   ",
                 name="GPT-4",
                 description="Description",
+                provider="openai",
                 default=False
             )
 
@@ -95,6 +100,7 @@ class TestModelConfig:
                 id="gpt-4",
                 name="",
                 description="Description",
+                provider="openai",
                 default=False
             )
 
@@ -107,10 +113,36 @@ class TestModelConfig:
                 id="gpt-4",
                 name="GPT-4",
                 description="",
+                provider="openai",
                 default=False
             )
 
         assert "Model description cannot be empty" in str(exc_info.value)
+
+    def test_model_config_requires_provider(self):
+        """Test that provider field is required."""
+        with pytest.raises(ValidationError) as exc_info:
+            ModelConfig(
+                id="gpt-4",
+                name="GPT-4",
+                description="Description",
+                default=False
+            )
+
+        assert "provider" in str(exc_info.value).lower()
+
+    def test_model_config_validates_provider(self):
+        """Test that invalid provider is rejected."""
+        with pytest.raises(ValidationError) as exc_info:
+            ModelConfig(
+                id="gpt-4",
+                name="GPT-4",
+                description="Description",
+                provider="invalid",
+                default=False
+            )
+
+        assert "provider" in str(exc_info.value).lower()
 
 
 class TestModelsConfiguration:
@@ -123,6 +155,7 @@ class TestModelsConfiguration:
                 id="gpt-4",
                 name="GPT-4",
                 description="Description",
+                provider="openai",
                 default=True
             )
         ])
@@ -137,17 +170,42 @@ class TestModelsConfiguration:
                 id="gpt-4",
                 name="GPT-4",
                 description="Description",
+                provider="openai",
                 default=False
             ),
             ModelConfig(
                 id="gpt-3.5-turbo",
                 name="GPT-3.5 Turbo",
                 description="Description",
+                provider="openai",
                 default=True
             )
         ])
 
         assert len(config.models) == 2
+
+    def test_valid_configuration_multiple_providers(self):
+        """Test configuration with models from multiple providers."""
+        config = ModelsConfiguration(models=[
+            ModelConfig(
+                id="gpt-4",
+                name="GPT-4",
+                description="OpenAI model",
+                provider="openai",
+                default=True
+            ),
+            ModelConfig(
+                id="claude-3-5-sonnet-20241022",
+                name="Claude 3.5 Sonnet",
+                description="Anthropic model",
+                provider="anthropic",
+                default=False
+            )
+        ])
+
+        assert len(config.models) == 2
+        assert config.models[0].provider == "openai"
+        assert config.models[1].provider == "anthropic"
 
     def test_rejects_empty_models_list(self):
         """Test that empty models list is rejected."""
@@ -166,12 +224,14 @@ class TestModelsConfiguration:
                     id="gpt-4",
                     name="GPT-4",
                     description="Description",
+                    provider="openai",
                     default=True
                 ),
                 ModelConfig(
                     id="gpt-4",  # Duplicate
                     name="GPT-4 Duplicate",
                     description="Description",
+                    provider="openai",
                     default=False
                 )
             ])
@@ -186,6 +246,7 @@ class TestModelsConfiguration:
                     id="gpt-4",
                     name="GPT-4",
                     description="Description",
+                    provider="openai",
                     default=False
                 )
             ])
@@ -200,12 +261,14 @@ class TestModelsConfiguration:
                     id="gpt-4",
                     name="GPT-4",
                     description="Description",
+                    provider="openai",
                     default=True
                 ),
                 ModelConfig(
                     id="gpt-3.5-turbo",
                     name="GPT-3.5 Turbo",
                     description="Description",
+                    provider="openai",
                     default=True  # Multiple defaults
                 )
             ])
@@ -216,28 +279,28 @@ class TestModelsConfiguration:
 class TestLoadModelConfiguration:
     """Tests for load_model_configuration function."""
 
-    def test_load_from_openai_models_env_var(self, monkeypatch):
-        """Test loading configuration from OPENAI_MODELS environment variable."""
-        # Clear Anthropic config to test OpenAI-only
-        monkeypatch.delenv('ANTHROPIC_API_KEY', raising=False)
-        monkeypatch.delenv('ANTHROPIC_MODELS', raising=False)
-
+    def test_load_from_models_env_var(self, monkeypatch):
+        """Test loading configuration from MODELS environment variable."""
         models_json = json.dumps([
             {
                 "id": "gpt-4",
                 "name": "GPT-4",
                 "description": "Most capable",
+                "provider": "openai",
                 "default": False
             },
             {
                 "id": "gpt-3.5-turbo",
                 "name": "GPT-3.5 Turbo",
                 "description": "Fast and efficient",
+                "provider": "openai",
                 "default": True
             }
         ])
 
-        monkeypatch.setenv('OPENAI_MODELS', models_json)
+        monkeypatch.setenv('MODELS', models_json)
+        monkeypatch.setenv('OPENAI_API_KEY', 'sk-test-key')
+        monkeypatch.delenv('ANTHROPIC_API_KEY', raising=False)
 
         config = load_model_configuration()
 
@@ -245,39 +308,56 @@ class TestLoadModelConfiguration:
         assert config.models[0].id == "gpt-4"
         assert config.models[1].id == "gpt-3.5-turbo"
 
-    def test_requires_models_env_var_when_provider_enabled(self, monkeypatch):
-        """Test that missing OPENAI_MODELS raises an error when OpenAI is enabled.
-
-        Updated for 011-anthropic-support: Error message changed to multi-provider message.
-        """
-        # Clear all model configs to test the "no models" error
-        monkeypatch.delenv('OPENAI_MODELS', raising=False)
+    def test_requires_models_env_var(self, monkeypatch):
+        """Test that missing MODELS raises an error."""
+        monkeypatch.delenv('MODELS', raising=False)
+        monkeypatch.setenv('OPENAI_API_KEY', 'sk-test-key')
         monkeypatch.delenv('ANTHROPIC_API_KEY', raising=False)
-        monkeypatch.delenv('ANTHROPIC_MODELS', raising=False)
 
         with pytest.raises(ModelConfigurationError) as exc_info:
             load_model_configuration()
 
-        # Error message updated for multi-provider architecture
-        assert "No models configured for enabled providers" in str(exc_info.value)
+        assert "MODELS environment variable not configured" in str(exc_info.value)
 
     def test_rejects_invalid_json(self, monkeypatch):
-        """Test that invalid JSON in OPENAI_MODELS raises error."""
-        monkeypatch.setenv('OPENAI_MODELS', 'not valid json')
+        """Test that invalid JSON in MODELS raises error."""
+        monkeypatch.setenv('MODELS', 'not valid json')
+        monkeypatch.setenv('OPENAI_API_KEY', 'sk-test-key')
 
         with pytest.raises(ModelConfigurationError) as exc_info:
             load_model_configuration()
 
-        assert "Invalid JSON in OPENAI_MODELS" in str(exc_info.value)
+        assert "Invalid JSON in MODELS" in str(exc_info.value)
 
     def test_rejects_non_array_json(self, monkeypatch):
         """Test that non-array JSON is rejected."""
-        monkeypatch.setenv('OPENAI_MODELS', '{"not": "an array"}')
+        monkeypatch.setenv('MODELS', '{"not": "an array"}')
+        monkeypatch.setenv('OPENAI_API_KEY', 'sk-test-key')
 
         with pytest.raises(ModelConfigurationError) as exc_info:
             load_model_configuration()
 
-        assert "OPENAI_MODELS must be a JSON array" in str(exc_info.value)
+        assert "MODELS must be a JSON array" in str(exc_info.value)
+
+    def test_requires_provider_field(self, monkeypatch):
+        """Test that provider field is required in MODELS."""
+        models_json = json.dumps([
+            {
+                "id": "gpt-4",
+                "name": "GPT-4",
+                "description": "Most capable",
+                "default": True
+                # Missing provider field
+            }
+        ])
+
+        monkeypatch.setenv('MODELS', models_json)
+        monkeypatch.setenv('OPENAI_API_KEY', 'sk-test-key')
+
+        with pytest.raises(ModelConfigurationError) as exc_info:
+            load_model_configuration()
+
+        assert "Missing 'provider' field" in str(exc_info.value)
 
 
 class TestGetDefaultModel:
@@ -290,12 +370,14 @@ class TestGetDefaultModel:
                 id="gpt-4",
                 name="GPT-4",
                 description="Description",
+                provider="openai",
                 default=False
             ),
             ModelConfig(
                 id="gpt-3.5-turbo",
                 name="GPT-3.5 Turbo",
                 description="Description",
+                provider="openai",
                 default=True
             )
         ])
@@ -316,6 +398,7 @@ class TestGetDefaultModel:
                 id="gpt-4",
                 name="GPT-4",
                 description="Description",
+                provider="openai",
                 default=True  # Changed to True to pass validation
             )
         ])
@@ -334,6 +417,7 @@ class TestValidateModelId:
                 id="gpt-4",
                 name="GPT-4",
                 description="Description",
+                provider="openai",
                 default=True
             )
         ])
@@ -347,6 +431,7 @@ class TestValidateModelId:
                 id="gpt-4",
                 name="GPT-4",
                 description="Description",
+                provider="openai",
                 default=True
             )
         ])
@@ -360,6 +445,7 @@ class TestValidateModelId:
                 id="gpt-4",
                 name="GPT-4",
                 description="Description",
+                provider="openai",
                 default=True
             )
         ])
@@ -377,12 +463,14 @@ class TestGetModelById:
                 id="gpt-4",
                 name="GPT-4",
                 description="Description",
+                provider="openai",
                 default=True
             ),
             ModelConfig(
                 id="gpt-3.5-turbo",
                 name="GPT-3.5 Turbo",
                 description="Description",
+                provider="openai",
                 default=False
             )
         ])
@@ -400,6 +488,7 @@ class TestGetModelById:
                 id="gpt-4",
                 name="GPT-4",
                 description="Description",
+                provider="openai",
                 default=True
             )
         ])
@@ -410,13 +499,13 @@ class TestGetModelById:
 
 
 # =============================================================================
-# Phase 3b: Unified MODELS Configuration Tests (T046-T048)
+# Unified MODELS Configuration Tests
 # Feature: 012-modular-model-providers
 # =============================================================================
 
 
 class TestUnifiedModelsConfiguration:
-    """T046: Tests for loading models from a single unified MODELS env var."""
+    """Tests for loading models from a single unified MODELS env var."""
 
     def test_load_from_unified_models_env_var(self, monkeypatch):
         """Test loading configuration from single MODELS environment variable."""
@@ -448,9 +537,6 @@ class TestUnifiedModelsConfiguration:
         monkeypatch.setenv('MODELS', models_json)
         monkeypatch.setenv('OPENAI_API_KEY', 'sk-test-key')
         monkeypatch.setenv('ANTHROPIC_API_KEY', 'sk-ant-test-key')
-        # Clear legacy env vars to ensure unified loading
-        monkeypatch.delenv('OPENAI_MODELS', raising=False)
-        monkeypatch.delenv('ANTHROPIC_MODELS', raising=False)
 
         config = load_model_configuration()
 
@@ -478,8 +564,6 @@ class TestUnifiedModelsConfiguration:
         monkeypatch.setenv('MODELS', models_json)
         monkeypatch.setenv('OPENAI_API_KEY', 'sk-test-key')
         monkeypatch.delenv('ANTHROPIC_API_KEY', raising=False)
-        monkeypatch.delenv('OPENAI_MODELS', raising=False)
-        monkeypatch.delenv('ANTHROPIC_MODELS', raising=False)
 
         config = load_model_configuration()
 
@@ -491,8 +575,6 @@ class TestUnifiedModelsConfiguration:
         """Test that invalid JSON in MODELS raises error."""
         monkeypatch.setenv('MODELS', 'not valid json')
         monkeypatch.setenv('OPENAI_API_KEY', 'sk-test-key')
-        monkeypatch.delenv('OPENAI_MODELS', raising=False)
-        monkeypatch.delenv('ANTHROPIC_MODELS', raising=False)
 
         with pytest.raises(ModelConfigurationError) as exc_info:
             load_model_configuration()
@@ -503,8 +585,6 @@ class TestUnifiedModelsConfiguration:
         """Test that non-array JSON in MODELS is rejected."""
         monkeypatch.setenv('MODELS', '{"not": "an array"}')
         monkeypatch.setenv('OPENAI_API_KEY', 'sk-test-key')
-        monkeypatch.delenv('OPENAI_MODELS', raising=False)
-        monkeypatch.delenv('ANTHROPIC_MODELS', raising=False)
 
         with pytest.raises(ModelConfigurationError) as exc_info:
             load_model_configuration()
@@ -512,101 +592,8 @@ class TestUnifiedModelsConfiguration:
         assert "MODELS must be a JSON array" in str(exc_info.value)
 
 
-class TestBackwardCompatibility:
-    """T047: Tests for backward compatibility with legacy env vars."""
-
-    def test_fallback_to_legacy_vars_when_models_not_set(self, monkeypatch):
-        """Test fallback to OPENAI_MODELS/ANTHROPIC_MODELS when MODELS not set."""
-        # Legacy configuration (no unified MODELS)
-        openai_json = json.dumps([
-            {
-                "id": "gpt-4",
-                "name": "GPT-4",
-                "description": "Most capable",
-                "default": True
-            }
-        ])
-        anthropic_json = json.dumps([
-            {
-                "id": "claude-3-5-sonnet-20241022",
-                "name": "Claude 3.5 Sonnet",
-                "description": "Most capable Claude",
-                "default": False
-            }
-        ])
-
-        monkeypatch.delenv('MODELS', raising=False)
-        monkeypatch.setenv('OPENAI_MODELS', openai_json)
-        monkeypatch.setenv('ANTHROPIC_MODELS', anthropic_json)
-        monkeypatch.setenv('OPENAI_API_KEY', 'sk-test-key')
-        monkeypatch.setenv('ANTHROPIC_API_KEY', 'sk-ant-test-key')
-
-        config = load_model_configuration()
-
-        assert len(config.models) == 2
-        model_ids = [m.id for m in config.models]
-        assert "gpt-4" in model_ids
-        assert "claude-3-5-sonnet-20241022" in model_ids
-
-    def test_unified_models_takes_precedence_over_legacy(self, monkeypatch):
-        """Test that MODELS env var takes precedence over legacy vars."""
-        # Set up both unified and legacy configs
-        unified_json = json.dumps([
-            {
-                "id": "gpt-4-unified",
-                "name": "GPT-4 Unified",
-                "description": "From unified config",
-                "provider": "openai",
-                "default": True
-            }
-        ])
-        legacy_json = json.dumps([
-            {
-                "id": "gpt-4-legacy",
-                "name": "GPT-4 Legacy",
-                "description": "From legacy config",
-                "default": True
-            }
-        ])
-
-        monkeypatch.setenv('MODELS', unified_json)
-        monkeypatch.setenv('OPENAI_MODELS', legacy_json)
-        monkeypatch.setenv('OPENAI_API_KEY', 'sk-test-key')
-        monkeypatch.delenv('ANTHROPIC_API_KEY', raising=False)
-        monkeypatch.delenv('ANTHROPIC_MODELS', raising=False)
-
-        config = load_model_configuration()
-
-        # Should only have the model from unified config
-        assert len(config.models) == 1
-        assert config.models[0].id == "gpt-4-unified"
-
-    def test_legacy_vars_still_work_for_single_provider(self, monkeypatch):
-        """Test that legacy OPENAI_MODELS still works when MODELS not set."""
-        openai_json = json.dumps([
-            {
-                "id": "gpt-3.5-turbo",
-                "name": "GPT-3.5 Turbo",
-                "description": "Fast model",
-                "default": True
-            }
-        ])
-
-        monkeypatch.delenv('MODELS', raising=False)
-        monkeypatch.setenv('OPENAI_MODELS', openai_json)
-        monkeypatch.setenv('OPENAI_API_KEY', 'sk-test-key')
-        monkeypatch.delenv('ANTHROPIC_API_KEY', raising=False)
-        monkeypatch.delenv('ANTHROPIC_MODELS', raising=False)
-
-        config = load_model_configuration()
-
-        assert len(config.models) == 1
-        assert config.models[0].id == "gpt-3.5-turbo"
-        assert config.models[0].provider == "openai"
-
-
 class TestProviderFiltering:
-    """T048: Tests for filtering models based on provider API key availability."""
+    """Tests for filtering models based on provider API key availability."""
 
     def test_filters_out_models_when_api_key_missing(self, monkeypatch):
         """Test that models are filtered when their provider's API key is missing."""
@@ -631,8 +618,6 @@ class TestProviderFiltering:
         monkeypatch.setenv('OPENAI_API_KEY', 'sk-test-key')
         # Anthropic API key NOT set - should filter out Claude models
         monkeypatch.delenv('ANTHROPIC_API_KEY', raising=False)
-        monkeypatch.delenv('OPENAI_MODELS', raising=False)
-        monkeypatch.delenv('ANTHROPIC_MODELS', raising=False)
 
         config = load_model_configuration()
 
@@ -663,8 +648,6 @@ class TestProviderFiltering:
         monkeypatch.setenv('MODELS', models_json)
         monkeypatch.delenv('OPENAI_API_KEY', raising=False)
         monkeypatch.setenv('ANTHROPIC_API_KEY', 'sk-ant-test-key')
-        monkeypatch.delenv('OPENAI_MODELS', raising=False)
-        monkeypatch.delenv('ANTHROPIC_MODELS', raising=False)
 
         config = load_model_configuration()
 
@@ -688,8 +671,6 @@ class TestProviderFiltering:
         monkeypatch.setenv('MODELS', models_json)
         monkeypatch.delenv('OPENAI_API_KEY', raising=False)
         monkeypatch.delenv('ANTHROPIC_API_KEY', raising=False)
-        monkeypatch.delenv('OPENAI_MODELS', raising=False)
-        monkeypatch.delenv('ANTHROPIC_MODELS', raising=False)
 
         with pytest.raises(ModelConfigurationError) as exc_info:
             load_model_configuration()
@@ -718,8 +699,6 @@ class TestProviderFiltering:
         monkeypatch.setenv('MODELS', models_json)
         monkeypatch.setenv('OPENAI_API_KEY', 'sk-test-key')
         monkeypatch.delenv('ANTHROPIC_API_KEY', raising=False)
-        monkeypatch.delenv('OPENAI_MODELS', raising=False)
-        monkeypatch.delenv('ANTHROPIC_MODELS', raising=False)
 
         config = load_model_configuration()
 
@@ -750,8 +729,6 @@ class TestProviderFiltering:
         monkeypatch.setenv('MODELS', models_json)
         monkeypatch.setenv('OPENAI_API_KEY', 'sk-test-key')
         monkeypatch.setenv('ANTHROPIC_API_KEY', '   ')  # Whitespace only
-        monkeypatch.delenv('OPENAI_MODELS', raising=False)
-        monkeypatch.delenv('ANTHROPIC_MODELS', raising=False)
 
         config = load_model_configuration()
 

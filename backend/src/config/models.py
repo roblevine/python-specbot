@@ -1,10 +1,10 @@
 """
 Model Configuration Module
 
-Manages model configuration from environment variables with multi-provider support.
-Supports OpenAI and Anthropic providers with backward compatibility for legacy configs.
+Manages model configuration from the unified MODELS environment variable.
+Supports OpenAI and Anthropic providers with automatic filtering based on API key availability.
 
-Feature: 011-anthropic-support
+Feature: 012-modular-model-providers
 """
 
 import json
@@ -17,17 +17,15 @@ from src.utils.logger import get_logger
 logger = get_logger(__name__)
 
 
-# T006: Provider registry constant
+# Provider registry constant - maps provider IDs to their API key env var names
 PROVIDERS: Dict[str, Dict[str, str]] = {
     "openai": {
         "name": "OpenAI",
         "api_key_env": "OPENAI_API_KEY",
-        "models_env": "OPENAI_MODELS"
     },
     "anthropic": {
         "name": "Anthropic",
         "api_key_env": "ANTHROPIC_API_KEY",
-        "models_env": "ANTHROPIC_MODELS"
     }
 }
 
@@ -50,9 +48,8 @@ class ModelConfig(BaseModel):
     id: str = Field(..., description="Model identifier (e.g., 'gpt-4', 'claude-3-5-sonnet-20241022')")
     name: str = Field(..., max_length=50, description="Human-readable display name")
     description: str = Field(..., max_length=200, description="Brief model description")
-    # T003: Add provider field with default for backward compatibility (T005)
     provider: Literal["openai", "anthropic"] = Field(
-        default="openai",
+        ...,  # Required - no default
         description="Provider identifier: 'openai' or 'anthropic'"
     )
     default: bool = Field(default=False, description="Whether this is the default model")
@@ -81,8 +78,6 @@ class ModelConfig(BaseModel):
             raise ValueError("Model description cannot be empty")
         return v.strip()
 
-    # T004: Provider validation is handled by Literal type annotation
-
 
 class ModelsConfiguration(BaseModel):
     """Root configuration for available models from all providers."""
@@ -101,7 +96,7 @@ class ModelsConfiguration(BaseModel):
         if len(ids) != len(set(ids)):
             raise ValueError("Duplicate model IDs found")
 
-        # T009: Check exactly one default model across all providers
+        # Check exactly one default model across all providers
         default_count = sum(1 for model in v if model.default)
         if default_count == 0:
             raise ValueError("Exactly one model must be marked as default")
@@ -113,7 +108,7 @@ class ModelsConfiguration(BaseModel):
 
 def check_provider_enabled(provider_id: str) -> bool:
     """
-    T027 (US3): Check if a provider is enabled (has API key configured).
+    Check if a provider is enabled (has API key configured).
 
     Args:
         provider_id: Provider identifier ('openai' or 'anthropic')
@@ -129,92 +124,47 @@ def check_provider_enabled(provider_id: str) -> bool:
     return bool(api_key and api_key.strip())
 
 
-def _load_models_from_env(env_var: str, provider_id: str) -> List[ModelConfig]:
+def load_model_configuration() -> ModelsConfiguration:
     """
-    Load and parse models from an environment variable.
+    Load model configuration from the unified MODELS environment variable.
 
-    Args:
-        env_var: Environment variable name containing JSON model config
-        provider_id: Provider ID to assign to models (for backward compatibility)
+    All models must be configured in the MODELS env var. Each model must have
+    a 'provider' field. Models are filtered to only include those from providers
+    that have their API keys configured.
 
     Returns:
-        List of ModelConfig objects
+        ModelsConfiguration: Validated model configuration with all enabled models
 
     Raises:
-        ModelConfigurationError: If JSON is invalid
+        ModelConfigurationError: If configuration is invalid or no models available
     """
-    models_env = os.getenv(env_var)
+    # Check provider enablement status
+    openai_enabled = check_provider_enabled("openai")
+    anthropic_enabled = check_provider_enabled("anthropic")
 
-    if not models_env:
-        return []
+    # Log provider enablement status
+    logger.info(f"Provider status: OpenAI={'enabled' if openai_enabled else 'disabled'}, "
+                f"Anthropic={'enabled' if anthropic_enabled else 'disabled'}")
 
-    try:
-        models_data = json.loads(models_env)
-        if not isinstance(models_data, list):
-            raise ModelConfigurationError(
-                f"{env_var} must be a JSON array",
-                f"Set {env_var} to a JSON array: '[{{\"id\": \"model-id\", ...}}]'"
-            )
-
-        models = []
-        for model_data in models_data:
-            # T005: Add backward compatibility - default provider if not specified
-            if "provider" not in model_data:
-                model_data["provider"] = provider_id
-            models.append(ModelConfig(**model_data))
-
-        return models
-
-    except json.JSONDecodeError as e:
+    # Validate at least one provider is configured
+    if not openai_enabled and not anthropic_enabled:
         raise ModelConfigurationError(
-            f"Invalid JSON in {env_var}: {str(e)}",
-            f"Ensure {env_var} contains valid JSON."
-        ) from e
+            "No AI providers configured",
+            "At least one provider must be configured. Set either:\n"
+            "- OPENAI_API_KEY for OpenAI, or\n"
+            "- ANTHROPIC_API_KEY for Anthropic\n"
+            "And configure models in the MODELS environment variable."
+        )
 
-    except ValueError as e:
-        raise ModelConfigurationError(
-            f"Invalid model configuration in {env_var}: {str(e)}",
-            "Each model must have: id, name, description, provider, default (boolean)."
-        ) from e
-
-
-def load_openai_models() -> List[ModelConfig]:
-    """
-    Load OpenAI model configurations from OPENAI_MODELS environment variable.
-
-    Returns:
-        List of ModelConfig objects for OpenAI models
-    """
-    return _load_models_from_env("OPENAI_MODELS", "openai")
-
-
-def load_anthropic_models() -> List[ModelConfig]:
-    """
-    T007: Load Anthropic model configurations from ANTHROPIC_MODELS environment variable.
-
-    Returns:
-        List of ModelConfig objects for Anthropic models
-    """
-    return _load_models_from_env("ANTHROPIC_MODELS", "anthropic")
-
-
-def load_unified_models() -> List[ModelConfig]:
-    """
-    T049: Load model configurations from the unified MODELS environment variable.
-
-    The unified MODELS variable contains all models from all providers in a single
-    JSON array. Each model must have a 'provider' field to identify its provider.
-
-    Returns:
-        List of ModelConfig objects, or empty list if MODELS is not set
-
-    Raises:
-        ModelConfigurationError: If JSON is invalid or malformed
-    """
+    # Load from unified MODELS env var (required)
     models_env = os.getenv("MODELS")
 
     if not models_env:
-        return []
+        raise ModelConfigurationError(
+            "MODELS environment variable not configured",
+            "Set the MODELS environment variable with your model configuration:\n"
+            'MODELS=\'[{"id": "gpt-4", "name": "GPT-4", "description": "...", "provider": "openai", "default": true}]\''
+        )
 
     try:
         models_data = json.loads(models_env)
@@ -223,120 +173,53 @@ def load_unified_models() -> List[ModelConfig]:
                 "MODELS must be a JSON array",
                 "Set MODELS to a JSON array: '[{\"id\": \"model-id\", \"provider\": \"openai\", ...}]'"
             )
-
-        models = []
-        for model_data in models_data:
-            # Provider is required in unified format
-            if "provider" not in model_data:
-                raise ModelConfigurationError(
-                    "Missing 'provider' field in MODELS configuration",
-                    "Each model in MODELS must have a 'provider' field ('openai' or 'anthropic')"
-                )
-            models.append(ModelConfig(**model_data))
-
-        return models
-
     except json.JSONDecodeError as e:
         raise ModelConfigurationError(
             f"Invalid JSON in MODELS: {str(e)}",
             "Ensure MODELS contains valid JSON."
         ) from e
 
-    except ValueError as e:
-        raise ModelConfigurationError(
-            f"Invalid model configuration in MODELS: {str(e)}",
-            "Each model must have: id, name, description, provider, default (boolean)."
-        ) from e
-
-
-def load_model_configuration() -> ModelsConfiguration:
-    """
-    T008/T050: Load and merge model configuration from all enabled providers.
-
-    Prefers the unified MODELS environment variable if set. Falls back to
-    legacy OPENAI_MODELS and ANTHROPIC_MODELS variables if MODELS is not set.
-
-    Models are filtered to only include those from providers that have their
-    API keys configured.
-
-    Returns:
-        ModelsConfiguration: Validated model configuration with all enabled models
-
-    Raises:
-        ModelConfigurationError: If configuration is invalid or no models available
-    """
+    # Parse and filter models by enabled provider
     all_models: List[ModelConfig] = []
+    total_count = len(models_data)
 
-    # T028 (US3): Check provider enablement status
-    openai_enabled = check_provider_enabled("openai")
-    anthropic_enabled = check_provider_enabled("anthropic")
+    for model_data in models_data:
+        # Provider is required
+        if "provider" not in model_data:
+            raise ModelConfigurationError(
+                "Missing 'provider' field in MODELS configuration",
+                "Each model in MODELS must have a 'provider' field ('openai' or 'anthropic')"
+            )
 
-    # T030 (US3): Log provider enablement status
-    logger.info(f"Provider status: OpenAI={'enabled' if openai_enabled else 'disabled'}, "
-                f"Anthropic={'enabled' if anthropic_enabled else 'disabled'}")
+        try:
+            model = ModelConfig(**model_data)
+        except ValueError as e:
+            raise ModelConfigurationError(
+                f"Invalid model configuration in MODELS: {str(e)}",
+                "Each model must have: id, name, description, provider, default (boolean)."
+            ) from e
 
-    # T029 (US3): Validate at least one provider is configured
-    if not openai_enabled and not anthropic_enabled:
-        raise ModelConfigurationError(
-            "No AI providers configured",
-            "At least one provider must be configured. Set either:\n"
-            "- OPENAI_API_KEY and OPENAI_MODELS for OpenAI, or\n"
-            "- ANTHROPIC_API_KEY and ANTHROPIC_MODELS for Anthropic"
-        )
+        # Filter by enabled provider
+        provider_enabled = check_provider_enabled(model.provider)
+        if provider_enabled:
+            all_models.append(model)
+        else:
+            logger.debug(f"Filtering out model '{model.id}' - provider '{model.provider}' not enabled")
 
-    # T050: Try unified MODELS first, fallback to legacy
-    unified_models = load_unified_models()
+    logger.info(f"Loaded {len(all_models)} of {total_count} model(s) from MODELS (filtered by enabled providers)")
 
-    if unified_models:
-        # T051: Filter models by enabled provider
-        logger.info(f"Loading from unified MODELS configuration ({len(unified_models)} total models)")
-
-        for model in unified_models:
-            provider_enabled = check_provider_enabled(model.provider)
-            if provider_enabled:
-                all_models.append(model)
-            else:
-                logger.debug(f"Filtering out model '{model.id}' - provider '{model.provider}' not enabled")
-
-        if all_models:
-            logger.info(f"Loaded {len(all_models)} model(s) from unified MODELS (after filtering)")
-    else:
-        # Fallback to legacy env vars
-        logger.debug("MODELS not set, falling back to legacy OPENAI_MODELS/ANTHROPIC_MODELS")
-
-        # Load OpenAI models if enabled
-        if openai_enabled:
-            openai_models = load_openai_models()
-            if openai_models:
-                logger.info(f"Loaded {len(openai_models)} OpenAI model(s)")
-                all_models.extend(openai_models)
-            else:
-                logger.warning("OpenAI API key set but no models configured in OPENAI_MODELS")
-
-        # Load Anthropic models if enabled
-        if anthropic_enabled:
-            anthropic_models = load_anthropic_models()
-            if anthropic_models:
-                logger.info(f"Loaded {len(anthropic_models)} Anthropic model(s)")
-                all_models.extend(anthropic_models)
-            else:
-                logger.warning("Anthropic API key set but no models configured in ANTHROPIC_MODELS")
-
-    # Validate we have at least one model
+    # Validate we have at least one model after filtering
     if not all_models:
         raise ModelConfigurationError(
-            "No models configured for enabled providers",
-            "Configure models for at least one enabled provider:\n"
-            "- OPENAI_MODELS for OpenAI models\n"
-            "- ANTHROPIC_MODELS for Anthropic models"
+            "No models available for enabled providers",
+            "Configure models in MODELS for providers with API keys set."
         )
 
-    # T051: Handle case where the default model was filtered out
+    # Handle case where the default model was filtered out
     has_default = any(model.default for model in all_models)
     if not has_default:
         # Make the first model the default
         logger.info(f"Default model was filtered out, making '{all_models[0].id}' the default")
-        # Create a new model with default=True (ModelConfig is immutable)
         first_model = all_models[0]
         all_models[0] = ModelConfig(
             id=first_model.id,
