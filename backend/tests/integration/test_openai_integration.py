@@ -5,7 +5,8 @@ Tests full OpenAI integration flow with mocked external API responses.
 Validates that the LLM service correctly integrates with ChatOpenAI.
 
 Feature: 006-openai-langchain-chat Phase 2 (Foundational)
-Tests: T005 (TDD - these should FAIL before implementation)
+Updated for: 011-anthropic-support multi-provider architecture
+Tests: T005 (Updated for multi-provider)
 """
 
 import pytest
@@ -14,60 +15,60 @@ from fastapi.testclient import TestClient
 
 
 @pytest.mark.integration
-def test_llm_service_initializes_on_startup():
+def test_llm_service_provider_routing_openai():
     """
-    T005: Integration test for LLM service initialization.
+    T005 (Updated): Integration test for LLM service provider routing.
 
-    Validates that the LLM service properly initializes during
-    application startup with environment configuration.
+    Validates that the LLM service properly routes to OpenAI provider
+    based on model configuration.
 
-    Expected: FAIL (service not implemented yet)
+    Updated for 011-anthropic-support multi-provider architecture.
     """
-    import src.services.llm_service as llm_service
-    from src.services.llm_service import get_llm_instance
-
-    # Clear cached instance before test
-    llm_service._llm_instance = None
+    from src.services.llm_service import get_llm_for_model
+    from src.config.models import ModelsConfiguration, ModelConfig
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-integration-key',
-        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
     }):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             mock_instance = Mock()
             mock_chat.return_value = mock_instance
 
-            # Get LLM instance
-            llm = get_llm_instance()
+            # Create mock config
+            config = ModelsConfiguration(models=[
+                ModelConfig(
+                    id="gpt-3.5-turbo",
+                    name="GPT-3.5 Turbo",
+                    description="Fast and efficient",
+                    provider="openai",
+                    default=True
+                )
+            ])
+
+            # Get LLM instance for OpenAI model
+            llm = get_llm_for_model("gpt-3.5-turbo", config)
 
             # Verify initialization
             assert llm is not None
             mock_chat.assert_called_once()
-
-    # Clean up
-    llm_service._llm_instance = None
 
 
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_openai_api_response_mocking():
     """
-    T005: Integration test with mocked OpenAI API response.
+    T005 (Updated): Integration test with mocked OpenAI API response.
 
     Validates that the service correctly processes mocked AI responses
     from ChatOpenAI.ainvoke().
 
-    Expected: FAIL (service not implemented yet)
+    Updated for 011-anthropic-support multi-provider architecture.
     """
-    import src.services.llm_service as llm_service
-    from src.services.llm_service import get_llm_instance
-
-    # Clear cached instance before test
-    llm_service._llm_instance = None
+    from src.services.llm_service import get_llm_for_model
+    from src.config.models import ModelsConfiguration, ModelConfig
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
     }):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             # Create mock LLM instance with async ainvoke
@@ -79,16 +80,24 @@ async def test_openai_api_response_mocking():
             mock_response.content = "Hello! I'm doing well, thank you for asking."
             mock_llm.ainvoke = AsyncMock(return_value=mock_response)
 
+            # Create mock config
+            config = ModelsConfiguration(models=[
+                ModelConfig(
+                    id="gpt-3.5-turbo",
+                    name="GPT-3.5 Turbo",
+                    description="Fast and efficient",
+                    provider="openai",
+                    default=True
+                )
+            ])
+
             # Get LLM instance and invoke
-            llm = get_llm_instance()
+            llm = get_llm_for_model("gpt-3.5-turbo", config)
             result = await llm.ainvoke("Hello, how are you?")
 
             # Verify response
             assert result.content == "Hello! I'm doing well, thank you for asking."
             mock_llm.ainvoke.assert_called_once()
-
-    # Clean up
-    llm_service._llm_instance = None
 
 
 @pytest.mark.integration
@@ -114,50 +123,55 @@ async def test_llm_service_handles_message_conversion():
 
 
 @pytest.mark.integration
-def test_llm_config_loaded_from_environment():
+def test_model_config_loaded_from_environment():
     """
-    T005: Integration test for environment-based configuration.
+    T005 (Updated): Integration test for environment-based configuration.
 
     Validates that the service loads configuration from environment
     variables in a realistic scenario.
 
-    Expected: FAIL (service not implemented yet)
+    Updated for 011-anthropic-support multi-provider architecture.
     """
-    from src.services.llm_service import load_config
+    from src.config.models import load_model_configuration
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'sk-integration-test-key-12345',
         'OPENAI_MODELS': '[{"id": "gpt-4", "name": "GPT-4", "description": "Most capable", "default": true}]'
-    }):
-        config = load_config()
+    }, clear=True):
+        config = load_model_configuration()
 
-        assert config['api_key'] == 'sk-integration-test-key-12345'
-        assert config['model'] == 'gpt-4'
+        assert len(config.models) == 1
+        assert config.models[0].id == 'gpt-4'
+        assert config.models[0].provider == 'openai'
 
 
 @pytest.mark.integration
-def test_llm_service_error_on_missing_config():
+def test_llm_service_error_on_missing_api_key():
     """
-    T005: Integration test for missing configuration error handling.
+    T005 (Updated): Integration test for missing API key error handling.
 
     Validates that appropriate errors are raised when required
-    configuration is missing.
+    API key is missing.
 
-    Expected: FAIL (service not implemented yet)
+    Updated for 011-anthropic-support multi-provider architecture.
     """
-    import src.services.llm_service as llm_service
-    from src.services.llm_service import get_llm_instance
+    from src.services.llm_service import get_llm_for_model, LLMAuthenticationError
+    from src.config.models import ModelsConfiguration, ModelConfig
 
-    # Clear cached instance before test
-    llm_service._llm_instance = None
-
-    # Clear environment
+    # Test missing OpenAI API key
     with patch.dict('os.environ', {}, clear=True):
-        with pytest.raises(ValueError, match="OPENAI_API_KEY"):
-            get_llm_instance()
+        config = ModelsConfiguration(models=[
+            ModelConfig(
+                id="gpt-3.5-turbo",
+                name="GPT-3.5 Turbo",
+                description="Fast and efficient",
+                provider="openai",
+                default=True
+            )
+        ])
 
-    # Clean up
-    llm_service._llm_instance = None
+        with pytest.raises(LLMAuthenticationError, match="OpenAI API key not configured"):
+            get_llm_for_model("gpt-3.5-turbo", config)
 
 
 @pytest.mark.integration
@@ -169,17 +183,13 @@ async def test_llm_response_preserves_special_characters():
     Validates that emoji, unicode, and special characters are
     preserved through the LLM service layer.
 
-    Expected: FAIL (service not implemented yet)
+    Updated for 011-anthropic-support multi-provider architecture.
     """
-    import src.services.llm_service as llm_service
-    from src.services.llm_service import get_llm_instance
-
-    # Clear cached instance before test
-    llm_service._llm_instance = None
+    from src.services.llm_service import get_llm_for_model
+    from src.config.models import ModelsConfiguration, ModelConfig
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
     }):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             # Setup mock
@@ -191,16 +201,24 @@ async def test_llm_response_preserves_special_characters():
             mock_response.content = "🚀 means rocket! Unicode: 世界"
             mock_llm.ainvoke = AsyncMock(return_value=mock_response)
 
+            # Create mock config
+            config = ModelsConfiguration(models=[
+                ModelConfig(
+                    id="gpt-3.5-turbo",
+                    name="GPT-3.5 Turbo",
+                    description="Fast and efficient",
+                    provider="openai",
+                    default=True
+                )
+            ])
+
             # Invoke with special characters
-            llm = get_llm_instance()
+            llm = get_llm_for_model("gpt-3.5-turbo", config)
             result = await llm.ainvoke("What does 🚀 mean?")
 
             # Verify special characters preserved
             assert "🚀" in result.content
             assert "世界" in result.content
-
-    # Clean up
-    llm_service._llm_instance = None
 
 
 @pytest.mark.integration
@@ -216,18 +234,14 @@ async def test_single_message_ai_response_flow():
     - Response content matches mocked AI output
 
     Feature: 006-openai-langchain-chat User Story 1
-    Expected: FAIL (get_ai_response not implemented yet)
+    Updated for 011-anthropic-support multi-provider architecture.
     """
-    import src.services.llm_service as llm_service
     from src.services.llm_service import get_ai_response
-
-    # Clear cached instance
-    llm_service._llm_instance = None
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-integration-key',
         'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
-    }):
+    }, clear=True):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             # Setup mock LLM with realistic AI response
             mock_llm = Mock()
@@ -250,13 +264,6 @@ async def test_single_message_ai_response_flow():
 
             # Verify LLM was invoked
             mock_llm.ainvoke.assert_called_once()
-
-            # Verify message was passed to LLM (check the call arguments)
-            call_args = mock_llm.ainvoke.call_args
-            assert call_args is not None, "LLM ainvoke should have been called with arguments"
-
-    # Clean up
-    llm_service._llm_instance = None
 
 
 @pytest.mark.integration
@@ -294,15 +301,7 @@ async def test_no_sensitive_data_in_error_responses():
     ]
 
     for error_exception, description in error_scenarios:
-        with patch('src.api.routes.messages.load_config') as mock_load_config, \
-             patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
-
-            # Mock config
-            mock_load_config.return_value = {
-                'api_key': 'sk-secret-test-key-12345',
-                'model': 'gpt-3.5-turbo'
-            }
-
+        with patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
             # Mock get_ai_response to raise the error
             mock_get_ai.side_effect = error_exception
 

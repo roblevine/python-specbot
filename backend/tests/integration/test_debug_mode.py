@@ -18,7 +18,13 @@ def test_debug_mode_model_configuration_error():
     Verify that model configuration errors include debug info when DEBUG=true.
     """
     # Enable DEBUG mode with invalid configuration
-    with patch.dict(os.environ, {"DEBUG": "true", "OPENAI_MODELS": "invalid json"}):
+    # Use clear=True to avoid inheriting environment configs that may conflict
+    # Must include OPENAI_API_KEY to enable the OpenAI provider (so invalid JSON triggers error)
+    with patch.dict(os.environ, {
+        "DEBUG": "true",
+        "OPENAI_API_KEY": "test-key",
+        "OPENAI_MODELS": "invalid json"
+    }, clear=True):
         client = TestClient(app)
 
         # Request models endpoint
@@ -46,7 +52,13 @@ def test_debug_mode_disabled_hides_details():
     Verify that when DEBUG=false, detailed error information is NOT exposed.
     """
     # Disable DEBUG mode with invalid configuration
-    with patch.dict(os.environ, {"DEBUG": "false", "OPENAI_MODELS": "invalid json"}):
+    # Use clear=True to avoid inheriting environment configs that may conflict
+    # Must include OPENAI_API_KEY to enable the OpenAI provider (so invalid JSON triggers error)
+    with patch.dict(os.environ, {
+        "DEBUG": "false",
+        "OPENAI_API_KEY": "test-key",
+        "OPENAI_MODELS": "invalid json"
+    }, clear=True):
         client = TestClient(app)
 
         # Request models endpoint

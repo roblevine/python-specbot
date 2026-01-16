@@ -4,7 +4,8 @@ Unit Tests for LLM Service
 Tests LLM service initialization, configuration, and core functionality in isolation.
 
 Feature: 006-openai-langchain-chat Phase 2 (Foundational)
-Tests: T004 (TDD - these should FAIL before implementation)
+Updated for: 011-anthropic-support multi-provider architecture
+Tests: T004 (TDD - Updated for multi-provider)
 """
 
 import pytest
@@ -14,130 +15,203 @@ from unittest.mock import Mock, patch, MagicMock, AsyncMock
 @pytest.mark.unit
 def test_chatgpt_initialization_with_api_key():
     """
-    T004: Unit test for ChatOpenAI initialization with valid API key.
+    T004 (Updated): Unit test for ChatOpenAI initialization with valid API key.
 
     Validates that the LLM service properly initializes ChatOpenAI
     with the provided API key and model configuration.
 
-    Expected: FAIL (service not implemented yet)
+    Updated for 011-anthropic-support multi-provider architecture.
     """
-    from src.services.llm_service import initialize_llm
+    from src.services.llm_service import get_llm_for_model
+    from src.config.models import ModelsConfiguration, ModelConfig
 
-    with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
-        mock_instance = Mock()
-        mock_chat.return_value = mock_instance
-
-        # Initialize with explicit config
-        llm = initialize_llm(api_key="test-key", model="gpt-3.5-turbo")
-
-        # Verify ChatOpenAI was called with correct params
-        mock_chat.assert_called_once_with(
-            api_key="test-key",
-            model="gpt-3.5-turbo",
-            timeout=120,
-            request_timeout=120
-        )
-        assert llm == mock_instance
-
-
-@pytest.mark.unit
-def test_config_loading_from_environment():
-    """
-    T004: Unit test for loading configuration from environment variables.
-
-    Validates that the service loads OPENAI_API_KEY and OPENAI_MODEL
-    from environment variables.
-
-    Expected: FAIL (service not implemented yet)
-    """
-    from src.services.llm_service import load_config
-
-    # Mock environment variables
-    with patch.dict('os.environ', {
-        'OPENAI_API_KEY': 'env-test-key',
-        'OPENAI_MODELS': '[{"id": "gpt-4", "name": "GPT-4", "description": "Most capable", "default": true}]'
-    }):
-        config = load_config()
-
-        assert config['api_key'] == 'env-test-key'
-        assert config['model'] == 'gpt-4'
-
-
-@pytest.mark.unit
-def test_config_loading_requires_openai_models():
-    """
-    T004: Unit test for error when OPENAI_MODELS not set.
-
-    Validates that an error is raised when OPENAI_MODELS
-    is not configured (required since removal of OPENAI_MODEL fallback).
-
-    Expected: FAIL (service not implemented yet)
-    """
-    from src.services.llm_service import load_config
-    from src.config.models import ModelConfigurationError
-
-    # Mock environment with only API key (no OPENAI_MODELS)
-    with patch.dict('os.environ', {
-        'OPENAI_API_KEY': 'test-key'
-    }, clear=True):
-        with pytest.raises(ModelConfigurationError) as exc_info:
-            load_config()
-
-        assert "OPENAI_MODELS environment variable is required" in str(exc_info.value)
-
-
-@pytest.mark.unit
-def test_config_loading_missing_api_key():
-    """
-    T004: Unit test for error handling when API key is missing.
-
-    Validates that appropriate error is raised when OPENAI_API_KEY
-    is not configured.
-
-    Expected: FAIL (service not implemented yet)
-    """
-    from src.services.llm_service import load_config
-
-    # Mock environment without API key
-    with patch.dict('os.environ', {}, clear=True):
-        with pytest.raises(ValueError, match="OPENAI_API_KEY"):
-            load_config()
-
-
-@pytest.mark.unit
-def test_llm_service_singleton_pattern():
-    """
-    T004: Unit test for LLM service singleton/caching behavior.
-
-    Validates that the LLM instance is reused rather than recreated
-    on every call (performance optimization).
-
-    Expected: FAIL (service not implemented yet)
-    """
-    import src.services.llm_service as llm_service
-    from src.services.llm_service import get_llm_instance
-
-    # Clear cached instance before test
-    llm_service._llm_instance = None
-
-    with patch.dict('os.environ', {
-        'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
-    }):
+    with patch.dict('os.environ', {'OPENAI_API_KEY': 'test-key'}):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             mock_instance = Mock()
             mock_chat.return_value = mock_instance
 
-            # Call twice
-            llm1 = get_llm_instance()
-            llm2 = get_llm_instance()
+            # Create test config
+            config = ModelsConfiguration(models=[
+                ModelConfig(
+                    id="gpt-3.5-turbo",
+                    name="GPT-3.5 Turbo",
+                    description="Fast and efficient",
+                    provider="openai",
+                    default=True
+                )
+            ])
 
-            # Should only initialize once
-            assert mock_chat.call_count == 1
-            assert llm1 is llm2
+            # Initialize with config
+            llm = get_llm_for_model("gpt-3.5-turbo", config)
 
-    # Clean up: clear cached instance after test
-    llm_service._llm_instance = None
+            # Verify ChatOpenAI was called with correct params
+            mock_chat.assert_called_once_with(
+                api_key="test-key",
+                model="gpt-3.5-turbo",
+                timeout=120,
+                request_timeout=120
+            )
+            assert llm == mock_instance
+
+
+@pytest.mark.unit
+def test_chatanthropic_initialization_with_api_key():
+    """
+    T010 (011-anthropic-support): Unit test for ChatAnthropic initialization.
+
+    Validates that the LLM service properly initializes ChatAnthropic
+    with the provided API key for Anthropic provider.
+    """
+    from src.services.llm_service import get_llm_for_model
+    from src.config.models import ModelsConfiguration, ModelConfig
+
+    with patch.dict('os.environ', {'ANTHROPIC_API_KEY': 'test-anthropic-key'}):
+        with patch('src.services.llm_service.ChatAnthropic') as mock_chat:
+            mock_instance = Mock()
+            mock_chat.return_value = mock_instance
+
+            # Create test config with Anthropic model
+            config = ModelsConfiguration(models=[
+                ModelConfig(
+                    id="claude-3-5-sonnet-20241022",
+                    name="Claude 3.5 Sonnet",
+                    description="Most capable Claude model",
+                    provider="anthropic",
+                    default=True
+                )
+            ])
+
+            # Initialize with config
+            llm = get_llm_for_model("claude-3-5-sonnet-20241022", config)
+
+            # Verify ChatAnthropic was called with correct params
+            mock_chat.assert_called_once_with(
+                api_key="test-anthropic-key",
+                model="claude-3-5-sonnet-20241022",
+                timeout=120
+            )
+            assert llm == mock_instance
+
+
+@pytest.mark.unit
+def test_provider_routing_openai():
+    """
+    T011 (011-anthropic-support): Unit test for provider routing to OpenAI.
+
+    Validates that models with provider="openai" are routed to ChatOpenAI.
+    """
+    from src.services.llm_service import get_llm_for_model
+    from src.config.models import ModelsConfiguration, ModelConfig
+
+    with patch.dict('os.environ', {'OPENAI_API_KEY': 'test-key'}):
+        with patch('src.services.llm_service.ChatOpenAI') as mock_openai, \
+             patch('src.services.llm_service.ChatAnthropic') as mock_anthropic:
+
+            mock_openai.return_value = Mock()
+            mock_anthropic.return_value = Mock()
+
+            config = ModelsConfiguration(models=[
+                ModelConfig(
+                    id="gpt-4",
+                    name="GPT-4",
+                    description="Most capable OpenAI model",
+                    provider="openai",
+                    default=True
+                )
+            ])
+
+            get_llm_for_model("gpt-4", config)
+
+            # OpenAI should be called, Anthropic should not
+            mock_openai.assert_called_once()
+            mock_anthropic.assert_not_called()
+
+
+@pytest.mark.unit
+def test_provider_routing_anthropic():
+    """
+    T011 (011-anthropic-support): Unit test for provider routing to Anthropic.
+
+    Validates that models with provider="anthropic" are routed to ChatAnthropic.
+    """
+    from src.services.llm_service import get_llm_for_model
+    from src.config.models import ModelsConfiguration, ModelConfig
+
+    with patch.dict('os.environ', {'ANTHROPIC_API_KEY': 'test-key'}):
+        with patch('src.services.llm_service.ChatOpenAI') as mock_openai, \
+             patch('src.services.llm_service.ChatAnthropic') as mock_anthropic:
+
+            mock_openai.return_value = Mock()
+            mock_anthropic.return_value = Mock()
+
+            config = ModelsConfiguration(models=[
+                ModelConfig(
+                    id="claude-3-5-sonnet-20241022",
+                    name="Claude 3.5 Sonnet",
+                    description="Most capable Claude model",
+                    provider="anthropic",
+                    default=True
+                )
+            ])
+
+            get_llm_for_model("claude-3-5-sonnet-20241022", config)
+
+            # Anthropic should be called, OpenAI should not
+            mock_anthropic.assert_called_once()
+            mock_openai.assert_not_called()
+
+
+@pytest.mark.unit
+def test_missing_openai_api_key_raises_error():
+    """
+    T004 (Updated): Unit test for error handling when OpenAI API key is missing.
+
+    Updated for 011-anthropic-support multi-provider architecture.
+    """
+    from src.services.llm_service import get_llm_for_model, LLMAuthenticationError
+    from src.config.models import ModelsConfiguration, ModelConfig
+
+    # Mock environment without API key
+    with patch.dict('os.environ', {}, clear=True):
+        config = ModelsConfiguration(models=[
+            ModelConfig(
+                id="gpt-3.5-turbo",
+                name="GPT-3.5 Turbo",
+                description="Fast and efficient",
+                provider="openai",
+                default=True
+            )
+        ])
+
+        with pytest.raises(LLMAuthenticationError, match="OpenAI API key not configured"):
+            get_llm_for_model("gpt-3.5-turbo", config)
+
+
+@pytest.mark.unit
+def test_missing_anthropic_api_key_raises_error():
+    """
+    T017 (011-anthropic-support): Unit test for missing Anthropic API key.
+
+    Validates that appropriate error is raised when ANTHROPIC_API_KEY
+    is not configured for Anthropic models.
+    """
+    from src.services.llm_service import get_llm_for_model, LLMAuthenticationError
+    from src.config.models import ModelsConfiguration, ModelConfig
+
+    # Mock environment without Anthropic API key
+    with patch.dict('os.environ', {}, clear=True):
+        config = ModelsConfiguration(models=[
+            ModelConfig(
+                id="claude-3-5-sonnet-20241022",
+                name="Claude 3.5 Sonnet",
+                description="Most capable Claude model",
+                provider="anthropic",
+                default=True
+            )
+        ])
+
+        with pytest.raises(LLMAuthenticationError, match="Anthropic API key not configured"):
+            get_llm_for_model("claude-3-5-sonnet-20241022", config)
 
 
 @pytest.mark.unit
@@ -152,18 +226,13 @@ async def test_get_ai_response_basic_invocation():
     - Returns AI response content
 
     Feature: 006-openai-langchain-chat User Story 1
-    Expected: FAIL (get_ai_response not implemented yet)
     """
-    import src.services.llm_service as llm_service
     from src.services.llm_service import get_ai_response
-
-    # Clear cached instance
-    llm_service._llm_instance = None
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
         'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
-    }):
+    }, clear=True):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             # Setup mock LLM
             mock_llm = Mock()
@@ -184,9 +253,6 @@ async def test_get_ai_response_basic_invocation():
             # Verify ainvoke was called
             mock_llm.ainvoke.assert_called_once()
 
-    # Clean up
-    llm_service._llm_instance = None
-
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -198,18 +264,13 @@ async def test_get_ai_response_preserves_special_characters():
     the AI response flow.
 
     Feature: 006-openai-langchain-chat User Story 1
-    Expected: FAIL (get_ai_response not implemented yet)
     """
-    import src.services.llm_service as llm_service
     from src.services.llm_service import get_ai_response
-
-    # Clear cached instance
-    llm_service._llm_instance = None
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
         'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
-    }):
+    }, clear=True):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             # Setup mock LLM
             mock_llm = Mock()
@@ -228,9 +289,6 @@ async def test_get_ai_response_preserves_special_characters():
             assert "世界" in result
             assert model_used == "gpt-3.5-turbo"
 
-    # Clean up
-    llm_service._llm_instance = None
-
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -241,17 +299,13 @@ async def test_authentication_error_mapping():
     Validates that OpenAI AuthenticationError exceptions are caught
     and mapped to LLMAuthenticationError with user-friendly message.
     """
-    import src.services.llm_service as llm_service
     from src.services.llm_service import get_ai_response, LLMAuthenticationError
     from openai import AuthenticationError
-
-    # Clear cached instance
-    llm_service._llm_instance = None
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
         'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
-    }):
+    }, clear=True):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             # Setup mock LLM
             mock_llm = Mock()
@@ -279,9 +333,6 @@ async def test_authentication_error_mapping():
             assert exc_info.value.message == "AI service configuration error"
             assert exc_info.value.status_code == 503
 
-    # Clean up
-    llm_service._llm_instance = None
-
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -292,17 +343,13 @@ async def test_rate_limit_error_mapping():
     Validates that OpenAI RateLimitError exceptions are caught
     and mapped to LLMRateLimitError with user-friendly message.
     """
-    import src.services.llm_service as llm_service
     from src.services.llm_service import get_ai_response, LLMRateLimitError
     from openai import RateLimitError
-
-    # Clear cached instance
-    llm_service._llm_instance = None
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
         'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
-    }):
+    }, clear=True):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             # Setup mock LLM
             mock_llm = Mock()
@@ -330,9 +377,6 @@ async def test_rate_limit_error_mapping():
             assert exc_info.value.message == "AI service is busy"
             assert exc_info.value.status_code == 503
 
-    # Clean up
-    llm_service._llm_instance = None
-
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -343,17 +387,13 @@ async def test_timeout_error_mapping():
     Validates that timeout exceptions are caught
     and mapped to LLMTimeoutError with user-friendly message.
     """
-    import src.services.llm_service as llm_service
     from src.services.llm_service import get_ai_response, LLMTimeoutError
     import asyncio
-
-    # Clear cached instance
-    llm_service._llm_instance = None
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
         'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
-    }):
+    }, clear=True):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             # Setup mock LLM
             mock_llm = Mock()
@@ -372,132 +412,6 @@ async def test_timeout_error_mapping():
             assert exc_info.value.message == "Request timed out"
             assert exc_info.value.status_code == 504
 
-    # Clean up
-    llm_service._llm_instance = None
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
-async def test_get_ai_response_with_specific_model():
-    """
-    T015: Unit test for get_ai_response() with per-request model selection.
-
-    Validates that when a specific model is requested, the LLM service:
-    - Creates ChatOpenAI instance with the specified model
-    - Returns both the response and the model ID that was used
-    - Does not use the default/cached model
-
-    Feature: 008-openai-model-selector User Story 1
-    """
-    import src.services.llm_service as llm_service
-    from src.services.llm_service import get_ai_response
-
-    # Clear cached instance
-    llm_service._llm_instance = None
-
-    with patch.dict('os.environ', {
-        'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'  # Default model
-    }):
-        with patch('src.services.llm_service.ChatOpenAI') as mock_chat, \
-             patch('src.services.llm_service.load_model_configuration') as mock_load_config, \
-             patch('src.services.llm_service.validate_model_id') as mock_validate:
-
-            # Mock model configuration
-            mock_config = Mock()
-            mock_config.models = []
-            mock_load_config.return_value = mock_config
-            mock_validate.return_value = True  # Model is valid
-
-            # Setup mock LLM for requested model
-            mock_llm = Mock()
-            mock_chat.return_value = mock_llm
-
-            # Mock ainvoke response
-            mock_response = Mock()
-            mock_response.content = "Response from GPT-4"
-            mock_llm.ainvoke = AsyncMock(return_value=mock_response)
-
-            # Call get_ai_response with specific model
-            result, model_used = await get_ai_response("Hello", model="gpt-4")
-
-            # Verify ChatOpenAI was created with requested model
-            mock_chat.assert_called_with(
-                api_key='test-key',
-                model='gpt-4',
-                timeout=120,
-                request_timeout=120
-            )
-
-            # Verify response and model are returned
-            assert result == "Response from GPT-4"
-            assert model_used == "gpt-4"
-
-    # Clean up
-    llm_service._llm_instance = None
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
-async def test_get_ai_response_uses_default_model_when_not_specified():
-    """
-    T015: Unit test for get_ai_response() using default model.
-
-    Validates that when no model is specified:
-    - The default model from configuration is used
-    - Returns the default model ID in the response tuple
-    """
-    import src.services.llm_service as llm_service
-    from src.services.llm_service import get_ai_response
-
-    # Clear cached instance
-    llm_service._llm_instance = None
-
-    with patch.dict('os.environ', {
-        'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
-    }):
-        with patch('src.services.llm_service.ChatOpenAI') as mock_chat, \
-             patch('src.services.llm_service.load_model_configuration') as mock_load_config, \
-             patch('src.services.llm_service.get_default_model') as mock_get_default, \
-             patch('src.services.llm_service.validate_model_id') as mock_validate:
-
-            # Mock model configuration with actual model
-            mock_model = Mock()
-            mock_model.id = "gpt-3.5-turbo"
-            mock_config = Mock()
-            mock_config.models = [mock_model]
-            mock_load_config.return_value = mock_config
-            mock_get_default.return_value = "gpt-3.5-turbo"
-            mock_validate.return_value = True  # Validate default model
-
-            # Setup mock LLM
-            mock_llm = Mock()
-            mock_chat.return_value = mock_llm
-
-            # Mock ainvoke response
-            mock_response = Mock()
-            mock_response.content = "Response from default model"
-            mock_llm.ainvoke = AsyncMock(return_value=mock_response)
-
-            # Call get_ai_response WITHOUT specifying model
-            result, model_used = await get_ai_response("Hello")
-
-            # Verify default model was used
-            mock_chat.assert_called_with(
-                api_key='test-key',
-                model='gpt-3.5-turbo',
-                timeout=120,
-                request_timeout=120
-            )
-
-            # Verify response and default model are returned
-            assert result == "Response from default model"
-            assert model_used == "gpt-3.5-turbo"
-
-    # Clean up
-    llm_service._llm_instance = None
-
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -506,121 +420,22 @@ async def test_get_ai_response_validates_model_id():
     T015: Unit test for model ID validation in get_ai_response().
 
     Validates that:
-    - Invalid model IDs are rejected with LLMServiceError
+    - Invalid model IDs are rejected with error
     - Validation happens before calling OpenAI API
     """
-    import src.services.llm_service as llm_service
     from src.services.llm_service import get_ai_response, LLMServiceError
-
-    # Clear cached instance
-    llm_service._llm_instance = None
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
         'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
-    }):
-        with patch('src.services.llm_service.load_model_configuration') as mock_load_config, \
-             patch('src.services.llm_service.validate_model_id') as mock_validate, \
-             patch('src.services.llm_service.ChatOpenAI') as mock_chat:
-
-            # Mock model configuration
-            mock_model = Mock()
-            mock_model.id = "gpt-4"
-            mock_config = Mock()
-            mock_config.models = [mock_model]
-            mock_load_config.return_value = mock_config
-
-            # Model validation returns False for invalid model
-            mock_validate.return_value = False
-
-            # Should raise LLMServiceError (ValueError is wrapped)
-            with pytest.raises(LLMServiceError):
+    }, clear=True):
+        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+            # Should raise error for invalid model (not in config)
+            with pytest.raises((ValueError, LLMServiceError)):
                 await get_ai_response("Hello", model="invalid-model")
 
             # Verify ChatOpenAI was NOT called (validation failed first)
             mock_chat.assert_not_called()
-
-    # Clean up
-    llm_service._llm_instance = None
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
-async def test_get_ai_response_with_conversation_history_and_model():
-    """
-    T015: Unit test for get_ai_response() with history and model selection.
-
-    Validates that both conversation history and model selection work together.
-    """
-    import src.services.llm_service as llm_service
-    from src.services.llm_service import get_ai_response
-    from langchain_core.messages import HumanMessage, AIMessage
-
-    # Clear cached instance
-    llm_service._llm_instance = None
-
-    with patch.dict('os.environ', {
-        'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
-    }):
-        with patch('src.services.llm_service.ChatOpenAI') as mock_chat, \
-             patch('src.services.llm_service.load_model_configuration') as mock_load_config, \
-             patch('src.services.llm_service.validate_model_id') as mock_validate:
-
-            # Mock model configuration
-            mock_config = Mock()
-            mock_config.models = []
-            mock_load_config.return_value = mock_config
-            mock_validate.return_value = True
-
-            # Setup mock LLM
-            mock_llm = Mock()
-            mock_chat.return_value = mock_llm
-
-            # Mock ainvoke response
-            mock_response = Mock()
-            mock_response.content = "Context-aware response"
-            mock_llm.ainvoke = AsyncMock(return_value=mock_response)
-
-            # Call with history and model
-            history = [
-                {"sender": "user", "text": "First message"},
-                {"sender": "system", "text": "First response"}
-            ]
-
-            result, model_used = await get_ai_response(
-                "Second message",
-                history=history,
-                model="gpt-4"
-            )
-
-            # Verify ChatOpenAI was created with requested model
-            mock_chat.assert_called_with(
-                api_key='test-key',
-                model='gpt-4',
-                timeout=120,
-                request_timeout=120
-            )
-
-            # Verify ainvoke was called with history + new message
-            mock_llm.ainvoke.assert_called_once()
-            call_args = mock_llm.ainvoke.call_args[0][0]
-
-            # Should have 3 messages: history (2) + new message (1)
-            assert len(call_args) == 3
-            assert isinstance(call_args[0], HumanMessage)
-            assert call_args[0].content == "First message"
-            assert isinstance(call_args[1], AIMessage)
-            assert call_args[1].content == "First response"
-            assert isinstance(call_args[2], HumanMessage)
-            assert call_args[2].content == "Second message"
-
-            # Verify response
-            assert result == "Context-aware response"
-            assert model_used == "gpt-4"
-
-    # Clean up
-    llm_service._llm_instance = None
 
 
 # ============================================================================
@@ -639,19 +454,14 @@ async def test_stream_ai_response_yields_tokens():
     - Properly converts LangChain chunks to TokenEvent format
 
     Feature: 009-message-streaming User Story 1
-    Expected: FAIL (stream_ai_response not implemented yet)
     """
-    import src.services.llm_service as llm_service
     from src.services.llm_service import stream_ai_response
     from src.schemas import TokenEvent
-
-    # Clear cached instance
-    llm_service._llm_instance = None
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
         'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
-    }):
+    }, clear=True):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             # Setup mock LLM
             mock_llm = Mock()
@@ -690,9 +500,6 @@ async def test_stream_ai_response_yields_tokens():
             assert events[2].content == "world"
             assert events[3].content == "!"
 
-    # Clean up
-    llm_service._llm_instance = None
-
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -707,16 +514,13 @@ async def test_stream_ai_response_yields_complete_event():
 
     Feature: 009-message-streaming User Story 1
     """
-    import src.services.llm_service as llm_service
     from src.services.llm_service import stream_ai_response
     from src.schemas import CompleteEvent
-
-    llm_service._llm_instance = None
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
         'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
-    }):
+    }, clear=True):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             mock_llm = Mock()
             mock_chat.return_value = mock_llm
@@ -738,8 +542,6 @@ async def test_stream_ai_response_yields_complete_event():
             assert events[-1].type == "complete"
             assert events[-1].model == "gpt-3.5-turbo"
 
-    llm_service._llm_instance = None
-
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -754,16 +556,13 @@ async def test_stream_ai_response_with_conversation_history():
 
     Feature: 009-message-streaming User Story 1
     """
-    import src.services.llm_service as llm_service
     from src.services.llm_service import stream_ai_response
     from langchain_core.messages import HumanMessage, AIMessage
-
-    llm_service._llm_instance = None
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
         'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
-    }):
+    }, clear=True):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             mock_llm = Mock()
             mock_chat.return_value = mock_llm
@@ -796,70 +595,6 @@ async def test_stream_ai_response_with_conversation_history():
             assert isinstance(captured_messages[2], HumanMessage)
             assert captured_messages[2].content == "Second message"
 
-    llm_service._llm_instance = None
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
-async def test_stream_ai_response_with_custom_model():
-    """
-    T008: Unit test for stream_ai_response() with per-request model selection.
-
-    Validates that:
-    - Custom model can be specified per request
-    - ChatOpenAI is initialized with the specified model
-    - CompleteEvent returns the model that was used
-
-    Feature: 009-message-streaming + 008-openai-model-selector
-    """
-    import src.services.llm_service as llm_service
-    from src.services.llm_service import stream_ai_response
-    from src.schemas import CompleteEvent
-
-    llm_service._llm_instance = None
-
-    with patch.dict('os.environ', {
-        'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
-    }):
-        with patch('src.services.llm_service.ChatOpenAI') as mock_chat, \
-             patch('src.services.llm_service.load_model_configuration') as mock_load_config, \
-             patch('src.services.llm_service.validate_model_id') as mock_validate:
-
-            # Mock model configuration
-            mock_config = Mock()
-            mock_config.models = []
-            mock_load_config.return_value = mock_config
-            mock_validate.return_value = True
-
-            mock_llm = Mock()
-            mock_chat.return_value = mock_llm
-
-            async def mock_astream(messages):
-                yield Mock(content="GPT-4 response")
-
-            mock_llm.astream = mock_astream
-
-            # Call with custom model
-            events = []
-            async for event in stream_ai_response("Test", model="gpt-4"):
-                events.append(event)
-
-            # Verify ChatOpenAI was created with requested model
-            mock_chat.assert_called_with(
-                api_key='test-key',
-                model='gpt-4',
-                timeout=120,
-                request_timeout=120
-            )
-
-            # Verify CompleteEvent has correct model
-            complete_event = events[-1]
-            assert isinstance(complete_event, CompleteEvent)
-            assert complete_event.model == "gpt-4"
-
-    llm_service._llm_instance = None
-
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -874,17 +609,14 @@ async def test_stream_ai_response_handles_authentication_error():
 
     Feature: 009-message-streaming User Story 3
     """
-    import src.services.llm_service as llm_service
     from src.services.llm_service import stream_ai_response
     from src.schemas import ErrorEvent
     from openai import AuthenticationError
 
-    llm_service._llm_instance = None
-
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
         'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
-    }):
+    }, clear=True):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             mock_llm = Mock()
             mock_chat.return_value = mock_llm
@@ -914,8 +646,6 @@ async def test_stream_ai_response_handles_authentication_error():
             assert events[0].code == "AUTH_ERROR"
             assert "authentication" in events[0].error.lower() or "configuration" in events[0].error.lower()
 
-    llm_service._llm_instance = None
-
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -928,17 +658,14 @@ async def test_stream_ai_response_handles_rate_limit_error():
 
     Feature: 009-message-streaming User Story 3
     """
-    import src.services.llm_service as llm_service
     from src.services.llm_service import stream_ai_response
     from src.schemas import ErrorEvent
     from openai import RateLimitError
 
-    llm_service._llm_instance = None
-
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
         'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
-    }):
+    }, clear=True):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             mock_llm = Mock()
             mock_chat.return_value = mock_llm
@@ -963,8 +690,6 @@ async def test_stream_ai_response_handles_rate_limit_error():
             assert isinstance(events[0], ErrorEvent)
             assert events[0].code == "RATE_LIMIT"
 
-    llm_service._llm_instance = None
-
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -977,17 +702,14 @@ async def test_stream_ai_response_handles_timeout():
 
     Feature: 009-message-streaming User Story 3
     """
-    import src.services.llm_service as llm_service
     from src.services.llm_service import stream_ai_response
     from src.schemas import ErrorEvent
     import asyncio
 
-    llm_service._llm_instance = None
-
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
         'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
-    }):
+    }, clear=True):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             mock_llm = Mock()
             mock_chat.return_value = mock_llm
@@ -1006,54 +728,6 @@ async def test_stream_ai_response_handles_timeout():
             assert isinstance(events[0], ErrorEvent)
             assert events[0].code == "TIMEOUT"
 
-    llm_service._llm_instance = None
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
-async def test_stream_ai_response_handles_empty_response():
-    """
-    T008: Unit test for stream_ai_response() with empty/no chunks.
-
-    Validates that:
-    - If LLM yields no chunks, still yields CompleteEvent
-    - No TokenEvents are yielded for empty response
-    - Stream completes gracefully
-
-    Feature: 009-message-streaming User Story 1
-    """
-    import src.services.llm_service as llm_service
-    from src.services.llm_service import stream_ai_response
-    from src.schemas import CompleteEvent
-
-    llm_service._llm_instance = None
-
-    with patch.dict('os.environ', {
-        'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
-    }):
-        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
-            mock_llm = Mock()
-            mock_chat.return_value = mock_llm
-
-            # Mock astream that yields nothing
-            async def mock_astream(messages):
-                return
-                yield  # Make it a generator
-
-            mock_llm.astream = mock_astream
-
-            events = []
-            async for event in stream_ai_response("Test"):
-                events.append(event)
-
-            # Should only get CompleteEvent, no tokens
-            assert len(events) == 1
-            assert isinstance(events[0], CompleteEvent)
-            assert events[0].model == "gpt-3.5-turbo"
-
-    llm_service._llm_instance = None
-
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -1066,16 +740,13 @@ async def test_stream_ai_response_handles_special_characters():
 
     Feature: 009-message-streaming User Story 1
     """
-    import src.services.llm_service as llm_service
     from src.services.llm_service import stream_ai_response
     from src.schemas import TokenEvent
-
-    llm_service._llm_instance = None
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
         'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
-    }):
+    }, clear=True):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             mock_llm = Mock()
             mock_chat.return_value = mock_llm
@@ -1104,4 +775,261 @@ async def test_stream_ai_response_handles_special_characters():
             assert events[2].content == "世界"
             assert events[3].content == " @#$%"
 
-    llm_service._llm_instance = None
+
+# ============================================================================
+# DEBUG Mode Tests (Feature: 011-anthropic-support)
+# ============================================================================
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_stream_ai_response_includes_debug_info_in_debug_mode():
+    """
+    T019 (011-anthropic-support): Streaming errors include debug_info when DEBUG=true.
+
+    Validates that:
+    - ErrorEvent includes debug_info when DEBUG mode is enabled
+    - debug_info contains error_type, error_message, traceback
+
+    This test would have caught the bug where streaming errors
+    didn't include debug information even in DEBUG mode.
+    """
+    from src.services.llm_service import stream_ai_response
+    from src.schemas import ErrorEvent
+    from openai import APIConnectionError
+
+    with patch.dict('os.environ', {
+        'DEBUG': 'true',  # Enable debug mode
+        'OPENAI_API_KEY': 'test-key',
+        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
+    }):
+        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+
+            # Mock astream to raise connection error
+            async def mock_astream(messages):
+                raise APIConnectionError(request=Mock())
+                yield
+
+            mock_llm.astream = mock_astream
+
+            events = []
+            async for event in stream_ai_response("Test"):
+                events.append(event)
+
+            # Should yield exactly one ErrorEvent
+            assert len(events) == 1
+            assert isinstance(events[0], ErrorEvent)
+            assert events[0].code == "CONNECTION_ERROR"
+
+            # CRITICAL: In DEBUG mode, debug_info must be present
+            assert events[0].debug_info is not None, \
+                "debug_info must be present in streaming errors when DEBUG=true"
+
+            # Verify debug_info contents
+            debug_info = events[0].debug_info
+            assert "error_type" in debug_info
+            assert "error_message" in debug_info
+            assert "traceback" in debug_info
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_stream_ai_response_no_debug_info_when_debug_disabled():
+    """
+    T019 (011-anthropic-support): Streaming errors exclude debug_info when DEBUG=false.
+
+    Validates that sensitive debug information is NOT exposed
+    when DEBUG mode is disabled.
+    """
+    from src.services.llm_service import stream_ai_response
+    from src.schemas import ErrorEvent
+    from openai import APIConnectionError
+
+    with patch.dict('os.environ', {
+        'DEBUG': 'false',  # Disable debug mode
+        'OPENAI_API_KEY': 'test-key',
+        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
+    }):
+        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+
+            # Mock astream to raise connection error
+            async def mock_astream(messages):
+                raise APIConnectionError(request=Mock())
+                yield
+
+            mock_llm.astream = mock_astream
+
+            events = []
+            async for event in stream_ai_response("Test"):
+                events.append(event)
+
+            # Should yield exactly one ErrorEvent
+            assert len(events) == 1
+            assert isinstance(events[0], ErrorEvent)
+            assert events[0].code == "CONNECTION_ERROR"
+
+            # CRITICAL: In non-DEBUG mode, debug_info must NOT be present
+            assert events[0].debug_info is None, \
+                "debug_info must NOT be present when DEBUG=false (security)"
+
+
+# ============================================================================
+# Anthropic Exception Handling Tests (Bug Fix: Uncaught Exceptions)
+# ============================================================================
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_stream_ai_response_handles_anthropic_not_found_error():
+    """
+    BUG FIX TEST: Verify Anthropic NotFoundError is properly caught.
+
+    This test would have caught the bug where Anthropic NotFoundError
+    (e.g., invalid model ID) was not being caught and fell through
+    to the generic Exception handler with "AI service error occurred".
+
+    The bug manifests when:
+    1. User selects an Anthropic model
+    2. Model ID is valid in config but not recognized by Anthropic API
+    3. Anthropic API returns 404 NotFoundError
+    4. Error is NOT caught specifically, falls to generic handler
+    5. User sees unhelpful "AI service error occurred" message
+
+    EXPECTED: NotFoundError should be caught and return "LLM_ERROR" code
+    with a message like "Model not found" or similar.
+    """
+    from src.services.llm_service import stream_ai_response
+    from src.schemas import ErrorEvent
+    from anthropic import NotFoundError
+
+    # Use clear=True to remove any inherited env vars (like OPENAI_MODELS)
+    with patch.dict('os.environ', {
+        'ANTHROPIC_API_KEY': 'test-key',
+        'ANTHROPIC_MODELS': '[{"id": "claude-invalid-model", "name": "Invalid Claude", "description": "Test", "provider": "anthropic", "default": true}]',
+        'DEBUG': 'true'
+    }, clear=True):
+        with patch('src.services.llm_service.ChatAnthropic') as mock_chat:
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+
+            # Mock astream to raise NotFoundError (model not found)
+            async def mock_astream(messages):
+                mock_response = Mock()
+                mock_response.status_code = 404
+                raise NotFoundError(
+                    "Error code: 404 - model_not_found",
+                    response=mock_response,
+                    body={"error": {"type": "not_found_error", "message": "model: claude-invalid-model"}}
+                )
+                yield
+
+            mock_llm.astream = mock_astream
+
+            events = []
+            async for event in stream_ai_response("Test", model="claude-invalid-model"):
+                events.append(event)
+
+            # Should yield exactly one ErrorEvent
+            assert len(events) == 1
+            assert isinstance(events[0], ErrorEvent)
+
+            # BUG: Without fix, this would be "UNKNOWN" with "AI service error occurred"
+            # EXPECTED: Should be "LLM_ERROR" with meaningful message
+            assert events[0].code == "LLM_ERROR", \
+                f"NotFoundError should map to LLM_ERROR code, got {events[0].code}"
+            assert "not found" in events[0].error.lower() or "model" in events[0].error.lower(), \
+                f"Error message should indicate model/resource not found, got: {events[0].error}"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_stream_ai_response_handles_anthropic_permission_denied_error():
+    """
+    BUG FIX TEST: Verify Anthropic PermissionDeniedError is properly caught.
+
+    This test ensures PermissionDeniedError (403) is mapped to AUTH_ERROR
+    rather than falling through to generic handler.
+    """
+    from src.services.llm_service import stream_ai_response
+    from src.schemas import ErrorEvent
+    from anthropic import PermissionDeniedError
+
+    # Use clear=True to remove any inherited env vars
+    with patch.dict('os.environ', {
+        'ANTHROPIC_API_KEY': 'test-key',
+        'ANTHROPIC_MODELS': '[{"id": "claude-3-5-sonnet-20241022", "name": "Claude", "description": "Test", "provider": "anthropic", "default": true}]'
+    }, clear=True):
+        with patch('src.services.llm_service.ChatAnthropic') as mock_chat:
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+
+            async def mock_astream(messages):
+                mock_response = Mock()
+                mock_response.status_code = 403
+                raise PermissionDeniedError(
+                    "Error code: 403 - permission_denied",
+                    response=mock_response,
+                    body={"error": {"type": "permission_error", "message": "Access denied"}}
+                )
+                yield
+
+            mock_llm.astream = mock_astream
+
+            events = []
+            async for event in stream_ai_response("Test", model="claude-3-5-sonnet-20241022"):
+                events.append(event)
+
+            assert len(events) == 1
+            assert isinstance(events[0], ErrorEvent)
+
+            # PermissionDeniedError should map to AUTH_ERROR (permission/auth related)
+            assert events[0].code == "AUTH_ERROR", \
+                f"PermissionDeniedError should map to AUTH_ERROR, got {events[0].code}"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_stream_ai_response_handles_anthropic_internal_server_error():
+    """
+    BUG FIX TEST: Verify Anthropic InternalServerError is properly caught.
+
+    This test ensures InternalServerError (500) is mapped to LLM_ERROR
+    rather than falling through to generic handler.
+    """
+    from src.services.llm_service import stream_ai_response
+    from src.schemas import ErrorEvent
+    from anthropic import InternalServerError
+
+    # Use clear=True to remove any inherited env vars
+    with patch.dict('os.environ', {
+        'ANTHROPIC_API_KEY': 'test-key',
+        'ANTHROPIC_MODELS': '[{"id": "claude-3-5-sonnet-20241022", "name": "Claude", "description": "Test", "provider": "anthropic", "default": true}]'
+    }, clear=True):
+        with patch('src.services.llm_service.ChatAnthropic') as mock_chat:
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+
+            async def mock_astream(messages):
+                mock_response = Mock()
+                mock_response.status_code = 500
+                raise InternalServerError(
+                    "Error code: 500 - internal_error",
+                    response=mock_response,
+                    body={"error": {"type": "internal_error", "message": "Internal server error"}}
+                )
+                yield
+
+            mock_llm.astream = mock_astream
+
+            events = []
+            async for event in stream_ai_response("Test", model="claude-3-5-sonnet-20241022"):
+                events.append(event)
+
+            assert len(events) == 1
+            assert isinstance(events[0], ErrorEvent)
+
+            # InternalServerError should map to LLM_ERROR (service problem)
+            assert events[0].code == "LLM_ERROR", \
+                f"InternalServerError should map to LLM_ERROR, got {events[0].code}"

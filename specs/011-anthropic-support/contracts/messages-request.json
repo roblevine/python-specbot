@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Messages Request",
+  "description": "POST /api/v1/messages request - unchanged, supports multi-provider via model field",
+  "type": "object",
+  "required": ["message"],
+  "properties": {
+    "message": {
+      "type": "string",
+      "minLength": 1,
+      "description": "User message text"
+    },
+    "history": {
+      "type": "array",
+      "description": "Previous conversation messages for context",
+      "items": {
+        "type": "object",
+        "required": ["sender", "text"],
+        "properties": {
+          "sender": {
+            "type": "string",
+            "enum": ["user", "system"],
+            "description": "Message sender type"
+          },
+          "text": {
+            "type": "string",
+            "description": "Message content"
+          }
+        }
+      }
+    },
+    "model": {
+      "type": "string",
+      "description": "Model ID to use for this request. Backend routes to correct provider based on model's provider field."
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "message": "Hello, how are you?",
+      "model": "claude-3-5-sonnet-20241022"
+    },
+    {
+      "message": "What did I just ask?",
+      "history": [
+        {"sender": "user", "text": "Hello, how are you?"},
+        {"sender": "system", "text": "Hello! I'm doing well, thank you for asking."}
+      ],
+      "model": "gpt-4"
+    }
+  ]
+}

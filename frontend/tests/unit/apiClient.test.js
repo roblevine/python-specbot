@@ -119,8 +119,9 @@ describe('streamMessage', () => {
     // Wait for async operations
     await new Promise(resolve => setTimeout(resolve, 10))
 
+    // URL may have base URL prefix depending on VITE_API_BASE_URL env var
     expect(global.fetch).toHaveBeenCalledWith(
-      '/api/v1/messages',
+      expect.stringMatching(/\/api\/v1\/messages$/),
       expect.objectContaining({
         method: 'POST',
         headers: expect.objectContaining({

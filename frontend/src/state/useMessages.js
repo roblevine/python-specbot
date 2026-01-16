@@ -142,10 +142,10 @@ export function useMessages() {
         },
         // onError callback
         (errorEvent) => {
-          errorStreaming(errorEvent.error, errorEvent.code)
+          errorStreaming(errorEvent.error, errorEvent.code, errorEvent.debug_info)
           setProcessing(false)
           setError(`Streaming error: ${errorEvent.error}`)
-          logger.error('Streaming error', { error: errorEvent.error, code: errorEvent.code })
+          logger.error('Streaming error', { error: errorEvent.error, code: errorEvent.code, debug_info: errorEvent.debug_info })
         },
         // history
         conversationHistory,
@@ -290,8 +290,9 @@ export function useMessages() {
    * T018: Handle streaming error
    * @param {string} errorMsg - Error message
    * @param {string} errorCode - Error code
+   * @param {Object} debugInfo - Optional debug information (only in DEBUG mode)
    */
-  function errorStreaming(errorMsg, errorCode) {
+  function errorStreaming(errorMsg, errorCode, debugInfo = null) {
     if (!streamingMessage.value || !activeConversation.value) {
       logger.warn('Cannot handle streaming error: no active streaming message')
       return
@@ -306,6 +307,11 @@ export function useMessages() {
       errorMessage: errorMsg,
       errorType: errorCode,
       errorTimestamp: new Date().toISOString(),
+    }
+
+    // Include debug info as errorDetails if available (only present when backend DEBUG=true)
+    if (debugInfo) {
+      errorMessage.errorDetails = JSON.stringify(debugInfo, null, 2)
     }
 
     // Add error message to conversation
