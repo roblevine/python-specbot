@@ -407,3 +407,354 @@ class TestGetModelById:
         model = get_model_by_id("gpt-5", config)
 
         assert model is None
+
+
+# =============================================================================
+# Phase 3b: Unified MODELS Configuration Tests (T046-T048)
+# Feature: 012-modular-model-providers
+# =============================================================================
+
+
+class TestUnifiedModelsConfiguration:
+    """T046: Tests for loading models from a single unified MODELS env var."""
+
+    def test_load_from_unified_models_env_var(self, monkeypatch):
+        """Test loading configuration from single MODELS environment variable."""
+        # Set up unified MODELS with models from multiple providers
+        models_json = json.dumps([
+            {
+                "id": "gpt-4",
+                "name": "GPT-4",
+                "description": "Most capable OpenAI model",
+                "provider": "openai",
+                "default": False
+            },
+            {
+                "id": "gpt-3.5-turbo",
+                "name": "GPT-3.5 Turbo",
+                "description": "Fast and efficient",
+                "provider": "openai",
+                "default": True
+            },
+            {
+                "id": "claude-3-5-sonnet-20241022",
+                "name": "Claude 3.5 Sonnet",
+                "description": "Most capable Claude model",
+                "provider": "anthropic",
+                "default": False
+            }
+        ])
+
+        monkeypatch.setenv('MODELS', models_json)
+        monkeypatch.setenv('OPENAI_API_KEY', 'sk-test-key')
+        monkeypatch.setenv('ANTHROPIC_API_KEY', 'sk-ant-test-key')
+        # Clear legacy env vars to ensure unified loading
+        monkeypatch.delenv('OPENAI_MODELS', raising=False)
+        monkeypatch.delenv('ANTHROPIC_MODELS', raising=False)
+
+        config = load_model_configuration()
+
+        assert len(config.models) == 3
+        # Check OpenAI models
+        openai_models = [m for m in config.models if m.provider == "openai"]
+        assert len(openai_models) == 2
+        # Check Anthropic models
+        anthropic_models = [m for m in config.models if m.provider == "anthropic"]
+        assert len(anthropic_models) == 1
+        assert anthropic_models[0].id == "claude-3-5-sonnet-20241022"
+
+    def test_unified_models_with_single_provider(self, monkeypatch):
+        """Test unified MODELS works with only one provider."""
+        models_json = json.dumps([
+            {
+                "id": "gpt-4",
+                "name": "GPT-4",
+                "description": "Most capable OpenAI model",
+                "provider": "openai",
+                "default": True
+            }
+        ])
+
+        monkeypatch.setenv('MODELS', models_json)
+        monkeypatch.setenv('OPENAI_API_KEY', 'sk-test-key')
+        monkeypatch.delenv('ANTHROPIC_API_KEY', raising=False)
+        monkeypatch.delenv('OPENAI_MODELS', raising=False)
+        monkeypatch.delenv('ANTHROPIC_MODELS', raising=False)
+
+        config = load_model_configuration()
+
+        assert len(config.models) == 1
+        assert config.models[0].id == "gpt-4"
+        assert config.models[0].provider == "openai"
+
+    def test_unified_models_rejects_invalid_json(self, monkeypatch):
+        """Test that invalid JSON in MODELS raises error."""
+        monkeypatch.setenv('MODELS', 'not valid json')
+        monkeypatch.setenv('OPENAI_API_KEY', 'sk-test-key')
+        monkeypatch.delenv('OPENAI_MODELS', raising=False)
+        monkeypatch.delenv('ANTHROPIC_MODELS', raising=False)
+
+        with pytest.raises(ModelConfigurationError) as exc_info:
+            load_model_configuration()
+
+        assert "Invalid JSON in MODELS" in str(exc_info.value)
+
+    def test_unified_models_rejects_non_array_json(self, monkeypatch):
+        """Test that non-array JSON in MODELS is rejected."""
+        monkeypatch.setenv('MODELS', '{"not": "an array"}')
+        monkeypatch.setenv('OPENAI_API_KEY', 'sk-test-key')
+        monkeypatch.delenv('OPENAI_MODELS', raising=False)
+        monkeypatch.delenv('ANTHROPIC_MODELS', raising=False)
+
+        with pytest.raises(ModelConfigurationError) as exc_info:
+            load_model_configuration()
+
+        assert "MODELS must be a JSON array" in str(exc_info.value)
+
+
+class TestBackwardCompatibility:
+    """T047: Tests for backward compatibility with legacy env vars."""
+
+    def test_fallback_to_legacy_vars_when_models_not_set(self, monkeypatch):
+        """Test fallback to OPENAI_MODELS/ANTHROPIC_MODELS when MODELS not set."""
+        # Legacy configuration (no unified MODELS)
+        openai_json = json.dumps([
+            {
+                "id": "gpt-4",
+                "name": "GPT-4",
+                "description": "Most capable",
+                "default": True
+            }
+        ])
+        anthropic_json = json.dumps([
+            {
+                "id": "claude-3-5-sonnet-20241022",
+                "name": "Claude 3.5 Sonnet",
+                "description": "Most capable Claude",
+                "default": False
+            }
+        ])
+
+        monkeypatch.delenv('MODELS', raising=False)
+        monkeypatch.setenv('OPENAI_MODELS', openai_json)
+        monkeypatch.setenv('ANTHROPIC_MODELS', anthropic_json)
+        monkeypatch.setenv('OPENAI_API_KEY', 'sk-test-key')
+        monkeypatch.setenv('ANTHROPIC_API_KEY', 'sk-ant-test-key')
+
+        config = load_model_configuration()
+
+        assert len(config.models) == 2
+        model_ids = [m.id for m in config.models]
+        assert "gpt-4" in model_ids
+        assert "claude-3-5-sonnet-20241022" in model_ids
+
+    def test_unified_models_takes_precedence_over_legacy(self, monkeypatch):
+        """Test that MODELS env var takes precedence over legacy vars."""
+        # Set up both unified and legacy configs
+        unified_json = json.dumps([
+            {
+                "id": "gpt-4-unified",
+                "name": "GPT-4 Unified",
+                "description": "From unified config",
+                "provider": "openai",
+                "default": True
+            }
+        ])
+        legacy_json = json.dumps([
+            {
+                "id": "gpt-4-legacy",
+                "name": "GPT-4 Legacy",
+                "description": "From legacy config",
+                "default": True
+            }
+        ])
+
+        monkeypatch.setenv('MODELS', unified_json)
+        monkeypatch.setenv('OPENAI_MODELS', legacy_json)
+        monkeypatch.setenv('OPENAI_API_KEY', 'sk-test-key')
+        monkeypatch.delenv('ANTHROPIC_API_KEY', raising=False)
+        monkeypatch.delenv('ANTHROPIC_MODELS', raising=False)
+
+        config = load_model_configuration()
+
+        # Should only have the model from unified config
+        assert len(config.models) == 1
+        assert config.models[0].id == "gpt-4-unified"
+
+    def test_legacy_vars_still_work_for_single_provider(self, monkeypatch):
+        """Test that legacy OPENAI_MODELS still works when MODELS not set."""
+        openai_json = json.dumps([
+            {
+                "id": "gpt-3.5-turbo",
+                "name": "GPT-3.5 Turbo",
+                "description": "Fast model",
+                "default": True
+            }
+        ])
+
+        monkeypatch.delenv('MODELS', raising=False)
+        monkeypatch.setenv('OPENAI_MODELS', openai_json)
+        monkeypatch.setenv('OPENAI_API_KEY', 'sk-test-key')
+        monkeypatch.delenv('ANTHROPIC_API_KEY', raising=False)
+        monkeypatch.delenv('ANTHROPIC_MODELS', raising=False)
+
+        config = load_model_configuration()
+
+        assert len(config.models) == 1
+        assert config.models[0].id == "gpt-3.5-turbo"
+        assert config.models[0].provider == "openai"
+
+
+class TestProviderFiltering:
+    """T048: Tests for filtering models based on provider API key availability."""
+
+    def test_filters_out_models_when_api_key_missing(self, monkeypatch):
+        """Test that models are filtered when their provider's API key is missing."""
+        models_json = json.dumps([
+            {
+                "id": "gpt-4",
+                "name": "GPT-4",
+                "description": "OpenAI model",
+                "provider": "openai",
+                "default": True
+            },
+            {
+                "id": "claude-3-5-sonnet-20241022",
+                "name": "Claude 3.5 Sonnet",
+                "description": "Anthropic model",
+                "provider": "anthropic",
+                "default": False
+            }
+        ])
+
+        monkeypatch.setenv('MODELS', models_json)
+        monkeypatch.setenv('OPENAI_API_KEY', 'sk-test-key')
+        # Anthropic API key NOT set - should filter out Claude models
+        monkeypatch.delenv('ANTHROPIC_API_KEY', raising=False)
+        monkeypatch.delenv('OPENAI_MODELS', raising=False)
+        monkeypatch.delenv('ANTHROPIC_MODELS', raising=False)
+
+        config = load_model_configuration()
+
+        # Should only have OpenAI models
+        assert len(config.models) == 1
+        assert config.models[0].id == "gpt-4"
+        assert config.models[0].provider == "openai"
+
+    def test_filters_out_openai_when_key_missing(self, monkeypatch):
+        """Test that OpenAI models are filtered when OPENAI_API_KEY is missing."""
+        models_json = json.dumps([
+            {
+                "id": "gpt-4",
+                "name": "GPT-4",
+                "description": "OpenAI model",
+                "provider": "openai",
+                "default": False
+            },
+            {
+                "id": "claude-3-5-sonnet-20241022",
+                "name": "Claude 3.5 Sonnet",
+                "description": "Anthropic model",
+                "provider": "anthropic",
+                "default": True
+            }
+        ])
+
+        monkeypatch.setenv('MODELS', models_json)
+        monkeypatch.delenv('OPENAI_API_KEY', raising=False)
+        monkeypatch.setenv('ANTHROPIC_API_KEY', 'sk-ant-test-key')
+        monkeypatch.delenv('OPENAI_MODELS', raising=False)
+        monkeypatch.delenv('ANTHROPIC_MODELS', raising=False)
+
+        config = load_model_configuration()
+
+        # Should only have Anthropic models
+        assert len(config.models) == 1
+        assert config.models[0].id == "claude-3-5-sonnet-20241022"
+        assert config.models[0].provider == "anthropic"
+
+    def test_raises_error_when_all_providers_disabled(self, monkeypatch):
+        """Test error when no provider API keys are configured."""
+        models_json = json.dumps([
+            {
+                "id": "gpt-4",
+                "name": "GPT-4",
+                "description": "OpenAI model",
+                "provider": "openai",
+                "default": True
+            }
+        ])
+
+        monkeypatch.setenv('MODELS', models_json)
+        monkeypatch.delenv('OPENAI_API_KEY', raising=False)
+        monkeypatch.delenv('ANTHROPIC_API_KEY', raising=False)
+        monkeypatch.delenv('OPENAI_MODELS', raising=False)
+        monkeypatch.delenv('ANTHROPIC_MODELS', raising=False)
+
+        with pytest.raises(ModelConfigurationError) as exc_info:
+            load_model_configuration()
+
+        assert "No AI providers configured" in str(exc_info.value)
+
+    def test_adjusts_default_when_default_model_filtered(self, monkeypatch):
+        """Test that a new default is selected when the default model's provider is disabled."""
+        models_json = json.dumps([
+            {
+                "id": "gpt-4",
+                "name": "GPT-4",
+                "description": "OpenAI model",
+                "provider": "openai",
+                "default": False
+            },
+            {
+                "id": "claude-3-5-sonnet-20241022",
+                "name": "Claude 3.5 Sonnet",
+                "description": "Anthropic model - default but provider disabled",
+                "provider": "anthropic",
+                "default": True
+            }
+        ])
+
+        monkeypatch.setenv('MODELS', models_json)
+        monkeypatch.setenv('OPENAI_API_KEY', 'sk-test-key')
+        monkeypatch.delenv('ANTHROPIC_API_KEY', raising=False)
+        monkeypatch.delenv('OPENAI_MODELS', raising=False)
+        monkeypatch.delenv('ANTHROPIC_MODELS', raising=False)
+
+        config = load_model_configuration()
+
+        # Should only have OpenAI model, and it should now be default
+        assert len(config.models) == 1
+        assert config.models[0].id == "gpt-4"
+        assert config.models[0].default is True
+
+    def test_empty_api_key_treated_as_missing(self, monkeypatch):
+        """Test that empty or whitespace-only API keys are treated as missing."""
+        models_json = json.dumps([
+            {
+                "id": "gpt-4",
+                "name": "GPT-4",
+                "description": "OpenAI model",
+                "provider": "openai",
+                "default": True
+            },
+            {
+                "id": "claude-3-5-sonnet-20241022",
+                "name": "Claude 3.5 Sonnet",
+                "description": "Anthropic model",
+                "provider": "anthropic",
+                "default": False
+            }
+        ])
+
+        monkeypatch.setenv('MODELS', models_json)
+        monkeypatch.setenv('OPENAI_API_KEY', 'sk-test-key')
+        monkeypatch.setenv('ANTHROPIC_API_KEY', '   ')  # Whitespace only
+        monkeypatch.delenv('OPENAI_MODELS', raising=False)
+        monkeypatch.delenv('ANTHROPIC_MODELS', raising=False)
+
+        config = load_model_configuration()
+
+        # Should only have OpenAI models since Anthropic key is whitespace
+        assert len(config.models) == 1
+        assert config.models[0].provider == "openai"

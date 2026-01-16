@@ -70,7 +70,7 @@
 
 ---
 
-## Phase 3b: User Story 1 - Unified MODELS Configuration (Priority: P1) 🎯 INCOMPLETE
+## Phase 3b: User Story 1 - Unified MODELS Configuration (Priority: P1) ✅ COMPLETE
 
 **Goal**: Consolidate OPENAI_MODELS and ANTHROPIC_MODELS into a single MODELS environment variable
 
@@ -80,19 +80,19 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T046 [P] [US1] Create unit tests for unified MODELS loading in `backend/tests/unit/test_model_config.py` - test single MODELS env var
-- [ ] T047 [P] [US1] Create unit tests for backward compatibility in `backend/tests/unit/test_model_config.py` - test fallback to legacy vars
-- [ ] T048 [P] [US1] Create unit tests for provider filtering in `backend/tests/unit/test_model_config.py` - test models filtered when API key missing
+- [x] T046 [P] [US1] Create unit tests for unified MODELS loading in `backend/tests/unit/test_model_config.py` - test single MODELS env var
+- [x] T047 [P] [US1] Create unit tests for backward compatibility in `backend/tests/unit/test_model_config.py` - test fallback to legacy vars
+- [x] T048 [P] [US1] Create unit tests for provider filtering in `backend/tests/unit/test_model_config.py` - test models filtered when API key missing
 
 ### Implementation for Unified Configuration
 
-- [ ] T049 [US1] Add `load_unified_models()` function in `backend/src/config/models.py` to load from single MODELS env var
-- [ ] T050 [US1] Update `load_model_configuration()` in `backend/src/config/models.py` to prefer MODELS, fallback to legacy vars
-- [ ] T051 [US1] Filter models by enabled provider (API key present) in `backend/src/config/models.py`
-- [ ] T052 [US1] Update `backend/.env.example` with unified MODELS configuration format
-- [ ] T053 [US1] Update `backend/.env.test` to use unified MODELS format
-- [ ] T054 [US1] Update `.devcontainer/.env_devcontainer.example` with unified MODELS format
-- [ ] T055 [US1] Verify models endpoint shows all enabled providers: `cd backend && pytest tests/contract/test_models_api_contract.py -v`
+- [x] T049 [US1] Add `load_unified_models()` function in `backend/src/config/models.py` to load from single MODELS env var
+- [x] T050 [US1] Update `load_model_configuration()` in `backend/src/config/models.py` to prefer MODELS, fallback to legacy vars
+- [x] T051 [US1] Filter models by enabled provider (API key present) in `backend/src/config/models.py`
+- [x] T052 [US1] Update `backend/.env.example` with unified MODELS configuration format
+- [x] T053 [US1] Update `backend/.env.test` to use unified MODELS format
+- [x] T054 [US1] N/A - `.devcontainer/.env_devcontainer.example` only contains SSH config, not model config
+- [x] T055 [US1] Verify models endpoint shows all enabled providers: `cd backend && pytest tests/contract/test_models_api_contract.py -v`
 
 **Checkpoint**: Model configuration is truly consolidated. All models defined in a single MODELS variable, filtered by enabled providers.
 
