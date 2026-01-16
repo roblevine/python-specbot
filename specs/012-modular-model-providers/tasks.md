@@ -24,10 +24,10 @@
 
 **Purpose**: Create provider module structure
 
-- [ ] T001 Create providers module directory at `backend/src/services/providers/`
-- [ ] T002 Create providers test directory at `backend/tests/unit/providers/`
-- [ ] T003 Run existing contract tests to establish baseline: `cd backend && pytest tests/contract/ -v`
-- [ ] T004 Run existing unit tests to establish baseline: `cd backend && pytest tests/unit/ -v`
+- [x] T001 Create providers module directory at `backend/src/services/providers/`
+- [x] T002 Create providers test directory at `backend/tests/unit/providers/`
+- [x] T003 Run existing contract tests to establish baseline: `cd backend && pytest tests/contract/ -v`
+- [x] T004 Run existing unit tests to establish baseline: `cd backend && pytest tests/unit/ -v`
 
 ---
 
@@ -37,8 +37,8 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T005 Create base provider protocol/interface in `backend/src/services/providers/base.py`
-- [ ] T006 Create empty provider registry in `backend/src/services/providers/__init__.py`
+- [x] T005 Create base provider protocol/interface in `backend/src/services/providers/base.py`
+- [x] T006 Create empty provider registry in `backend/src/services/providers/__init__.py`
 
 **Checkpoint**: Provider module structure ready - user story implementation can begin
 
@@ -54,17 +54,17 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T007 [P] [US1] Create ProviderConfig unit tests in `backend/tests/unit/providers/test_base.py` - test id validation, enabled computation
-- [ ] T008 [P] [US1] Create ProviderRegistry unit tests in `backend/tests/unit/providers/test_base.py` - test register, get, get_enabled
-- [ ] T009 [P] [US1] Update config tests in `backend/tests/unit/test_model_config.py` - test consolidated provider loading
+- [x] T007 [P] [US1] Create ProviderConfig unit tests in `backend/tests/unit/providers/test_base.py` - test id validation, enabled computation
+- [x] T008 [P] [US1] Create ProviderRegistry unit tests in `backend/tests/unit/providers/test_base.py` - test register, get, get_enabled
+- [x] T009 [P] [US1] Update config tests in `backend/tests/unit/test_model_config.py` - test consolidated provider loading
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Implement ProviderConfig Pydantic model in `backend/src/services/providers/base.py`
-- [ ] T011 [US1] Implement ProviderRegistry class in `backend/src/services/providers/__init__.py`
-- [ ] T012 [US1] Refactor `backend/src/config/models.py` to use ProviderRegistry for consolidated model loading
-- [ ] T013 [US1] Add provider logging for disabled providers (missing API key) in `backend/src/config/models.py`
-- [ ] T014 [US1] Verify all models endpoint contract tests pass: `cd backend && pytest tests/contract/test_models_api_contract.py -v`
+- [x] T010 [US1] Implement ProviderConfig Pydantic model in `backend/src/services/providers/base.py`
+- [x] T011 [US1] Implement ProviderRegistry class in `backend/src/services/providers/__init__.py`
+- [x] T012 [US1] Refactor `backend/src/config/models.py` to use ProviderRegistry for consolidated model loading
+- [x] T013 [US1] Add provider logging for disabled providers (missing API key) in `backend/src/config/models.py`
+- [x] T014 [US1] Verify all models endpoint contract tests pass: `cd backend && pytest tests/contract/test_models_api_contract.py -v`
 
 **Checkpoint**: Provider configuration is consolidated. All models from all enabled providers appear in a single list with provider information.
 
@@ -80,17 +80,17 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T015 [P] [US2] Create error mapping unit tests in `backend/tests/unit/providers/test_errors.py` - test all OpenAI exception mappings
-- [ ] T016 [P] [US2] Create error mapping unit tests in `backend/tests/unit/providers/test_errors.py` - test all Anthropic exception mappings
-- [ ] T017 [P] [US2] Create error mapping unit tests in `backend/tests/unit/providers/test_errors.py` - test Anthropic-specific errors (NotFoundError, PermissionDeniedError, InternalServerError)
+- [x] T015 [P] [US2] Create error mapping unit tests in `backend/tests/unit/providers/test_errors.py` - test all OpenAI exception mappings
+- [x] T016 [P] [US2] Create error mapping unit tests in `backend/tests/unit/providers/test_errors.py` - test all Anthropic exception mappings
+- [x] T017 [P] [US2] Create error mapping unit tests in `backend/tests/unit/providers/test_errors.py` - test Anthropic-specific errors (NotFoundError, PermissionDeniedError, InternalServerError)
 
 ### Implementation for User Story 2
 
-- [ ] T018 [US2] Create unified error mapping module in `backend/src/services/providers/errors.py`
-- [ ] T019 [US2] Implement OpenAI error mapping function in `backend/src/services/providers/errors.py`
-- [ ] T020 [US2] Implement Anthropic error mapping function in `backend/src/services/providers/errors.py`
-- [ ] T021 [US2] Create generic `map_provider_error()` function that routes to correct provider mapper in `backend/src/services/providers/errors.py`
-- [ ] T022 [US2] Verify error response consistency: `cd backend && pytest tests/contract/test_messages_api_contract.py -v`
+- [x] T018 [US2] Create unified error mapping module in `backend/src/services/providers/errors.py`
+- [x] T019 [US2] Implement OpenAI error mapping function in `backend/src/services/providers/errors.py`
+- [x] T020 [US2] Implement Anthropic error mapping function in `backend/src/services/providers/errors.py`
+- [x] T021 [US2] Create generic `map_provider_error()` function that routes to correct provider mapper in `backend/src/services/providers/errors.py`
+- [x] T022 [US2] Verify error response consistency: `cd backend && pytest tests/contract/test_messages_api_contract.py -v`
 
 **Checkpoint**: Error handling is consolidated. All provider errors map to consistent LLMServiceError categories.
 
@@ -106,19 +106,19 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T023 [P] [US3] Create OpenAI provider unit tests in `backend/tests/unit/providers/test_openai.py` - test create_llm, map_error, get_config
-- [ ] T024 [P] [US3] Create Anthropic provider unit tests in `backend/tests/unit/providers/test_anthropic.py` - test create_llm, map_error, get_config
-- [ ] T025 [P] [US3] Update LLM service tests in `backend/tests/unit/test_llm_service.py` - test provider abstraction integration
+- [x] T023 [P] [US3] Create OpenAI provider unit tests in `backend/tests/unit/providers/test_openai.py` - test create_llm, map_error, get_config
+- [x] T024 [P] [US3] Create Anthropic provider unit tests in `backend/tests/unit/providers/test_anthropic.py` - test create_llm, map_error, get_config
+- [x] T025 [P] [US3] Update LLM service tests in `backend/tests/unit/test_llm_service.py` - test provider abstraction integration
 
 ### Implementation for User Story 3
 
-- [ ] T026 [US3] Implement OpenAIProvider class in `backend/src/services/providers/openai.py` - implements BaseProvider protocol
-- [ ] T027 [US3] Implement AnthropicProvider class in `backend/src/services/providers/anthropic.py` - implements BaseProvider protocol
-- [ ] T028 [US3] Register providers in `backend/src/services/providers/__init__.py` at module import
-- [ ] T029 [US3] Refactor `backend/src/services/llm_service.py` to use provider registry instead of if/elif chains
-- [ ] T030 [US3] Remove duplicate exception handling from `get_ai_response()` in `backend/src/services/llm_service.py` - use provider.map_error()
-- [ ] T031 [US3] Remove duplicate exception handling from `stream_ai_response()` in `backend/src/services/llm_service.py` - use provider.map_error()
-- [ ] T032 [US3] Run integration tests: `cd backend && pytest tests/integration/test_model_selection.py -v`
+- [x] T026 [US3] Implement OpenAIProvider class in `backend/src/services/providers/openai.py` - implements BaseProvider protocol
+- [x] T027 [US3] Implement AnthropicProvider class in `backend/src/services/providers/anthropic.py` - implements BaseProvider protocol
+- [x] T028 [US3] Register providers in `backend/src/services/providers/__init__.py` at module import
+- [x] T029 [US3] Refactor `backend/src/services/llm_service.py` to use provider registry instead of if/elif chains
+- [x] T030 [US3] Remove duplicate exception handling from `get_ai_response()` in `backend/src/services/llm_service.py` - use provider.map_error()
+- [x] T031 [US3] Remove duplicate exception handling from `stream_ai_response()` in `backend/src/services/llm_service.py` - use provider.map_error()
+- [x] T032 [US3] Run integration tests: `cd backend && pytest tests/integration/test_model_selection.py -v`
 
 **Checkpoint**: Provider factory pattern is complete. New providers can be added by implementing BaseProvider without modifying core code.
 
@@ -132,15 +132,15 @@
 
 ### Tests for User Story 4
 
-- [ ] T033 [US4] Create provider test template/base class in `backend/tests/unit/providers/__init__.py`
-- [ ] T034 [US4] Refactor OpenAI provider tests to use test template in `backend/tests/unit/providers/test_openai.py`
-- [ ] T035 [US4] Refactor Anthropic provider tests to use test template in `backend/tests/unit/providers/test_anthropic.py`
+- [x] T033 [US4] Create provider test template/base class in `backend/tests/unit/providers/__init__.py`
+- [x] T034 [US4] Refactor OpenAI provider tests to use test template in `backend/tests/unit/providers/test_openai.py`
+- [x] T035 [US4] Refactor Anthropic provider tests to use test template in `backend/tests/unit/providers/test_anthropic.py`
 
 ### Verification for User Story 4
 
-- [ ] T036 [US4] Run full test suite to verify all existing tests pass: `cd backend && pytest tests/ -v`
-- [ ] T037 [US4] Generate coverage report: `cd backend && pytest tests/ --cov=src --cov-report=html`
-- [ ] T038 [US4] Verify at least 40% reduction in exception handling code (SC-002) - compare line counts
+- [x] T036 [US4] Run full test suite to verify all existing tests pass: `cd backend && pytest tests/ -v`
+- [x] T037 [US4] Generate coverage report: `cd backend && pytest tests/ --cov=src --cov-report=html`
+- [x] T038 [US4] Verify at least 40% reduction in exception handling code (SC-002) - compare line counts
 
 **Checkpoint**: Test patterns are consolidated. All existing tests pass with the new provider structure.
 
@@ -150,12 +150,12 @@
 
 **Purpose**: Documentation and final validation
 
-- [ ] T039 [P] Update `docs/architecture.md` with new providers module structure
-- [ ] T040 [P] Add ADR (Architectural Decision Record) for provider abstraction pattern
-- [ ] T041 [P] Update quickstart guide in `specs/012-modular-model-providers/quickstart.md` if needed
-- [ ] T042 Run full backend test suite: `cd backend && pytest tests/ -v`
+- [x] T039 [P] Update `docs/architecture.md` with new providers module structure
+- [x] T040 [P] Add ADR (Architectural Decision Record) for provider abstraction pattern
+- [x] T041 [P] Update quickstart guide in `specs/012-modular-model-providers/quickstart.md` if needed
+- [x] T042 Run full backend test suite: `cd backend && pytest tests/ -v`
 - [ ] T043 Run full frontend test suite (verify no regressions): `cd frontend && npm test`
-- [ ] T044 Verify all contract tests pass (backward compatibility): `cd backend && pytest tests/contract/ -v`
+- [x] T044 Verify all contract tests pass (backward compatibility): `cd backend && pytest tests/contract/ -v`
 - [ ] T045 Manual verification: Test chat with both OpenAI and Anthropic models
 
 ---
