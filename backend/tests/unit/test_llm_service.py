@@ -20,13 +20,14 @@ def test_chatgpt_initialization_with_api_key():
     Validates that the LLM service properly initializes ChatOpenAI
     with the provided API key and model configuration.
 
-    Updated for 011-anthropic-support multi-provider architecture.
+    Updated for 012-modular-model-providers: Now mocks at provider module level.
     """
     from src.services.llm_service import get_llm_for_model
     from src.config.models import ModelsConfiguration, ModelConfig
 
     with patch.dict('os.environ', {'OPENAI_API_KEY': 'test-key'}):
-        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+        # Mock at provider module level (where ChatOpenAI is actually imported)
+        with patch('src.services.providers.openai.ChatOpenAI') as mock_chat:
             mock_instance = Mock()
             mock_chat.return_value = mock_instance
 
@@ -61,12 +62,15 @@ def test_chatanthropic_initialization_with_api_key():
 
     Validates that the LLM service properly initializes ChatAnthropic
     with the provided API key for Anthropic provider.
+
+    Updated for 012-modular-model-providers: Now mocks at provider module level.
     """
     from src.services.llm_service import get_llm_for_model
     from src.config.models import ModelsConfiguration, ModelConfig
 
     with patch.dict('os.environ', {'ANTHROPIC_API_KEY': 'test-anthropic-key'}):
-        with patch('src.services.llm_service.ChatAnthropic') as mock_chat:
+        # Mock at provider module level (where ChatAnthropic is actually imported)
+        with patch('src.services.providers.anthropic.ChatAnthropic') as mock_chat:
             mock_instance = Mock()
             mock_chat.return_value = mock_instance
 
@@ -99,13 +103,15 @@ def test_provider_routing_openai():
     T011 (011-anthropic-support): Unit test for provider routing to OpenAI.
 
     Validates that models with provider="openai" are routed to ChatOpenAI.
+
+    Updated for 012-modular-model-providers: Now mocks at provider module level.
     """
     from src.services.llm_service import get_llm_for_model
     from src.config.models import ModelsConfiguration, ModelConfig
 
     with patch.dict('os.environ', {'OPENAI_API_KEY': 'test-key'}):
-        with patch('src.services.llm_service.ChatOpenAI') as mock_openai, \
-             patch('src.services.llm_service.ChatAnthropic') as mock_anthropic:
+        with patch('src.services.providers.openai.ChatOpenAI') as mock_openai, \
+             patch('src.services.providers.anthropic.ChatAnthropic') as mock_anthropic:
 
             mock_openai.return_value = Mock()
             mock_anthropic.return_value = Mock()
@@ -133,13 +139,15 @@ def test_provider_routing_anthropic():
     T011 (011-anthropic-support): Unit test for provider routing to Anthropic.
 
     Validates that models with provider="anthropic" are routed to ChatAnthropic.
+
+    Updated for 012-modular-model-providers: Now mocks at provider module level.
     """
     from src.services.llm_service import get_llm_for_model
     from src.config.models import ModelsConfiguration, ModelConfig
 
     with patch.dict('os.environ', {'ANTHROPIC_API_KEY': 'test-key'}):
-        with patch('src.services.llm_service.ChatOpenAI') as mock_openai, \
-             patch('src.services.llm_service.ChatAnthropic') as mock_anthropic:
+        with patch('src.services.providers.openai.ChatOpenAI') as mock_openai, \
+             patch('src.services.providers.anthropic.ChatAnthropic') as mock_anthropic:
 
             mock_openai.return_value = Mock()
             mock_anthropic.return_value = Mock()
@@ -231,9 +239,9 @@ async def test_get_ai_response_basic_invocation():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
+        'MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "provider": "openai", "default": true}]'
     }, clear=True):
-        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+        with patch('src.services.providers.openai.ChatOpenAI') as mock_chat:
             # Setup mock LLM
             mock_llm = Mock()
             mock_chat.return_value = mock_llm
@@ -269,9 +277,9 @@ async def test_get_ai_response_preserves_special_characters():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
+        'MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "provider": "openai", "default": true}]'
     }, clear=True):
-        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+        with patch('src.services.providers.openai.ChatOpenAI') as mock_chat:
             # Setup mock LLM
             mock_llm = Mock()
             mock_chat.return_value = mock_llm
@@ -304,9 +312,9 @@ async def test_authentication_error_mapping():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
+        'MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "provider": "openai", "default": true}]'
     }, clear=True):
-        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+        with patch('src.services.providers.openai.ChatOpenAI') as mock_chat:
             # Setup mock LLM
             mock_llm = Mock()
             mock_chat.return_value = mock_llm
@@ -348,9 +356,9 @@ async def test_rate_limit_error_mapping():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
+        'MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "provider": "openai", "default": true}]'
     }, clear=True):
-        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+        with patch('src.services.providers.openai.ChatOpenAI') as mock_chat:
             # Setup mock LLM
             mock_llm = Mock()
             mock_chat.return_value = mock_llm
@@ -392,9 +400,9 @@ async def test_timeout_error_mapping():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
+        'MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "provider": "openai", "default": true}]'
     }, clear=True):
-        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+        with patch('src.services.providers.openai.ChatOpenAI') as mock_chat:
             # Setup mock LLM
             mock_llm = Mock()
             mock_chat.return_value = mock_llm
@@ -427,9 +435,9 @@ async def test_get_ai_response_validates_model_id():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
+        'MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "provider": "openai", "default": true}]'
     }, clear=True):
-        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+        with patch('src.services.providers.openai.ChatOpenAI') as mock_chat:
             # Should raise error for invalid model (not in config)
             with pytest.raises((ValueError, LLMServiceError)):
                 await get_ai_response("Hello", model="invalid-model")
@@ -460,9 +468,9 @@ async def test_stream_ai_response_yields_tokens():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
+        'MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "provider": "openai", "default": true}]'
     }, clear=True):
-        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+        with patch('src.services.providers.openai.ChatOpenAI') as mock_chat:
             # Setup mock LLM
             mock_llm = Mock()
             mock_chat.return_value = mock_llm
@@ -519,9 +527,9 @@ async def test_stream_ai_response_yields_complete_event():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
+        'MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "provider": "openai", "default": true}]'
     }, clear=True):
-        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+        with patch('src.services.providers.openai.ChatOpenAI') as mock_chat:
             mock_llm = Mock()
             mock_chat.return_value = mock_llm
 
@@ -561,9 +569,9 @@ async def test_stream_ai_response_with_conversation_history():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
+        'MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "provider": "openai", "default": true}]'
     }, clear=True):
-        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+        with patch('src.services.providers.openai.ChatOpenAI') as mock_chat:
             mock_llm = Mock()
             mock_chat.return_value = mock_llm
 
@@ -615,9 +623,9 @@ async def test_stream_ai_response_handles_authentication_error():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
+        'MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "provider": "openai", "default": true}]'
     }, clear=True):
-        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+        with patch('src.services.providers.openai.ChatOpenAI') as mock_chat:
             mock_llm = Mock()
             mock_chat.return_value = mock_llm
 
@@ -664,9 +672,9 @@ async def test_stream_ai_response_handles_rate_limit_error():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
+        'MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "provider": "openai", "default": true}]'
     }, clear=True):
-        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+        with patch('src.services.providers.openai.ChatOpenAI') as mock_chat:
             mock_llm = Mock()
             mock_chat.return_value = mock_llm
 
@@ -708,9 +716,9 @@ async def test_stream_ai_response_handles_timeout():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
+        'MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "provider": "openai", "default": true}]'
     }, clear=True):
-        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+        with patch('src.services.providers.openai.ChatOpenAI') as mock_chat:
             mock_llm = Mock()
             mock_chat.return_value = mock_llm
 
@@ -745,9 +753,9 @@ async def test_stream_ai_response_handles_special_characters():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
+        'MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "provider": "openai", "default": true}]'
     }, clear=True):
-        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+        with patch('src.services.providers.openai.ChatOpenAI') as mock_chat:
             mock_llm = Mock()
             mock_chat.return_value = mock_llm
 
@@ -800,9 +808,9 @@ async def test_stream_ai_response_includes_debug_info_in_debug_mode():
     with patch.dict('os.environ', {
         'DEBUG': 'true',  # Enable debug mode
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
+        'MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "provider": "openai", "default": true}]'
     }):
-        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+        with patch('src.services.providers.openai.ChatOpenAI') as mock_chat:
             mock_llm = Mock()
             mock_chat.return_value = mock_llm
 
@@ -849,9 +857,9 @@ async def test_stream_ai_response_no_debug_info_when_debug_disabled():
     with patch.dict('os.environ', {
         'DEBUG': 'false',  # Disable debug mode
         'OPENAI_API_KEY': 'test-key',
-        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
+        'MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "provider": "openai", "default": true}]'
     }):
-        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+        with patch('src.services.providers.openai.ChatOpenAI') as mock_chat:
             mock_llm = Mock()
             mock_chat.return_value = mock_llm
 
@@ -904,13 +912,13 @@ async def test_stream_ai_response_handles_anthropic_not_found_error():
     from src.schemas import ErrorEvent
     from anthropic import NotFoundError
 
-    # Use clear=True to remove any inherited env vars (like OPENAI_MODELS)
+    # Use clear=True to remove any inherited env vars (like MODELS)
     with patch.dict('os.environ', {
         'ANTHROPIC_API_KEY': 'test-key',
-        'ANTHROPIC_MODELS': '[{"id": "claude-invalid-model", "name": "Invalid Claude", "description": "Test", "provider": "anthropic", "default": true}]',
+        'MODELS': '[{"id": "claude-invalid-model", "name": "Invalid Claude", "description": "Test", "provider": "anthropic", "default": true}]',
         'DEBUG': 'true'
     }, clear=True):
-        with patch('src.services.llm_service.ChatAnthropic') as mock_chat:
+        with patch('src.services.providers.anthropic.ChatAnthropic') as mock_chat:
             mock_llm = Mock()
             mock_chat.return_value = mock_llm
 
@@ -959,9 +967,9 @@ async def test_stream_ai_response_handles_anthropic_permission_denied_error():
     # Use clear=True to remove any inherited env vars
     with patch.dict('os.environ', {
         'ANTHROPIC_API_KEY': 'test-key',
-        'ANTHROPIC_MODELS': '[{"id": "claude-3-5-sonnet-20241022", "name": "Claude", "description": "Test", "provider": "anthropic", "default": true}]'
+        'MODELS': '[{"id": "claude-3-5-sonnet-20241022", "name": "Claude", "description": "Test", "provider": "anthropic", "default": true}]'
     }, clear=True):
-        with patch('src.services.llm_service.ChatAnthropic') as mock_chat:
+        with patch('src.services.providers.anthropic.ChatAnthropic') as mock_chat:
             mock_llm = Mock()
             mock_chat.return_value = mock_llm
 
@@ -1005,9 +1013,9 @@ async def test_stream_ai_response_handles_anthropic_internal_server_error():
     # Use clear=True to remove any inherited env vars
     with patch.dict('os.environ', {
         'ANTHROPIC_API_KEY': 'test-key',
-        'ANTHROPIC_MODELS': '[{"id": "claude-3-5-sonnet-20241022", "name": "Claude", "description": "Test", "provider": "anthropic", "default": true}]'
+        'MODELS': '[{"id": "claude-3-5-sonnet-20241022", "name": "Claude", "description": "Test", "provider": "anthropic", "default": true}]'
     }, clear=True):
-        with patch('src.services.llm_service.ChatAnthropic') as mock_chat:
+        with patch('src.services.providers.anthropic.ChatAnthropic') as mock_chat:
             mock_llm = Mock()
             mock_chat.return_value = mock_llm
 

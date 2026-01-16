@@ -1,42 +1,34 @@
 """
 LLM Service - Multi-Provider Chat Integration via LangChain
 
-Manages LLM initialization, configuration, and message processing for both
-OpenAI and Anthropic providers.
+Manages LLM initialization, configuration, and message processing for
+all registered LLM providers via the provider registry.
 
-Features: 006-openai-langchain-chat, 011-anthropic-support
+Features: 006-openai-langchain-chat, 011-anthropic-support, 012-modular-model-providers
 """
 
 import os
 import asyncio
 import traceback
 from typing import Any, Dict, Optional, List, Union
-from langchain_openai import ChatOpenAI
-# T013: Import ChatAnthropic from langchain_anthropic
-from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
 from langchain_core.language_models.chat_models import BaseChatModel
-from openai import (
-    AuthenticationError as OpenAIAuthenticationError,
-    RateLimitError as OpenAIRateLimitError,
-    APIConnectionError as OpenAIAPIConnectionError,
-    BadRequestError as OpenAIBadRequestError,
-    APITimeoutError as OpenAIAPITimeoutError
-)
-# T017: Import Anthropic error types
-# BUG FIX: Added NotFoundError, PermissionDeniedError, InternalServerError
-# which were previously uncaught and caused "AI service error occurred" generic errors
-from anthropic import (
-    AuthenticationError as AnthropicAuthenticationError,
-    RateLimitError as AnthropicRateLimitError,
-    APIConnectionError as AnthropicAPIConnectionError,
-    BadRequestError as AnthropicBadRequestError,
-    APITimeoutError as AnthropicAPITimeoutError,
-    NotFoundError as AnthropicNotFoundError,
-    PermissionDeniedError as AnthropicPermissionDeniedError,
-    InternalServerError as AnthropicInternalServerError
-)
+
 from src.utils.logger import get_logger
+
+# Import error classes from providers.base (centralized to avoid circular imports)
+from src.services.providers.base import (
+    LLMServiceError,
+    LLMAuthenticationError,
+    LLMRateLimitError,
+    LLMConnectionError,
+    LLMTimeoutError,
+    LLMBadRequestError
+)
+
+# Import registry after error classes to avoid circular imports
+from src.services.providers import registry
+
 from src.config.models import (
     load_model_configuration,
     get_default_model,
@@ -49,46 +41,6 @@ from src.config.models import (
 from src.schemas import TokenEvent, CompleteEvent, ErrorEvent
 
 logger = get_logger(__name__)
-
-
-# Custom exception classes for LLM errors
-class LLMServiceError(Exception):
-    """Base exception for LLM service errors"""
-    def __init__(self, message: str, status_code: int = 503, original_error: Optional[Exception] = None):
-        self.message = message
-        self.status_code = status_code
-        self.original_error = original_error
-        super().__init__(self.message)
-
-
-class LLMAuthenticationError(LLMServiceError):
-    """Authentication/configuration error → 503"""
-    def __init__(self, message: str = "AI service configuration error", original_error: Optional[Exception] = None):
-        super().__init__(message, status_code=503, original_error=original_error)
-
-
-class LLMRateLimitError(LLMServiceError):
-    """Rate limit error → 503"""
-    def __init__(self, message: str = "AI service is busy", original_error: Optional[Exception] = None):
-        super().__init__(message, status_code=503, original_error=original_error)
-
-
-class LLMConnectionError(LLMServiceError):
-    """Connection error → 503"""
-    def __init__(self, message: str = "Unable to reach AI service", original_error: Optional[Exception] = None):
-        super().__init__(message, status_code=503, original_error=original_error)
-
-
-class LLMTimeoutError(LLMServiceError):
-    """Timeout error → 504"""
-    def __init__(self, message: str = "Request timed out", original_error: Optional[Exception] = None):
-        super().__init__(message, status_code=504, original_error=original_error)
-
-
-class LLMBadRequestError(LLMServiceError):
-    """Bad request error → 400"""
-    def __init__(self, message: str = "Message could not be processed", original_error: Optional[Exception] = None):
-        super().__init__(message, status_code=400, original_error=original_error)
 
 
 def _is_debug_mode() -> bool:
@@ -118,19 +70,43 @@ def _build_debug_info(error: Exception, error_type: str) -> Optional[Dict[str, A
     }
 
 
+def _llm_error_to_event(error: LLMServiceError) -> tuple[str, str]:
+    """
+    T031: Map an LLMServiceError to error message and code for streaming.
+
+    Args:
+        error: The LLMServiceError to map
+
+    Returns:
+        Tuple of (error_message, error_code)
+    """
+    if isinstance(error, LLMAuthenticationError):
+        return error.message, "AUTH_ERROR"
+    if isinstance(error, LLMRateLimitError):
+        return error.message, "RATE_LIMIT"
+    if isinstance(error, LLMConnectionError):
+        return error.message, "CONNECTION_ERROR"
+    if isinstance(error, LLMTimeoutError):
+        return error.message, "TIMEOUT"
+    if isinstance(error, LLMBadRequestError):
+        return error.message, "LLM_ERROR"
+    # Generic LLMServiceError
+    return error.message, "LLM_ERROR"
+
+
 def get_llm_for_model(model_id: str, config=None) -> BaseChatModel:
     """
-    T014: Factory function to get the appropriate LLM instance for a model.
+    T029: Factory function to get the appropriate LLM instance for a model.
 
-    Creates either a ChatOpenAI or ChatAnthropic instance based on the model's
-    provider configuration.
+    Uses the provider registry to create LLM instances, eliminating
+    provider-specific code paths.
 
     Args:
         model_id: The model ID to create an LLM instance for
         config: Optional ModelsConfiguration (loads from env if not provided)
 
     Returns:
-        BaseChatModel: Either ChatOpenAI or ChatAnthropic instance
+        BaseChatModel: Configured chat model instance from the appropriate provider
 
     Raises:
         ValueError: If model not found or provider not supported
@@ -143,35 +119,15 @@ def get_llm_for_model(model_id: str, config=None) -> BaseChatModel:
     if not model:
         raise ValueError(f"Model not found: {model_id}")
 
-    provider = model.provider
+    provider_id = model.provider
 
-    if provider == "openai":
-        api_key = os.getenv('OPENAI_API_KEY')
-        if not api_key:
-            raise LLMAuthenticationError("OpenAI API key not configured")
+    # T029: Use registry to get provider instance
+    provider = registry.get(provider_id)
+    if not provider:
+        raise ValueError(f"Unsupported provider: {provider_id}")
 
-        logger.debug(f"Creating ChatOpenAI instance for model: {model_id}")
-        return ChatOpenAI(
-            api_key=api_key,
-            model=model_id,
-            timeout=120,
-            request_timeout=120
-        )
-
-    elif provider == "anthropic":
-        api_key = os.getenv('ANTHROPIC_API_KEY')
-        if not api_key:
-            raise LLMAuthenticationError("Anthropic API key not configured")
-
-        logger.debug(f"Creating ChatAnthropic instance for model: {model_id}")
-        return ChatAnthropic(
-            api_key=api_key,
-            model=model_id,
-            timeout=120
-        )
-
-    else:
-        raise ValueError(f"Unsupported provider: {provider}")
+    logger.debug(f"Creating LLM instance for model: {model_id} via {provider_id} provider")
+    return provider.create_llm(model_id)
 
 
 def convert_to_langchain_messages(history: List[Dict[str, str]]) -> List[BaseMessage]:
@@ -282,6 +238,8 @@ async def get_ai_response(
     if history:
         logger.info(f"Including {len(history)} message(s) from conversation history")
 
+    provider = None  # Initialize for exception handler scope
+
     try:
         # Load model configuration
         config = load_model_configuration()
@@ -328,55 +286,24 @@ async def get_ai_response(
 
         return ai_response, model_to_use
 
-    except (OpenAIAuthenticationError, AnthropicAuthenticationError) as e:
-        logger.error(f"LLM authentication failed: {type(e).__name__}")
-        raise LLMAuthenticationError(original_error=e)
-
-    except (OpenAIRateLimitError, AnthropicRateLimitError) as e:
-        logger.error(f"LLM rate limit exceeded: {type(e).__name__}")
-        raise LLMRateLimitError(original_error=e)
-
-    except (OpenAIAPIConnectionError, AnthropicAPIConnectionError) as e:
-        logger.error(f"LLM connection failed: {type(e).__name__}")
-        raise LLMConnectionError(original_error=e)
-
-    except (OpenAIAPITimeoutError, AnthropicAPITimeoutError, asyncio.TimeoutError) as e:
-        logger.error(f"LLM request timed out: {type(e).__name__}")
-        raise LLMTimeoutError(original_error=e)
-
-    except (OpenAIBadRequestError, AnthropicBadRequestError) as e:
-        logger.error(f"LLM bad request: {type(e).__name__}: {str(e)}")
-        raise LLMBadRequestError(original_error=e)
-
     except LLMServiceError:
         # Re-raise LLM service errors as-is
         raise
 
-    # BUG FIX: Add handlers for previously uncaught Anthropic exceptions
-    except AnthropicPermissionDeniedError as e:
-        logger.error(f"Anthropic permission denied: {type(e).__name__}")
-        raise LLMAuthenticationError(
-            message="AI service access denied",
-            original_error=e
-        )
+    except asyncio.TimeoutError as e:
+        # Handle asyncio timeout separately as it's not provider-specific
+        logger.error(f"LLM request timed out: {type(e).__name__}")
+        raise LLMTimeoutError(original_error=e)
 
-    except AnthropicNotFoundError as e:
-        logger.error(f"Anthropic resource not found: {type(e).__name__}: {str(e)}")
-        raise LLMServiceError(
-            message="Model or resource not found",
-            original_error=e
-        )
-
-    except AnthropicInternalServerError as e:
-        logger.error(f"Anthropic internal server error: {type(e).__name__}: {str(e)}")
-        raise LLMServiceError(
-            message="AI service temporarily unavailable",
-            original_error=e
-        )
+    except ValueError:
+        # Re-raise validation errors (invalid model, etc.) as-is
+        raise
 
     except Exception as e:
-        logger.error(f"Unexpected LLM error: {type(e).__name__}: {str(e)}")
-        raise LLMServiceError("AI service error occurred", original_error=e)
+        # T030: Use provider's error mapping for all other exceptions
+        logger.error(f"LLM error: {type(e).__name__}: {str(e)}")
+        from src.services.providers.errors import map_provider_error
+        raise map_provider_error(e, provider or "unknown")
 
 
 async def stream_ai_response(
@@ -410,6 +337,8 @@ async def stream_ai_response(
     logger.info(f"Starting streaming for message: {message[:50]}...")
     if history:
         logger.info(f"Including {len(history)} message(s) from conversation history")
+
+    provider = None  # Initialize for exception handler scope
 
     try:
         # Load model configuration
@@ -462,37 +391,20 @@ async def stream_ai_response(
         logger.info(f"Stream completed successfully using model: {model_to_use}")
         yield CompleteEvent(model=model_to_use)
 
-    except (OpenAIAuthenticationError, AnthropicAuthenticationError) as e:
-        logger.error(f"LLM authentication failed during streaming: {type(e).__name__}")
+    except LLMServiceError as e:
+        # T031: Handle LLM service errors using unified error mapping
+        logger.error(f"LLM error during streaming: {type(e).__name__}: {e.message}")
         if _is_debug_mode():
             logger.warning("DEBUG mode enabled - including detailed error info in streaming response")
+        error_msg, error_code = _llm_error_to_event(e)
         yield ErrorEvent(
-            error="AI service configuration error",
-            code="AUTH_ERROR",
+            error=error_msg,
+            code=error_code,
             debug_info=_build_debug_info(e, type(e).__name__)
         )
 
-    except (OpenAIRateLimitError, AnthropicRateLimitError) as e:
-        logger.error(f"LLM rate limit exceeded during streaming: {type(e).__name__}")
-        if _is_debug_mode():
-            logger.warning("DEBUG mode enabled - including detailed error info in streaming response")
-        yield ErrorEvent(
-            error="AI service is busy",
-            code="RATE_LIMIT",
-            debug_info=_build_debug_info(e, type(e).__name__)
-        )
-
-    except (OpenAIAPIConnectionError, AnthropicAPIConnectionError) as e:
-        logger.error(f"LLM connection failed during streaming: {type(e).__name__}")
-        if _is_debug_mode():
-            logger.warning("DEBUG mode enabled - including detailed error info in streaming response")
-        yield ErrorEvent(
-            error="Unable to reach AI service",
-            code="CONNECTION_ERROR",
-            debug_info=_build_debug_info(e, type(e).__name__)
-        )
-
-    except (OpenAIAPITimeoutError, AnthropicAPITimeoutError, asyncio.TimeoutError) as e:
+    except asyncio.TimeoutError as e:
+        # Handle asyncio timeout separately as it's not provider-specific
         logger.error(f"LLM request timed out during streaming: {type(e).__name__}")
         if _is_debug_mode():
             logger.warning("DEBUG mode enabled - including detailed error info in streaming response")
@@ -502,63 +414,19 @@ async def stream_ai_response(
             debug_info=_build_debug_info(e, type(e).__name__)
         )
 
-    except (OpenAIBadRequestError, AnthropicBadRequestError) as e:
-        logger.error(f"LLM bad request during streaming: {type(e).__name__}: {str(e)}")
-        if _is_debug_mode():
-            logger.warning("DEBUG mode enabled - including detailed error info in streaming response")
-        yield ErrorEvent(
-            error="Message could not be processed",
-            code="LLM_ERROR",
-            debug_info=_build_debug_info(e, type(e).__name__)
-        )
-
-    except LLMAuthenticationError as e:
-        logger.error(f"LLM authentication error: {e.message}")
-        if _is_debug_mode():
-            logger.warning("DEBUG mode enabled - including detailed error info in streaming response")
-        yield ErrorEvent(
-            error=e.message,
-            code="AUTH_ERROR",
-            debug_info=_build_debug_info(e, "LLMAuthenticationError")
-        )
-
-    # BUG FIX: Add handlers for previously uncaught Anthropic exceptions
-    except AnthropicPermissionDeniedError as e:
-        logger.error(f"Anthropic permission denied during streaming: {type(e).__name__}")
-        if _is_debug_mode():
-            logger.warning("DEBUG mode enabled - including detailed error info in streaming response")
-        yield ErrorEvent(
-            error="AI service access denied",
-            code="AUTH_ERROR",
-            debug_info=_build_debug_info(e, type(e).__name__)
-        )
-
-    except AnthropicNotFoundError as e:
-        logger.error(f"Anthropic resource not found during streaming: {type(e).__name__}: {str(e)}")
-        if _is_debug_mode():
-            logger.warning("DEBUG mode enabled - including detailed error info in streaming response")
-        yield ErrorEvent(
-            error="Model or resource not found",
-            code="LLM_ERROR",
-            debug_info=_build_debug_info(e, type(e).__name__)
-        )
-
-    except AnthropicInternalServerError as e:
-        logger.error(f"Anthropic internal server error during streaming: {type(e).__name__}: {str(e)}")
-        if _is_debug_mode():
-            logger.warning("DEBUG mode enabled - including detailed error info in streaming response")
-        yield ErrorEvent(
-            error="AI service temporarily unavailable",
-            code="LLM_ERROR",
-            debug_info=_build_debug_info(e, type(e).__name__)
-        )
-
     except Exception as e:
+        # T031: Use provider's error mapping for all other exceptions
         logger.error(f"Unexpected error during streaming: {type(e).__name__}: {str(e)}")
         if _is_debug_mode():
             logger.warning("DEBUG mode enabled - including detailed error info in streaming response")
+
+        # Map the exception using provider's error mapper
+        from src.services.providers.errors import map_provider_error
+        mapped_error = map_provider_error(e, provider or "unknown")
+        error_msg, error_code = _llm_error_to_event(mapped_error)
+
         yield ErrorEvent(
-            error="AI service error occurred",
-            code="UNKNOWN",
+            error=error_msg,
+            code=error_code,
             debug_info=_build_debug_info(e, type(e).__name__)
         )

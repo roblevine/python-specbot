@@ -30,7 +30,7 @@ def test_llm_service_provider_routing_openai():
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-integration-key',
     }):
-        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+        with patch('src.services.providers.openai.ChatOpenAI') as mock_chat:
             mock_instance = Mock()
             mock_chat.return_value = mock_instance
 
@@ -70,7 +70,7 @@ async def test_openai_api_response_mocking():
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
     }):
-        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+        with patch('src.services.providers.openai.ChatOpenAI') as mock_chat:
             # Create mock LLM instance with async ainvoke
             mock_llm = Mock()
             mock_chat.return_value = mock_llm
@@ -136,7 +136,7 @@ def test_model_config_loaded_from_environment():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'sk-integration-test-key-12345',
-        'OPENAI_MODELS': '[{"id": "gpt-4", "name": "GPT-4", "description": "Most capable", "default": true}]'
+        'MODELS': '[{"id": "gpt-4", "name": "GPT-4", "description": "Most capable", "provider": "openai", "default": true}]'
     }, clear=True):
         config = load_model_configuration()
 
@@ -191,7 +191,7 @@ async def test_llm_response_preserves_special_characters():
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
     }):
-        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+        with patch('src.services.providers.openai.ChatOpenAI') as mock_chat:
             # Setup mock
             mock_llm = Mock()
             mock_chat.return_value = mock_llm
@@ -240,9 +240,9 @@ async def test_single_message_ai_response_flow():
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-integration-key',
-        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
+        'MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "provider": "openai", "default": true}]'
     }, clear=True):
-        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+        with patch('src.services.providers.openai.ChatOpenAI') as mock_chat:
             # Setup mock LLM with realistic AI response
             mock_llm = Mock()
             mock_chat.return_value = mock_llm
