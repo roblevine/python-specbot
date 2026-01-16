@@ -241,7 +241,7 @@ async def test_single_message_ai_response_flow():
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-integration-key',
         'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
-    }):
+    }, clear=True):
         with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
             # Setup mock LLM with realistic AI response
             mock_llm = Mock()

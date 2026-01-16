@@ -28,6 +28,11 @@ def mock_test_env_vars(monkeypatch):
     Args:
         monkeypatch: pytest fixture for modifying environment variables
     """
+    # Clear Anthropic config first to prevent "multiple defaults" error
+    # when environment has both providers configured with default=true
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_MODELS", raising=False)
+
     # Set predictable test values BEFORE any imports that load config
     # Use OPENAI_MODELS (JSON array) with gpt-3.5-turbo as the default model
     monkeypatch.setenv(

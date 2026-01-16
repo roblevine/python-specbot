@@ -218,6 +218,10 @@ class TestLoadModelConfiguration:
 
     def test_load_from_openai_models_env_var(self, monkeypatch):
         """Test loading configuration from OPENAI_MODELS environment variable."""
+        # Clear Anthropic config to test OpenAI-only
+        monkeypatch.delenv('ANTHROPIC_API_KEY', raising=False)
+        monkeypatch.delenv('ANTHROPIC_MODELS', raising=False)
+
         models_json = json.dumps([
             {
                 "id": "gpt-4",
@@ -246,7 +250,10 @@ class TestLoadModelConfiguration:
 
         Updated for 011-anthropic-support: Error message changed to multi-provider message.
         """
+        # Clear all model configs to test the "no models" error
         monkeypatch.delenv('OPENAI_MODELS', raising=False)
+        monkeypatch.delenv('ANTHROPIC_API_KEY', raising=False)
+        monkeypatch.delenv('ANTHROPIC_MODELS', raising=False)
 
         with pytest.raises(ModelConfigurationError) as exc_info:
             load_model_configuration()
