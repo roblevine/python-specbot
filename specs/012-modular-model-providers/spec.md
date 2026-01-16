@@ -79,10 +79,13 @@ As a developer writing tests, I want provider tests to follow a consistent patte
 
 ### Edge Cases
 
-- What happens when a provider's API key is partially configured (present but invalid)? if it can be detected at startup, then error at startup. if not, return error when used
-- How does the system handle a provider that becomes unavailable mid-conversation? error
-- What happens when a model ID is requested that doesn't match any configured provider? error at startup
-- How are provider-specific features (like streaming capabilities) communicated when providers have different capabilities? 
+- **Invalid API key**: When a provider's API key is present but invalid, the system returns an authentication error through the unified error mapping. The provider remains in the available list (configuration is valid) but requests fail with a clear authentication error message.
+
+- **Provider unavailable mid-conversation**: When a provider becomes unavailable during a conversation, the system returns a connection or timeout error through the unified error mapping. Users can retry or switch to a different model/provider. Conversation history is preserved.
+
+- **Unknown model ID**: When a model ID is requested that doesn't match any configured provider, the system returns a validation error at request time. The error message indicates the model is not available in the current configuration.
+
+- **Provider capability differences**: For core functionality (chat and streaming), all providers support the same capabilities through LangChain's unified interface. LangChain normalizes the underlying API differences. Advanced provider-specific features (vision, function calling) are out of scope for this consolidation and will be addressed in future features if/when needed.
 
 ## Requirements *(mandatory)*
 
