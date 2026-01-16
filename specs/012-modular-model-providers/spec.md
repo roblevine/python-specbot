@@ -79,10 +79,10 @@ As a developer writing tests, I want provider tests to follow a consistent patte
 
 ### Edge Cases
 
-- What happens when a provider's API key is partially configured (present but invalid)?
-- How does the system handle a provider that becomes unavailable mid-conversation?
-- What happens when a model ID is requested that doesn't match any configured provider?
-- How are provider-specific features (like streaming capabilities) communicated when providers have different capabilities?
+- What happens when a provider's API key is partially configured (present but invalid)? if it can be detected at startup, then error at startup. if not, return error when used
+- How does the system handle a provider that becomes unavailable mid-conversation? error
+- What happens when a model ID is requested that doesn't match any configured provider? error at startup
+- How are provider-specific features (like streaming capabilities) communicated when providers have different capabilities? 
 
 ## Requirements *(mandatory)*
 
