@@ -138,12 +138,7 @@ def test_loopback_response_matches_contract(
     from unittest.mock import patch, AsyncMock
 
     # Mock the LLM service to return predictable response
-    with patch('src.api.routes.messages.load_config') as mock_load_config, \
-         patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
-
-        # Mock config
-        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
-
+    with patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
         # Mock AI response
         mock_get_ai.return_value = ("This is an AI response.", "gpt-3.5-turbo")
 
@@ -344,12 +339,7 @@ def test_all_message_fields_validated(
     from unittest.mock import patch, AsyncMock
 
     # Mock the LLM service to return predictable response
-    with patch('src.api.routes.messages.load_config') as mock_load_config, \
-         patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
-
-        # Mock config
-        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
-
+    with patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
         # Mock AI response
         mock_get_ai.return_value = ("This is an AI response to your test message.", "gpt-3.5-turbo")
 
@@ -403,13 +393,7 @@ def test_ai_response_matches_contract(
     from unittest.mock import patch, Mock, AsyncMock
 
     # Mock the LLM service to return predictable AI response
-    # Patch where the functions are imported in messages.py
-    with patch('src.api.routes.messages.load_config') as mock_load_config, \
-         patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
-
-        # Mock config
-        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
-
+    with patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
         # Mock AI response
         mock_get_ai.return_value = ("Hello! I'm doing well, thank you for asking.", "gpt-3.5-turbo")
 
@@ -470,12 +454,7 @@ def test_503_error_response_matches_contract(
     from src.services.llm_service import LLMAuthenticationError
 
     # Mock the LLM service to raise LLMAuthenticationError
-    with patch('src.api.routes.messages.load_config') as mock_load_config, \
-         patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
-
-        # Mock config
-        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
-
+    with patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
         # Mock AI service to raise LLMAuthenticationError
         mock_get_ai.side_effect = LLMAuthenticationError("AI service configuration error")
 
@@ -537,12 +516,7 @@ def test_504_timeout_response_matches_contract(
     from src.services.llm_service import LLMTimeoutError
 
     # Mock the LLM service to raise LLMTimeoutError
-    with patch('src.api.routes.messages.load_config') as mock_load_config, \
-         patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
-
-        # Mock config
-        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
-
+    with patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
         # Mock AI service to raise LLMTimeoutError
         mock_get_ai.side_effect = LLMTimeoutError("Request timed out")
 
@@ -607,12 +581,7 @@ def test_message_request_with_model_field_matches_contract(
     from unittest.mock import patch, AsyncMock
 
     # Mock the LLM service
-    with patch('src.api.routes.messages.load_config') as mock_load_config, \
-         patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
-
-        # Mock config
-        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
-
+    with patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
         # Mock AI response - return both response and model used (T013)
         mock_get_ai.return_value = ("AI response text", "gpt-4")
 
@@ -666,12 +635,7 @@ def test_message_request_without_model_uses_default(
     from unittest.mock import patch, AsyncMock
 
     # Mock the LLM service
-    with patch('src.api.routes.messages.load_config') as mock_load_config, \
-         patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
-
-        # Mock config with default model
-        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
-
+    with patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
         # Mock AI response - returns default model when not specified
         mock_get_ai.return_value = ("AI response text", "gpt-3.5-turbo")
 
@@ -712,12 +676,7 @@ def test_invalid_model_id_returns_error(
     from unittest.mock import patch, AsyncMock
 
     # Mock the LLM service
-    with patch('src.api.routes.messages.load_config') as mock_load_config, \
-         patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
-
-        # Mock config
-        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
-
+    with patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
         # Mock AI response to raise ValueError for invalid model
         mock_get_ai.side_effect = ValueError("Invalid model: nonexistent-model")
 
@@ -777,12 +736,7 @@ def test_streaming_request_with_sse_accept_header(
     from unittest.mock import patch, AsyncMock, Mock
 
     # Mock the LLM streaming service
-    with patch('src.api.routes.messages.load_config') as mock_load_config, \
-         patch('src.api.routes.messages.stream_ai_response') as mock_stream_ai:
-
-        # Mock config
-        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
-
+    with patch('src.api.routes.messages.stream_ai_response') as mock_stream_ai:
         # Mock streaming response with async generator
         async def mock_generator():
             from src.schemas import TokenEvent, CompleteEvent
@@ -828,12 +782,7 @@ def test_streaming_response_sse_format(
     import json
 
     # Mock the LLM streaming service
-    with patch('src.api.routes.messages.load_config') as mock_load_config, \
-         patch('src.api.routes.messages.stream_ai_response') as mock_stream_ai:
-
-        # Mock config
-        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
-
+    with patch('src.api.routes.messages.stream_ai_response') as mock_stream_ai:
         # Mock streaming response
         async def mock_generator():
             from src.schemas import TokenEvent, CompleteEvent
@@ -899,12 +848,7 @@ def test_streaming_event_sequence(
     import json
 
     # Mock the LLM streaming service
-    with patch('src.api.routes.messages.load_config') as mock_load_config, \
-         patch('src.api.routes.messages.stream_ai_response') as mock_stream_ai:
-
-        # Mock config
-        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
-
+    with patch('src.api.routes.messages.stream_ai_response') as mock_stream_ai:
         # Mock streaming response with multiple tokens
         async def mock_generator():
             from src.schemas import TokenEvent, CompleteEvent
@@ -969,12 +913,7 @@ def test_streaming_backward_compatibility_json_accept(
     import json
 
     # Mock the LLM service (non-streaming)
-    with patch('src.api.routes.messages.load_config') as mock_load_config, \
-         patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
-
-        # Mock config
-        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
-
+    with patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
         # Mock non-streaming AI response
         mock_get_ai.return_value = ("Hello World!", "gpt-3.5-turbo")
 
@@ -1021,12 +960,7 @@ def test_streaming_with_conversation_history(
     from unittest.mock import patch
 
     # Mock the LLM streaming service
-    with patch('src.api.routes.messages.load_config') as mock_load_config, \
-         patch('src.api.routes.messages.stream_ai_response') as mock_stream_ai:
-
-        # Mock config
-        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
-
+    with patch('src.api.routes.messages.stream_ai_response') as mock_stream_ai:
         # Mock streaming response
         async def mock_generator():
             from src.schemas import TokenEvent, CompleteEvent
@@ -1079,12 +1013,7 @@ def test_streaming_with_custom_model(
     import json
 
     # Mock the LLM streaming service
-    with patch('src.api.routes.messages.load_config') as mock_load_config, \
-         patch('src.api.routes.messages.stream_ai_response') as mock_stream_ai:
-
-        # Mock config
-        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
-
+    with patch('src.api.routes.messages.stream_ai_response') as mock_stream_ai:
         # Mock streaming response with custom model
         async def mock_generator():
             from src.schemas import TokenEvent, CompleteEvent
@@ -1141,12 +1070,7 @@ def test_streaming_error_event_format(
     import json
 
     # Mock the LLM streaming service to yield error
-    with patch('src.api.routes.messages.load_config') as mock_load_config, \
-         patch('src.api.routes.messages.stream_ai_response') as mock_stream_ai:
-
-        # Mock config
-        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
-
+    with patch('src.api.routes.messages.stream_ai_response') as mock_stream_ai:
         # Mock streaming response with error
         async def mock_generator():
             from src.schemas import ErrorEvent
@@ -1200,12 +1124,7 @@ def test_streaming_sse_headers(
     from unittest.mock import patch
 
     # Mock the LLM streaming service
-    with patch('src.api.routes.messages.load_config') as mock_load_config, \
-         patch('src.api.routes.messages.stream_ai_response') as mock_stream_ai:
-
-        # Mock config
-        mock_load_config.return_value = {'api_key': 'test-key', 'model': 'gpt-3.5-turbo'}
-
+    with patch('src.api.routes.messages.stream_ai_response') as mock_stream_ai:
         # Mock streaming response
         async def mock_generator():
             from src.schemas import TokenEvent, CompleteEvent

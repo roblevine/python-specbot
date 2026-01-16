@@ -1,7 +1,8 @@
 """
 Models API Routes
 
-Provides endpoints for retrieving available OpenAI models.
+Provides endpoints for retrieving available models from all configured providers.
+Feature: 011-anthropic-support
 """
 
 import os
@@ -31,6 +32,7 @@ class ModelInfo(BaseModel):
     id: str = Field(..., description="Model identifier for API requests")
     name: str = Field(..., description="Human-readable display name")
     description: str = Field(..., description="Brief model description")
+    provider: str = Field(..., description="Provider identifier: 'openai' or 'anthropic'")
     default: bool = Field(..., description="Whether this is the default model")
 
 
@@ -43,13 +45,13 @@ class ModelsResponse(BaseModel):
 @router.get("/models", response_model=ModelsResponse)
 async def list_models() -> ModelsResponse:
     """
-    List available OpenAI models.
+    List available models from all configured providers.
 
     Returns the list of models configured in the system via environment variables.
     Frontend uses this to populate the model selector dropdown.
 
     Returns:
-        ModelsResponse: List of available models with their metadata
+        ModelsResponse: List of available models with their metadata including provider
 
     Raises:
         HTTPException: 503 Service Unavailable if models cannot be loaded
@@ -58,11 +60,13 @@ async def list_models() -> ModelsResponse:
         config = load_model_configuration()
         logger.info(f"Loaded {len(config.models)} models from configuration")
 
+        # T019: Include provider field in response
         model_infos = [
             ModelInfo(
                 id=model.id,
                 name=model.name,
                 description=model.description,
+                provider=model.provider,
                 default=model.default
             )
             for model in config.models

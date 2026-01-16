@@ -21,6 +21,7 @@ python-dotenv==1.0.0
 # LLM Integration
 langchain>=0.3.0
 langchain-openai>=0.2.0
+langchain-anthropic>=0.2.0
 
 # File storage
 filelock>=3.0.0

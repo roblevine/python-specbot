@@ -267,6 +267,7 @@ class ErrorEvent(BaseModel):
     Signals error during streaming response.
 
     Feature: 009-message-streaming Task T007
+    Updated: 011-anthropic-support - Added debug_info for DEBUG mode
     """
 
     type: Literal["error"] = Field(
@@ -288,6 +289,10 @@ class ErrorEvent(BaseModel):
         ...,
         description="Machine-readable error code"
     )
+    debug_info: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Debug information (only present when DEBUG mode is enabled)"
+    )
 
     def to_sse_format(self) -> str:
         """
@@ -295,8 +300,11 @@ class ErrorEvent(BaseModel):
 
         Returns:
             str: SSE formatted string "data: <JSON>\n\n"
+
+        Note: Excludes debug_info field when it's None to avoid exposing
+        even the existence of debug capabilities in production.
         """
-        json_str = self.model_dump_json()
+        json_str = self.model_dump_json(exclude_none=True)
         return f"data: {json_str}\n\n"
 
 
