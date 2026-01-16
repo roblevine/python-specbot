@@ -9,7 +9,8 @@ Features: 006-openai-langchain-chat, 011-anthropic-support
 
 import os
 import asyncio
-from typing import Dict, Optional, List, Union
+import traceback
+from typing import Any, Dict, Optional, List, Union
 from langchain_openai import ChatOpenAI
 # T013: Import ChatAnthropic from langchain_anthropic
 from langchain_anthropic import ChatAnthropic
@@ -83,6 +84,33 @@ class LLMBadRequestError(LLMServiceError):
     """Bad request error → 400"""
     def __init__(self, message: str = "Message could not be processed", original_error: Optional[Exception] = None):
         super().__init__(message, status_code=400, original_error=original_error)
+
+
+def _is_debug_mode() -> bool:
+    """Check if DEBUG mode is enabled."""
+    return os.getenv('DEBUG', 'false').lower() in ('true', '1', 'yes')
+
+
+def _build_debug_info(error: Exception, error_type: str) -> Optional[Dict[str, Any]]:
+    """
+    Build debug_info dict for streaming errors when DEBUG mode is enabled.
+
+    Args:
+        error: The exception that occurred
+        error_type: The type/class name of the error
+
+    Returns:
+        Dict with debug info if DEBUG mode is enabled, None otherwise
+    """
+    if not _is_debug_mode():
+        return None
+
+    return {
+        "error_type": error_type,
+        "error_message": str(error),
+        "original_error": str(getattr(error, 'original_error', error)),
+        "traceback": traceback.format_exc()
+    }
 
 
 def get_llm_for_model(model_id: str, config=None) -> BaseChatModel:
@@ -409,49 +437,70 @@ async def stream_ai_response(
 
     except (OpenAIAuthenticationError, AnthropicAuthenticationError) as e:
         logger.error(f"LLM authentication failed during streaming: {type(e).__name__}")
+        if _is_debug_mode():
+            logger.warning("DEBUG mode enabled - including detailed error info in streaming response")
         yield ErrorEvent(
             error="AI service configuration error",
-            code="AUTH_ERROR"
+            code="AUTH_ERROR",
+            debug_info=_build_debug_info(e, type(e).__name__)
         )
 
     except (OpenAIRateLimitError, AnthropicRateLimitError) as e:
         logger.error(f"LLM rate limit exceeded during streaming: {type(e).__name__}")
+        if _is_debug_mode():
+            logger.warning("DEBUG mode enabled - including detailed error info in streaming response")
         yield ErrorEvent(
             error="AI service is busy",
-            code="RATE_LIMIT"
+            code="RATE_LIMIT",
+            debug_info=_build_debug_info(e, type(e).__name__)
         )
 
     except (OpenAIAPIConnectionError, AnthropicAPIConnectionError) as e:
         logger.error(f"LLM connection failed during streaming: {type(e).__name__}")
+        if _is_debug_mode():
+            logger.warning("DEBUG mode enabled - including detailed error info in streaming response")
         yield ErrorEvent(
             error="Unable to reach AI service",
-            code="CONNECTION_ERROR"
+            code="CONNECTION_ERROR",
+            debug_info=_build_debug_info(e, type(e).__name__)
         )
 
     except (OpenAIAPITimeoutError, AnthropicAPITimeoutError, asyncio.TimeoutError) as e:
         logger.error(f"LLM request timed out during streaming: {type(e).__name__}")
+        if _is_debug_mode():
+            logger.warning("DEBUG mode enabled - including detailed error info in streaming response")
         yield ErrorEvent(
             error="Request timed out",
-            code="TIMEOUT"
+            code="TIMEOUT",
+            debug_info=_build_debug_info(e, type(e).__name__)
         )
 
     except (OpenAIBadRequestError, AnthropicBadRequestError) as e:
         logger.error(f"LLM bad request during streaming: {type(e).__name__}: {str(e)}")
+        if _is_debug_mode():
+            logger.warning("DEBUG mode enabled - including detailed error info in streaming response")
         yield ErrorEvent(
             error="Message could not be processed",
-            code="LLM_ERROR"
+            code="LLM_ERROR",
+            debug_info=_build_debug_info(e, type(e).__name__)
         )
 
     except LLMAuthenticationError as e:
         logger.error(f"LLM authentication error: {e.message}")
+        if _is_debug_mode():
+            logger.warning("DEBUG mode enabled - including detailed error info in streaming response")
         yield ErrorEvent(
             error=e.message,
-            code="AUTH_ERROR"
+            code="AUTH_ERROR",
+            debug_info=_build_debug_info(e, "LLMAuthenticationError")
         )
 
     except Exception as e:
         logger.error(f"Unexpected error during streaming: {type(e).__name__}: {str(e)}")
+        if _is_debug_mode():
+            logger.warning("DEBUG mode enabled - including detailed error info in streaming response")
         yield ErrorEvent(
             error="AI service error occurred",
-            code="UNKNOWN"
+            code="UNKNOWN",
+            debug_info=_build_debug_info(e, type(e).__name__)
         )

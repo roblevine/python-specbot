@@ -774,3 +774,103 @@ async def test_stream_ai_response_handles_special_characters():
             assert events[1].content == " Hello "
             assert events[2].content == "世界"
             assert events[3].content == " @#$%"
+
+
+# ============================================================================
+# DEBUG Mode Tests (Feature: 011-anthropic-support)
+# ============================================================================
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_stream_ai_response_includes_debug_info_in_debug_mode():
+    """
+    T019 (011-anthropic-support): Streaming errors include debug_info when DEBUG=true.
+
+    Validates that:
+    - ErrorEvent includes debug_info when DEBUG mode is enabled
+    - debug_info contains error_type, error_message, traceback
+
+    This test would have caught the bug where streaming errors
+    didn't include debug information even in DEBUG mode.
+    """
+    from src.services.llm_service import stream_ai_response
+    from src.schemas import ErrorEvent
+    from openai import APIConnectionError
+
+    with patch.dict('os.environ', {
+        'DEBUG': 'true',  # Enable debug mode
+        'OPENAI_API_KEY': 'test-key',
+        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
+    }):
+        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+
+            # Mock astream to raise connection error
+            async def mock_astream(messages):
+                raise APIConnectionError(request=Mock())
+                yield
+
+            mock_llm.astream = mock_astream
+
+            events = []
+            async for event in stream_ai_response("Test"):
+                events.append(event)
+
+            # Should yield exactly one ErrorEvent
+            assert len(events) == 1
+            assert isinstance(events[0], ErrorEvent)
+            assert events[0].code == "CONNECTION_ERROR"
+
+            # CRITICAL: In DEBUG mode, debug_info must be present
+            assert events[0].debug_info is not None, \
+                "debug_info must be present in streaming errors when DEBUG=true"
+
+            # Verify debug_info contents
+            debug_info = events[0].debug_info
+            assert "error_type" in debug_info
+            assert "error_message" in debug_info
+            assert "traceback" in debug_info
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_stream_ai_response_no_debug_info_when_debug_disabled():
+    """
+    T019 (011-anthropic-support): Streaming errors exclude debug_info when DEBUG=false.
+
+    Validates that sensitive debug information is NOT exposed
+    when DEBUG mode is disabled.
+    """
+    from src.services.llm_service import stream_ai_response
+    from src.schemas import ErrorEvent
+    from openai import APIConnectionError
+
+    with patch.dict('os.environ', {
+        'DEBUG': 'false',  # Disable debug mode
+        'OPENAI_API_KEY': 'test-key',
+        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "description": "Fast and efficient", "default": true}]'
+    }):
+        with patch('src.services.llm_service.ChatOpenAI') as mock_chat:
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+
+            # Mock astream to raise connection error
+            async def mock_astream(messages):
+                raise APIConnectionError(request=Mock())
+                yield
+
+            mock_llm.astream = mock_astream
+
+            events = []
+            async for event in stream_ai_response("Test"):
+                events.append(event)
+
+            # Should yield exactly one ErrorEvent
+            assert len(events) == 1
+            assert isinstance(events[0], ErrorEvent)
+            assert events[0].code == "CONNECTION_ERROR"
+
+            # CRITICAL: In non-DEBUG mode, debug_info must NOT be present
+            assert events[0].debug_info is None, \
+                "debug_info must NOT be present when DEBUG=false (security)"
