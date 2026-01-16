@@ -1,9 +1,4 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-
-// Mock VITE_API_BASE_URL before importing apiClient to ensure consistent test behavior
-// This prevents tests from failing when .env file sets a base URL
-vi.stubEnv('VITE_API_BASE_URL', '')
-
 import { ApiError, streamMessage } from '../../src/services/apiClient.js'
 
 describe('ApiError', () => {
@@ -124,8 +119,9 @@ describe('streamMessage', () => {
     // Wait for async operations
     await new Promise(resolve => setTimeout(resolve, 10))
 
+    // URL may have base URL prefix depending on VITE_API_BASE_URL env var
     expect(global.fetch).toHaveBeenCalledWith(
-      '/api/v1/messages',
+      expect.stringMatching(/\/api\/v1\/messages$/),
       expect.objectContaining({
         method: 'POST',
         headers: expect.objectContaining({
