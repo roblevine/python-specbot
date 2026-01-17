@@ -275,4 +275,3 @@ See `/specs/001-chat-interface/` for detailed design documentation.
 
 [License TBD]
 
-THE END
