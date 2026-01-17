@@ -60,13 +60,13 @@
 - [x] T010 [US1] Update --color-border to var(--color-warm-brown) in frontend/public/styles/global.css
 - [x] T011 [US1] Update --color-text-secondary to #664930 in frontend/public/styles/global.css
 - [x] T012 [US1] Update --color-user-message-bg to var(--color-warm-tan) in frontend/public/styles/global.css
-- [x] T013 [US1] Update sidebar background to use --color-warm-brown in frontend/src/components/HistoryBar/HistoryBar.vue
+- [x] T013 [US1] Update sidebar background to use --color-warm-cream (same as main area) in frontend/src/components/HistoryBar/HistoryBar.vue
 - [x] T014 [US1] Verify text contrast meets WCAG AA (4.5:1) for all color combinations
 - [x] T015 [US1] Remove legacy --color-grey-* and --color-blue-* variables in frontend/public/styles/global.css
 
 **Checkpoint**: Application displays warm color palette. Verify:
 - Cream background (#FFDBBB)
-- Sidebar uses warm brown (#997E67)
+- Sidebar uses same cream background as main area (#FFDBBB)
 - All text is readable
 
 ---

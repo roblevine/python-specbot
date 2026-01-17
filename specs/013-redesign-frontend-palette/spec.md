@@ -19,7 +19,7 @@ A user opens the chat application and immediately sees a refreshed, modern inter
 
 1. **Given** the user loads the application, **When** the interface renders, **Then** the main background uses a light cream color (#FFDBBB or derivative)
 2. **Given** the user views any UI element, **When** checking text readability, **Then** text uses either black or white depending on background contrast (WCAG AA compliant)
-3. **Given** the user views the sidebar, **When** it is expanded, **Then** it uses a darker warm tone from the palette (#997E67 or #664930)
+3. **Given** the user views the sidebar, **When** it is expanded, **Then** it uses the same light cream background color as the main area (#FFDBBB)
 
 ---
 
@@ -138,7 +138,7 @@ A user collapses the sidebar. The expand icon/button has adequate margin from th
 
 **Sidebar**
 - **FR-014**: System MUST add additional margin/padding to the expand button when the sidebar is collapsed (minimum 8px from right edge)
-- **FR-015**: System MUST update sidebar colors to align with the new warm palette
+- **FR-015**: System MUST update sidebar background color to match the main area (using --color-warm-cream instead of --color-warm-brown)
 
 ### Key Entities
 

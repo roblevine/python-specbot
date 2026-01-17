@@ -114,7 +114,7 @@ export default {
   display: flex;
   flex-direction: column;
   width: var(--history-bar-width);
-  background-color: var(--color-warm-brown);
+  background-color: var(--color-warm-cream);
   border-right: 1px solid var(--color-warm-dark);
   transition: width 300ms ease-in-out;
   overflow: hidden;
