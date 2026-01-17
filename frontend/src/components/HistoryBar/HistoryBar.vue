@@ -39,11 +39,14 @@
         :class="{ active: conversation.id === activeConversationId }"
         @click="$emit('select-conversation', conversation.id)"
       >
-        <div class="conversation-title">
-          {{ conversation.title }}
-        </div>
-        <div class="conversation-preview">
-          {{ getPreview(conversation) }}
+        <div class="conversation-content">
+          <div class="conversation-title">
+            {{ conversation.title }}
+          </div>
+          <TitleMenu
+            class="conversation-menu"
+            @rename="$emit('rename-conversation', conversation.id)"
+          />
         </div>
       </div>
       <div
@@ -58,9 +61,13 @@
 
 <script>
 import { ref } from 'vue'
+import TitleMenu from '../TitleMenu/TitleMenu.vue'
 
 export default {
   name: 'HistoryBar',
+  components: {
+    TitleMenu,
+  },
   props: {
     conversations: {
       type: Array,
@@ -75,18 +82,10 @@ export default {
       default: false,
     },
   },
-  emits: ['select-conversation', 'new-conversation', 'toggle-sidebar'],
+  emits: ['select-conversation', 'new-conversation', 'toggle-sidebar', 'rename-conversation'],
   setup(props, { emit }) {
     const isCreating = ref(false)
     const DEBOUNCE_MS = 300
-
-    function getPreview(conversation) {
-      if (conversation.messages.length === 0) {
-        return 'No messages'
-      }
-      const lastMessage = conversation.messages[conversation.messages.length - 1]
-      return lastMessage.text.slice(0, 50) + (lastMessage.text.length > 50 ? '...' : '')
-    }
 
     function handleNewConversation() {
       if (isCreating.value) {
@@ -102,7 +101,6 @@ export default {
     }
 
     return {
-      getPreview,
       handleNewConversation,
     }
   },
@@ -114,14 +112,21 @@ export default {
   display: flex;
   flex-direction: column;
   width: var(--history-bar-width);
-  background-color: var(--color-surface);
-  border-right: 1px solid var(--color-border);
+  background-color: var(--color-warm-cream);
+  border-right: 1px solid var(--color-warm-dark);
   transition: width 300ms ease-in-out;
   overflow: hidden;
+  color: #1d1d1f;
 }
 
 .history-bar.collapsed {
   width: 48px;
+}
+
+/* T037-T038: Add margin to collapsed sidebar expand button */
+.history-bar.collapsed .history-header {
+  justify-content: center;
+  padding: var(--spacing-md) var(--collapsed-sidebar-margin);
 }
 
 /* Respect reduced motion preference */
@@ -137,7 +142,7 @@ export default {
   justify-content: space-between;
   padding: var(--spacing-md);
   padding-bottom: var(--spacing-sm);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-warm-dark);
   min-height: 56px;
 }
 
@@ -151,8 +156,8 @@ export default {
 
 .collapse-button {
   padding: var(--spacing-xs);
-  background: var(--color-grey-surface);
-  border: 1px solid var(--color-grey-border);
+  background: transparent;
+  border: 1px solid var(--color-warm-dark);
   border-radius: var(--border-radius-sm);
   cursor: pointer;
   transition: all 200ms ease;
@@ -161,16 +166,16 @@ export default {
   justify-content: center;
   min-width: 32px;
   min-height: 32px;
-  color: var(--color-text);
+  color: #1d1d1f;
 }
 
 .collapse-button:hover {
-  background: var(--color-blue-light);
-  border-color: var(--color-blue-primary);
+  background: rgba(0, 0, 0, 0.1);
+  border-color: var(--color-warm-dark);
 }
 
 .collapse-button:focus-visible {
-  outline: 2px solid var(--color-blue-primary);
+  outline: 2px solid var(--color-warm-dark);
   outline-offset: 2px;
 }
 
@@ -181,36 +186,34 @@ export default {
 
 .button-container {
   padding: var(--spacing-sm) var(--spacing-md);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-warm-dark);
 }
 
 .new-conversation-btn {
   width: 100%;
   padding: var(--spacing-sm) var(--spacing-md);
-  background-color: var(--color-grey-surface);
-  color: var(--color-grey-text-primary);
-  border: 1px solid var(--color-grey-border);
+  background-color: transparent;
+  color: #1d1d1f;
+  border: 1px solid var(--color-warm-dark);
   border-radius: var(--border-radius-md);
   cursor: pointer;
   font-size: var(--font-size-sm);
   font-weight: 500;
   transition: all 200ms ease;
-  box-shadow: var(--shadow-sm);
 }
 
 .new-conversation-btn:hover {
-  background-color: var(--color-blue-light);
-  border-color: var(--color-blue-primary);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background-color: rgba(0, 0, 0, 0.1);
+  border-color: var(--color-warm-dark);
 }
 
 .new-conversation-btn:active {
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+  background-color: rgba(0, 0, 0, 0.15);
   transform: translateY(1px);
 }
 
 .new-conversation-btn:focus-visible {
-  outline: 2px solid var(--color-blue-primary);
+  outline: 2px solid var(--color-warm-dark);
   outline-offset: 2px;
 }
 
@@ -221,41 +224,61 @@ export default {
 
 .conversation-item {
   padding: var(--spacing-md);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-warm-dark);
   cursor: pointer;
   transition: background-color 0.2s;
+  color: #1d1d1f;
 }
 
 .conversation-item:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: rgba(0, 0, 0, 0.1);
 }
 
 .conversation-item.active {
-  background-color: var(--color-primary);
+  background-color: var(--color-warm-dark);
   color: white;
 }
 
-.conversation-title {
-  font-weight: 600;
-  font-size: var(--font-size-md);
-  margin-bottom: var(--spacing-xs);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.conversation-content {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
 }
 
-.conversation-preview {
-  font-size: var(--font-size-sm);
-  opacity: 0.8;
+.conversation-title {
+  flex: 1;
+  font-weight: 600;
+  font-size: var(--font-size-md);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.conversation-menu {
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.conversation-item:hover .conversation-menu,
+.conversation-item:focus-within .conversation-menu {
+  opacity: 1;
+}
+
+.conversation-item.active .conversation-menu :deep(.menu-trigger) {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.conversation-item.active .conversation-menu :deep(.menu-trigger:hover) {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .empty-history {
   padding: var(--spacing-lg);
   text-align: center;
-  color: var(--color-text-secondary);
+  color: var(--color-warm-dark);
   font-size: var(--font-size-sm);
 }
 </style>

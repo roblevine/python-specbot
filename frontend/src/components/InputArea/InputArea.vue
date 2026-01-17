@@ -1,20 +1,22 @@
 <template>
   <div class="input-area">
-    <textarea
-      v-model="inputText"
-      class="input-textarea"
-      placeholder="Type your message..."
-      :disabled="disabled"
-      @keydown.enter.exact="handleEnter"
-      @keydown.enter.shift.exact="handleShiftEnter"
-    />
-    <button
-      class="send-button"
-      :disabled="disabled || !canSend"
-      @click="handleSend"
-    >
-      Send
-    </button>
+    <div class="input-container">
+      <textarea
+        v-model="inputText"
+        class="input-textarea"
+        placeholder="Type your message..."
+        :disabled="disabled"
+        @keydown.enter.exact="handleEnter"
+        @keydown.enter.shift.exact="handleShiftEnter"
+      />
+      <button
+        class="send-button"
+        :disabled="disabled || !canSend"
+        @click="handleSend"
+      >
+        Send
+      </button>
+    </div>
   </div>
 </template>
 
@@ -76,12 +78,19 @@ export default {
 
 <style scoped>
 .input-area {
-  display: flex;
-  gap: var(--spacing-md);
   padding: var(--spacing-md);
   background-color: var(--color-surface);
   border-top: 1px solid var(--color-border);
   height: var(--input-area-height);
+}
+
+.input-container {
+  display: flex;
+  gap: var(--spacing-md);
+  max-width: var(--chat-max-width);
+  margin-left: auto;
+  margin-right: auto;
+  height: 100%;
 }
 
 .input-textarea {
@@ -108,27 +117,33 @@ export default {
 
 .send-button {
   padding: 0 var(--spacing-xl);
-  background-color: var(--color-primary);
-  color: white;
-  border: none;
+  background-color: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
   border-radius: var(--border-radius-md);
   font-size: var(--font-size-md);
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 200ms ease;
 }
 
 .send-button:hover:not(:disabled) {
-  background-color: var(--color-primary-hover);
+  background-color: rgba(0, 0, 0, 0.05);
+  border-color: var(--color-primary);
+}
+
+.send-button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .send-button:disabled {
-  background-color: var(--color-secondary);
   opacity: 0.5;
   cursor: not-allowed;
 }
 
 .send-button:active:not(:disabled) {
+  background-color: rgba(0, 0, 0, 0.1);
   transform: scale(0.98);
 }
 </style>

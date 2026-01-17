@@ -1,8 +1,10 @@
 <template>
   <div class="app">
     <StatusBar
+      :title="activeConversationTitle"
       :status="status"
       :status-type="statusType"
+      @rename="handleRenameRequest()"
     />
     <div class="app-main">
       <HistoryBar
@@ -12,6 +14,7 @@
         @select-conversation="handleSelectConversation"
         @new-conversation="handleNewConversation"
         @toggle-sidebar="toggleSidebar"
+        @rename-conversation="handleRenameRequest"
       />
       <div class="chat-container">
         <ChatArea
@@ -26,16 +29,23 @@
         />
       </div>
     </div>
+    <RenameDialog
+      v-if="showRenameDialog"
+      :current-title="renamingTitle"
+      @save="handleRenameSave"
+      @cancel="handleRenameCancel"
+    />
   </div>
 </template>
 
 <script>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import StatusBar from '../StatusBar/StatusBar.vue'
 import HistoryBar from '../HistoryBar/HistoryBar.vue'
 import ChatArea from '../ChatArea/ChatArea.vue'
 import InputArea from '../InputArea/InputArea.vue'
 import ModelSelector from '../ModelSelector/ModelSelector.vue'
+import RenameDialog from '../RenameDialog/RenameDialog.vue'
 import { useConversations } from '../../state/useConversations.js'
 import { useMessages } from '../../state/useMessages.js'
 import { useAppState } from '../../state/useAppState.js'
@@ -50,6 +60,7 @@ export default {
     ChatArea,
     InputArea,
     ModelSelector,
+    RenameDialog,
   },
   setup() {
     // Template refs
@@ -59,11 +70,29 @@ export default {
     const {
       conversations,
       activeConversationId,
+      activeConversation,
       createConversation,
       setActiveConversation,
       loadFromStorage,
       saveToStorage,
+      renameConversation,
     } = useConversations()
+
+    // Computed property for active conversation title
+    const activeConversationTitle = computed(() => {
+      return activeConversation.value?.title || 'New Conversation'
+    })
+
+    // Rename dialog state
+    const showRenameDialog = ref(false)
+    const renamingConversationId = ref(null)
+
+    // Computed property for the title being renamed
+    const renamingTitle = computed(() => {
+      if (!renamingConversationId.value) return ''
+      const conversation = conversations.value.find(c => c.id === renamingConversationId.value)
+      return conversation?.title || ''
+    })
 
     const { currentMessages, sendUserMessage } = useMessages()
 
@@ -129,18 +158,50 @@ export default {
       }
     }
 
+    // Handle rename request (from StatusBar or HistoryBar)
+    function handleRenameRequest(conversationId = null) {
+      renamingConversationId.value = conversationId || activeConversationId.value
+      showRenameDialog.value = true
+      logger.info('Opening rename dialog', { conversationId: renamingConversationId.value })
+    }
+
+    // Handle rename save
+    async function handleRenameSave(newTitle) {
+      try {
+        await renameConversation(renamingConversationId.value, newTitle)
+        showRenameDialog.value = false
+        renamingConversationId.value = null
+        logger.info('Conversation renamed successfully', { newTitle })
+      } catch (error) {
+        logger.error('Failed to rename conversation', error)
+        setError('Failed to rename conversation')
+      }
+    }
+
+    // Handle rename cancel
+    function handleRenameCancel() {
+      showRenameDialog.value = false
+      renamingConversationId.value = null
+    }
+
     return {
       inputAreaRef,
       conversations,
       activeConversationId,
+      activeConversationTitle,
       currentMessages,
       isProcessing,
       status,
       statusType,
       sidebarCollapsed,
+      showRenameDialog,
+      renamingTitle,
       handleSendMessage,
       handleSelectConversation,
       handleNewConversation,
+      handleRenameRequest,
+      handleRenameSave,
+      handleRenameCancel,
       toggleSidebar,
     }
   },

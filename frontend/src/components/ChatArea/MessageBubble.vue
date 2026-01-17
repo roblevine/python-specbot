@@ -156,10 +156,7 @@ export default {
 
 <style scoped>
 .message-bubble {
-  max-width: 70%;
   margin: var(--spacing-sm) 0;
-  padding: var(--spacing-md);
-  border-radius: var(--border-radius-lg);
   word-wrap: break-word;
   animation: slideIn 0.2s ease-out;
 }
@@ -180,13 +177,18 @@ export default {
   background-color: var(--color-user-message-bg);
   color: var(--color-user-message-text);
   margin-left: auto;
+  max-width: 80%;
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-lg);
 }
 
 .message-system {
-  align-self: flex-start;
-  background-color: var(--color-system-message-bg);
+  align-self: stretch;
+  background-color: transparent;
   color: var(--color-system-message-text);
-  margin-right: auto;
+  width: 100%;
+  padding: var(--spacing-sm) 0;
+  border-radius: 0;
 }
 
 .message-text {
@@ -196,10 +198,18 @@ export default {
 }
 
 .message-timestamp {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
   opacity: 0.7;
   margin-top: var(--spacing-xs);
+}
+
+.message-user .message-timestamp {
   text-align: right;
+}
+
+.message-system .message-timestamp {
+  text-align: left;
 }
 
 /* T043: Model indicator styling - subtle and non-intrusive */
