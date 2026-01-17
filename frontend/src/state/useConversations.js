@@ -104,9 +104,9 @@ export function useConversations() {
     conversation.messages.push(message)
     conversation.updatedAt = new Date().toISOString()
 
-    // Update title from first message if it's still default
+    // Update title from first message if it's still default (store full text, truncate only for display)
     if (conversation.title === 'New Conversation' && conversation.messages.length === 1) {
-      conversation.title = message.text.slice(0, 50)
+      conversation.title = message.text
     }
 
     logger.debug('Added message to conversation', { conversationId, messageId: message.id })
@@ -364,6 +364,35 @@ export function useConversations() {
   }
 
   /**
+   * Renames a conversation
+   * @param {string} conversationId - ID of conversation to rename
+   * @param {string} newTitle - New title for the conversation
+   */
+  async function renameConversation(conversationId, newTitle) {
+    const conversation = conversations.value.find(c => c.id === conversationId)
+    if (!conversation) {
+      logger.error('Cannot rename conversation - not found', { conversationId })
+      throw new Error(`Conversation not found: ${conversationId}`)
+    }
+
+    const trimmedTitle = newTitle.trim()
+    if (trimmedTitle.length === 0) {
+      throw new Error('Title cannot be empty')
+    }
+    if (trimmedTitle.length > 500) {
+      throw new Error('Title cannot exceed 500 characters')
+    }
+
+    conversation.title = trimmedTitle
+    conversation.updatedAt = new Date().toISOString()
+
+    logger.info('Renamed conversation', { conversationId, newTitle: trimmedTitle })
+
+    // Persist to server
+    await saveToStorage(conversationId)
+  }
+
+  /**
    * T036: Clears the current error state
    */
   function clearError() {
@@ -407,6 +436,7 @@ export function useConversations() {
     loadFromStorage,
     saveToStorage,
     deleteConversation,
+    renameConversation,
     clearError,
     retryLoad,
     __resetState,

@@ -39,11 +39,14 @@
         :class="{ active: conversation.id === activeConversationId }"
         @click="$emit('select-conversation', conversation.id)"
       >
-        <div class="conversation-title">
-          {{ conversation.title }}
-        </div>
-        <div class="conversation-preview">
-          {{ getPreview(conversation) }}
+        <div class="conversation-content">
+          <div class="conversation-title">
+            {{ conversation.title }}
+          </div>
+          <TitleMenu
+            class="conversation-menu"
+            @rename="$emit('rename-conversation', conversation.id)"
+          />
         </div>
       </div>
       <div
@@ -58,9 +61,13 @@
 
 <script>
 import { ref } from 'vue'
+import TitleMenu from '../TitleMenu/TitleMenu.vue'
 
 export default {
   name: 'HistoryBar',
+  components: {
+    TitleMenu,
+  },
   props: {
     conversations: {
       type: Array,
@@ -75,18 +82,10 @@ export default {
       default: false,
     },
   },
-  emits: ['select-conversation', 'new-conversation', 'toggle-sidebar'],
+  emits: ['select-conversation', 'new-conversation', 'toggle-sidebar', 'rename-conversation'],
   setup(props, { emit }) {
     const isCreating = ref(false)
     const DEBOUNCE_MS = 300
-
-    function getPreview(conversation) {
-      if (conversation.messages.length === 0) {
-        return 'No messages'
-      }
-      const lastMessage = conversation.messages[conversation.messages.length - 1]
-      return lastMessage.text.slice(0, 50) + (lastMessage.text.length > 50 ? '...' : '')
-    }
 
     function handleNewConversation() {
       if (isCreating.value) {
@@ -102,7 +101,6 @@ export default {
     }
 
     return {
-      getPreview,
       handleNewConversation,
     }
   },
@@ -241,21 +239,40 @@ export default {
   color: white;
 }
 
-.conversation-title {
-  font-weight: 600;
-  font-size: var(--font-size-md);
-  margin-bottom: var(--spacing-xs);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.conversation-content {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
 }
 
-.conversation-preview {
-  font-size: var(--font-size-sm);
-  opacity: 0.8;
+.conversation-title {
+  flex: 1;
+  font-weight: 600;
+  font-size: var(--font-size-md);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.conversation-menu {
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.conversation-item:hover .conversation-menu,
+.conversation-item:focus-within .conversation-menu {
+  opacity: 1;
+}
+
+.conversation-item.active .conversation-menu :deep(.menu-trigger) {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.conversation-item.active .conversation-menu :deep(.menu-trigger:hover) {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .empty-history {

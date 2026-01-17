@@ -90,6 +90,29 @@ export function validateMessage(message) {
 }
 
 /**
+ * Validates conversation title
+ * @param {string} title - Title to validate
+ * @returns {Object} Validation result with { isValid: boolean, error: string|null, value: string|null }
+ */
+export function validateTitle(title) {
+  if (typeof title !== 'string') {
+    return { isValid: false, error: 'Title must be a string', value: null }
+  }
+
+  const trimmed = title.trim()
+
+  if (trimmed.length === 0) {
+    return { isValid: false, error: 'Title cannot be empty', value: null }
+  }
+
+  if (trimmed.length > 500) {
+    return { isValid: false, error: 'Title cannot exceed 500 characters', value: null }
+  }
+
+  return { isValid: true, error: null, value: trimmed }
+}
+
+/**
  * Checks if a string is a valid ISO 8601 date
  * @param {string} dateString - Date string to validate
  * @returns {boolean} True if valid ISO date
