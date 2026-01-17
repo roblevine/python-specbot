@@ -273,5 +273,6 @@ See `/specs/001-chat-interface/` for detailed design documentation.
 
 ## License
 
-[License TBD]
+[License TBD] - will be permissive
+
 
