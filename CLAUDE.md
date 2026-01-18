@@ -22,6 +22,8 @@ Auto-generated from all feature plans. Last updated: 2026-01-12
 - N/A (styling changes only) (013-redesign-frontend-palette)
 - JavaScript (ES6+) for frontend, Python 3.13 for backend + Vue 3.4.0, Vite 5.0.0, FastAPI 0.115.0 (014-conversation-titles)
 - Browser LocalStorage (frontend), File-based JSON (backend) - both already support title field (014-conversation-titles)
+- Python 3.13 (backend), JavaScript ES6+ (frontend) + FastAPI 0.115.0, Pydantic 2.10.0 (backend); Vue 3.4.0, Vite 5.0.0 (frontend) (016-delete-conversation)
+- File-based JSON storage (backend); existing storage layer handles delete (016-delete-conversation)
 
 ## Project Structure
 
@@ -60,9 +62,9 @@ cd backend && pytest -m unit               # Unit tests only
 : Follow standard conventions
 
 ## Recent Changes
+- 016-delete-conversation: Added Python 3.13 (backend), JavaScript ES6+ (frontend) + FastAPI 0.115.0, Pydantic 2.10.0 (backend); Vue 3.4.0, Vite 5.0.0 (frontend)
 - 014-conversation-titles: Added JavaScript (ES6+) for frontend, Python 3.13 for backend + Vue 3.4.0, Vite 5.0.0, FastAPI 0.115.0
 - 013-redesign-frontend-palette: Added JavaScript (ES6+) + Vue 3.4.0, Vite 5.0.0
-- 012-modular-model-providers: Added Python 3.13 (backend), JavaScript ES6+ (frontend) + FastAPI 0.115.0, Pydantic 2.10.0, LangChain 0.3+, langchain-openai 0.2+, langchain-anthropic 0.2+, Vue 3.4.0, Vite 5.0.0
 
 ### 009-message-streaming (2026-01-14) ✅ MVP COMPLETE
 **Real-time LLM response streaming with Server-Sent Events (SSE)**

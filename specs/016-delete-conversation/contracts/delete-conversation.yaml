@@ -1,0 +1,71 @@
+# OpenAPI Contract: Delete Conversation
+#
+# Note: This endpoint already exists in the backend. This contract documents
+# the existing API for reference and contract testing purposes.
+#
+# Backend implementation: backend/src/api/routes/conversations.py:259-301
+
+openapi: 3.0.3
+info:
+  title: Delete Conversation API
+  version: 1.0.0
+  description: Contract for deleting a conversation (existing endpoint)
+
+paths:
+  /api/v1/conversations/{conversation_id}:
+    delete:
+      operationId: deleteConversation
+      summary: Delete a conversation permanently
+      description: |
+        Permanently removes a conversation and all its messages from storage.
+        Returns 204 No Content on success (no response body).
+      parameters:
+        - name: conversation_id
+          in: path
+          required: true
+          description: UUID of the conversation to delete
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '204':
+          description: Conversation deleted successfully (no response body)
+        '404':
+          description: Conversation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Conversation not found"
+                code: "CONVERSATION_NOT_FOUND"
+                detail: "No conversation found with ID 550e8400-e29b-41d4-a716-446655440000"
+        '500':
+          description: Server error during deletion
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Failed to delete conversation"
+                code: "DELETE_FAILED"
+                detail: "Internal server error"
+
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - code
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+        code:
+          type: string
+          description: Machine-readable error code
+        detail:
+          type: string
+          description: Additional error details (optional)
