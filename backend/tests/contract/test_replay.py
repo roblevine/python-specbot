@@ -32,6 +32,24 @@ def test_backend_handles_frontend_snapshots(client, snapshot):
     with patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
         mock_get_ai.return_value = ("AI response from snapshot replay.", "gpt-3.5-turbo")
 
+        # For DELETE operations, mock the storage to return success
+        # (since the conversation doesn't actually exist in test environment)
+        if operation_id == "deleteConversation":
+            with patch('src.api.routes.conversations.get_storage') as mock_get_storage:
+                mock_storage = AsyncMock()
+                mock_storage.delete_conversation = AsyncMock(return_value=True)
+                mock_get_storage.return_value = mock_storage
+
+                response = replay_snapshot(client, snapshot)
+
+                # DELETE returns 204 No Content on success
+                assert response.status_code == 204, (
+                    f"Backend rejected snapshot '{operation_id}':\n"
+                    f"Status: {response.status_code}\n"
+                    f"Response: {response.text}"
+                )
+                return  # Skip the rest of the test for DELETE operations
+
         # Replay the snapshot request to the backend
         response = replay_snapshot(client, snapshot)
 

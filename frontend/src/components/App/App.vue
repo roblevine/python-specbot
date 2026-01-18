@@ -14,6 +14,7 @@
         @new-conversation="handleNewConversation"
         @toggle-sidebar="toggleSidebar"
         @rename-conversation="handleRenameRequest"
+        @delete-conversation="handleDeleteConversation"
       />
       <div class="chat-container">
         <ChatArea
@@ -34,6 +35,12 @@
       @save="handleRenameSave"
       @cancel="handleRenameCancel"
     />
+    <DeleteConfirmationDialog
+      v-if="showDeleteDialog"
+      :conversation-title="deletingConversationTitle"
+      @confirm="handleDeleteConfirm"
+      @cancel="handleDeleteCancel"
+    />
   </div>
 </template>
 
@@ -45,6 +52,7 @@ import ChatArea from '../ChatArea/ChatArea.vue'
 import InputArea from '../InputArea/InputArea.vue'
 // Feature 015: ModelSelector moved to InputArea component
 import RenameDialog from '../RenameDialog/RenameDialog.vue'
+import DeleteConfirmationDialog from '../DeleteConfirmationDialog/DeleteConfirmationDialog.vue'
 import { useConversations } from '../../state/useConversations.js'
 import { useMessages } from '../../state/useMessages.js'
 import { useAppState } from '../../state/useAppState.js'
@@ -59,6 +67,7 @@ export default {
     ChatArea,
     InputArea,
     RenameDialog,
+    DeleteConfirmationDialog,
   },
   setup() {
     // Template refs
@@ -74,6 +83,7 @@ export default {
       loadFromStorage,
       saveToStorage,
       renameConversation,
+      deleteConversation,
     } = useConversations()
 
     // Computed property for active conversation title
@@ -85,10 +95,21 @@ export default {
     const showRenameDialog = ref(false)
     const renamingConversationId = ref(null)
 
+    // Delete dialog state
+    const showDeleteDialog = ref(false)
+    const deletingConversationId = ref(null)
+
     // Computed property for the title being renamed
     const renamingTitle = computed(() => {
       if (!renamingConversationId.value) return ''
       const conversation = conversations.value.find(c => c.id === renamingConversationId.value)
+      return conversation?.title || ''
+    })
+
+    // Computed property for the title being deleted
+    const deletingConversationTitle = computed(() => {
+      if (!deletingConversationId.value) return ''
+      const conversation = conversations.value.find(c => c.id === deletingConversationId.value)
       return conversation?.title || ''
     })
 
@@ -182,6 +203,36 @@ export default {
       renamingConversationId.value = null
     }
 
+    // Handle delete conversation request (shows confirmation dialog)
+    function handleDeleteConversation(conversationId) {
+      deletingConversationId.value = conversationId
+      showDeleteDialog.value = true
+      logger.info('Opening delete confirmation dialog', { conversationId })
+    }
+
+    // Handle delete confirmation
+    async function handleDeleteConfirm() {
+      const conversationId = deletingConversationId.value
+      showDeleteDialog.value = false
+      deletingConversationId.value = null
+
+      try {
+        logger.info('Deleting conversation', { conversationId })
+        await deleteConversation(conversationId)
+        logger.info('Conversation deleted successfully', { conversationId })
+      } catch (error) {
+        logger.error('Failed to delete conversation', error)
+        setError('Failed to delete conversation')
+      }
+    }
+
+    // Handle delete cancel
+    function handleDeleteCancel() {
+      showDeleteDialog.value = false
+      deletingConversationId.value = null
+      logger.info('Delete cancelled')
+    }
+
     return {
       inputAreaRef,
       conversations,
@@ -199,6 +250,11 @@ export default {
       handleRenameRequest,
       handleRenameSave,
       handleRenameCancel,
+      handleDeleteConversation,
+      handleDeleteConfirm,
+      handleDeleteCancel,
+      showDeleteDialog,
+      deletingConversationTitle,
       toggleSidebar,
     }
   },

@@ -46,6 +46,7 @@
           <TitleMenu
             class="conversation-menu"
             @rename="$emit('rename-conversation', conversation.id)"
+            @delete="$emit('delete-conversation', conversation.id)"
           />
         </div>
       </div>
@@ -82,7 +83,7 @@ export default {
       default: false,
     },
   },
-  emits: ['select-conversation', 'new-conversation', 'toggle-sidebar', 'rename-conversation'],
+  emits: ['select-conversation', 'new-conversation', 'toggle-sidebar', 'rename-conversation', 'delete-conversation'],
   setup(props, { emit }) {
     const isCreating = ref(false)
     const DEBOUNCE_MS = 300

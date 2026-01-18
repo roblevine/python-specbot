@@ -146,6 +146,73 @@ describe('HistoryBar - New Conversation Button', () => {
     it('maintains existing select-conversation emit', () => {
       expect(wrapper.vm.$options.emits).toContain('select-conversation')
     })
+
+    it('declares delete-conversation as an emitted event', () => {
+      expect(wrapper.vm.$options.emits).toContain('delete-conversation')
+    })
+
+    it('declares rename-conversation as an emitted event', () => {
+      expect(wrapper.vm.$options.emits).toContain('rename-conversation')
+    })
+  })
+
+  describe('Delete Conversation Functionality', () => {
+    const conversationsWithMultiple = [
+      {
+        id: 'conv-123',
+        title: 'First Conversation',
+        messages: [],
+        createdAt: '2025-12-25T10:00:00.000Z',
+        updatedAt: '2025-12-25T10:00:00.000Z',
+      },
+      {
+        id: 'conv-456',
+        title: 'Second Conversation',
+        messages: [],
+        createdAt: '2025-12-25T09:00:00.000Z',
+        updatedAt: '2025-12-25T09:00:00.000Z',
+      },
+    ]
+
+    it('renders TitleMenu for each conversation', async () => {
+      await wrapper.setProps({
+        conversations: conversationsWithMultiple,
+        activeConversationId: 'conv-123',
+      })
+
+      const titleMenus = wrapper.findAllComponents({ name: 'TitleMenu' })
+      expect(titleMenus.length).toBe(2)
+    })
+
+    it('emits delete-conversation with conversation id when TitleMenu emits delete', async () => {
+      await wrapper.setProps({
+        conversations: conversationsWithMultiple,
+        activeConversationId: 'conv-123',
+      })
+
+      const titleMenus = wrapper.findAllComponents({ name: 'TitleMenu' })
+
+      // Trigger delete from any conversation's TitleMenu
+      await titleMenus[1].vm.$emit('delete')
+
+      expect(wrapper.emitted('delete-conversation')).toBeTruthy()
+      expect(wrapper.emitted('delete-conversation')[0]).toEqual(['conv-456'])
+    })
+
+    it('emits delete-conversation for active conversation too', async () => {
+      await wrapper.setProps({
+        conversations: conversationsWithMultiple,
+        activeConversationId: 'conv-123',
+      })
+
+      const titleMenus = wrapper.findAllComponents({ name: 'TitleMenu' })
+
+      // Trigger delete from active conversation's TitleMenu
+      await titleMenus[0].vm.$emit('delete')
+
+      expect(wrapper.emitted('delete-conversation')).toBeTruthy()
+      expect(wrapper.emitted('delete-conversation')[0]).toEqual(['conv-123'])
+    })
   })
 
   describe('Button Styling (US3 - P3)', () => {
