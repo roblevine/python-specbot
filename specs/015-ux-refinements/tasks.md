@@ -106,10 +106,11 @@
 - [x] T016 [US4] Adjust InputArea.vue styles to accommodate the model selector (may need padding/margin adjustments) in `frontend/src/components/InputArea/InputArea.vue`
 - [x] T025 [US4] Remove `border-bottom` divider from `.model-selector` class in `frontend/src/components/ModelSelector/ModelSelector.vue`
 - [x] T026 [US4] Reduce padding in `.model-selector` class to minimal vertical space in `frontend/src/components/ModelSelector/ModelSelector.vue`
-- [x] T027 [US4] Remove `max-width` constraint from `.input-container` and `.model-selector-container` in `frontend/src/components/InputArea/InputArea.vue` to restore full-width textarea
-- [x] T028 [US4] Verify chat input textarea fills full available width matching pre-relocation behavior
+- [x] T027 [US4] ~~Remove `max-width` constraint~~ (SUPERSEDED by T029 - was over-correction)
+- [x] T028 [US4] ~~Verify chat input textarea fills full available width~~ (SUPERSEDED by T029)
+- [x] T029 [US4] Restore `max-width: var(--chat-max-width)` with centering on `.input-container` and `.model-selector-container` in `frontend/src/components/InputArea/InputArea.vue` to align with chat message area width
 
-**Checkpoint**: Model selector appears within the input pane with minimal footprint, full-width textarea restored
+**Checkpoint**: Model selector appears within the input pane with minimal footprint, textarea width matches chat message area
 
 ---
 

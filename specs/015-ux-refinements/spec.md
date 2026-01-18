@@ -69,7 +69,7 @@ As a user, I want the model selector positioned directly above the chat input wi
 1. **Given** a user is viewing the chat interface, **When** they look at the input area, **Then** the model selector appears directly above the chat input field
 2. **Given** the model selector's new position, **When** viewing the chat area, **Then** the model selector is contained within the input pane component, not the message display area
 3. **Given** the model selector in its new position, **When** viewing the input area, **Then** the model selector has no divider line and uses minimal vertical space to blend in with the input area
-4. **Given** the chat input textarea, **When** viewing the input area, **Then** the textarea maintains the same width as before the model selector relocation (full available width within the input area)
+4. **Given** the chat input textarea, **When** viewing the input area, **Then** the textarea width matches the chat message area width (max-width aligned with messages above)
 
 ---
 

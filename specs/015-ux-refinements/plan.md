@@ -113,7 +113,7 @@ No constitution violations requiring justification.
 4. **Model Selector Relocation**: Move `<ModelSelector />` from App.vue into InputArea.vue, positioned above the textarea/button container. Additional styling requirements:
    - Remove `border-bottom` divider from ModelSelector component
    - Reduce padding in ModelSelector to use minimal vertical space
-   - Remove `max-width` constraint from input-container to restore full-width textarea
-   - Ensure input textarea fills available width (matching pre-relocation behavior)
+   - Restore `max-width: var(--chat-max-width)` on input-container to align with chat message area
+   - Model selector container should also use same max-width for visual alignment
 
 5. **Status Indicator Removal**: Remove the status indicator dot and text from StatusBar.vue, keeping only the conversation title and rename functionality.
