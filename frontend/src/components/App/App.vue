@@ -1,9 +1,8 @@
 <template>
   <div class="app">
+    <!-- Feature 015: StatusBar simplified - status/statusType props removed -->
     <StatusBar
       :title="activeConversationTitle"
-      :status="status"
-      :status-type="statusType"
       @rename="handleRenameRequest()"
     />
     <div class="app-main">
@@ -22,7 +21,7 @@
           :messages="currentMessages"
           :is-processing="isProcessing"
         />
-        <ModelSelector />
+        <!-- Feature 015: ModelSelector moved to InputArea component -->
         <InputArea
           ref="inputAreaRef"
           :disabled="isProcessing"
@@ -51,7 +50,7 @@ import StatusBar from '../StatusBar/StatusBar.vue'
 import HistoryBar from '../HistoryBar/HistoryBar.vue'
 import ChatArea from '../ChatArea/ChatArea.vue'
 import InputArea from '../InputArea/InputArea.vue'
-import ModelSelector from '../ModelSelector/ModelSelector.vue'
+// Feature 015: ModelSelector moved to InputArea component
 import RenameDialog from '../RenameDialog/RenameDialog.vue'
 import DeleteConfirmationDialog from '../DeleteConfirmationDialog/DeleteConfirmationDialog.vue'
 import { useConversations } from '../../state/useConversations.js'
@@ -67,7 +66,6 @@ export default {
     HistoryBar,
     ChatArea,
     InputArea,
-    ModelSelector,
     RenameDialog,
     DeleteConfirmationDialog,
   },
@@ -242,8 +240,7 @@ export default {
       activeConversationTitle,
       currentMessages,
       isProcessing,
-      status,
-      statusType,
+      // Feature 015: status and statusType removed from return - no longer needed in template
       sidebarCollapsed,
       showRenameDialog,
       renamingTitle,

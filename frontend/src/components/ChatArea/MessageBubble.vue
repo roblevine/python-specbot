@@ -8,15 +8,18 @@
     <div class="message-text">
       {{ message.text }}
     </div>
-    <div class="message-timestamp">
-      {{ formattedTime }}
-    </div>
-    <!-- T042: Model indicator for system messages -->
-    <div
-      v-if="message.sender === 'system' && message.model"
-      class="model-indicator"
-    >
-      {{ message.model }}
+    <!-- Feature 015: Message metadata with datetime and model indicator stacked vertically -->
+    <div class="message-metadata">
+      <div class="message-datetime">
+        {{ formattedDatetime }}
+      </div>
+      <!-- T042: Model indicator for system messages - now stacked below datetime -->
+      <div
+        v-if="message.sender === 'system' && message.model"
+        class="model-indicator"
+      >
+        {{ message.model }}
+      </div>
     </div>
     <!-- T020: Streaming indicator for status='streaming' -->
     <div
@@ -71,6 +74,8 @@ import { computed } from 'vue'
 // T048-T049: Import useCollapsible composable and redactSensitiveData
 import { useCollapsible } from '../../composables/useCollapsible.js'
 import { redactSensitiveData } from '../../utils/sensitiveDataRedactor.js'
+// Feature 015: Import datetime formatter
+import { formatMessageDatetime } from '../../utils/dateFormatter.js'
 
 export default {
   name: 'MessageBubble',
@@ -98,12 +103,9 @@ export default {
       'message-streaming': props.message.status === 'streaming', // T020: Add streaming class
     }))
 
-    const formattedTime = computed(() => {
-      const date = new Date(props.message.timestamp)
-      return date.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-      })
+    // Feature 015: Full datetime format "Sun 18-Jan-26 09:58am"
+    const formattedDatetime = computed(() => {
+      return formatMessageDatetime(props.message.timestamp)
     })
 
     // T050: Add errorCollapsible instance
@@ -144,7 +146,7 @@ export default {
 
     return {
       messageClass,
-      formattedTime,
+      formattedDatetime,
       errorCollapsible,
       hasErrorDetails,
       redactedErrorDetails,
@@ -197,27 +199,29 @@ export default {
   white-space: pre-wrap;
 }
 
-.message-timestamp {
+/* Feature 015: Message metadata container for datetime and model indicator */
+.message-metadata {
+  margin-top: var(--spacing-xs);
+}
+
+.message-datetime {
   font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
   opacity: 0.7;
-  margin-top: var(--spacing-xs);
 }
 
-.message-user .message-timestamp {
+.message-user .message-metadata {
   text-align: right;
 }
 
-.message-system .message-timestamp {
+.message-system .message-metadata {
   text-align: left;
 }
 
-/* T043: Model indicator styling - subtle and non-intrusive */
+/* T043: Model indicator styling - now stacked below datetime */
 .model-indicator {
   font-size: var(--font-size-xs);
   opacity: 0.5;
-  margin-top: var(--spacing-xs);
-  text-align: right;
   font-style: italic;
   color: var(--color-system-message-text);
 }

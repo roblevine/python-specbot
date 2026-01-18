@@ -31,6 +31,23 @@ const saveError = ref(null)
 // T038: Migration state
 const hasMigrated = ref(false)
 
+/**
+ * Sorts conversations by updatedAt descending (most recent first)
+ * Uses id as secondary sort key for deterministic ordering when timestamps are equal
+ * Feature: 015-ux-refinements
+ * @param {Array} convs - Array of conversation objects
+ * @returns {Array} Sorted array (mutates original)
+ */
+function sortConversationsByRecent(convs) {
+  return convs.sort((a, b) => {
+    // Primary: updatedAt descending (most recent first)
+    const timeCompare = new Date(b.updatedAt) - new Date(a.updatedAt)
+    if (timeCompare !== 0) return timeCompare
+    // Secondary: id for stability when timestamps are equal
+    return b.id.localeCompare(a.id)
+  })
+}
+
 export function useConversations() {
   /**
    * Gets the currently active conversation
@@ -166,6 +183,8 @@ export function useConversations() {
             logger.warn('Failed to fetch full conversation', { id: summary.id, error })
           }
         }
+        // Feature 015: Sort conversations by most recent first for deterministic ordering
+        sortConversationsByRecent(fullConversations)
         conversations.value = fullConversations
       } else {
         conversations.value = []
@@ -190,6 +209,10 @@ export function useConversations() {
       try {
         const localData = loadFromLocalStorage()
         conversations.value = localData.conversations || []
+        // Feature 015: Sort conversations by most recent first for deterministic ordering
+        if (conversations.value.length > 0) {
+          sortConversationsByRecent(conversations.value)
+        }
         activeConversationId.value = localData.activeConversationId
 
         if (conversations.value.length === 0) {
@@ -241,6 +264,8 @@ export function useConversations() {
         }
       }
 
+      // Feature 015: Sort conversations by most recent first for deterministic ordering
+      sortConversationsByRecent(migratedConversations)
       conversations.value = migratedConversations
 
       // Set active conversation

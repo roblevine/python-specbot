@@ -3,20 +3,22 @@
 # Usage: ./scripts/start-servers.sh [options]
 #
 # Options:
-#   --use-tmux          Start servers in tmux panes with live console output
+#   --no-tmux           Disable tmux even if available (use background process mode)
 #   --vertical          Use vertical (top/bottom) pane layout (default: horizontal/side-by-side)
 #   --help              Show this help message
+#
+# By default, uses tmux if available for split-pane view of both servers.
 
 set -e
 
 # Parse arguments
-USE_TMUX=false
+NO_TMUX=false
 TMUX_LAYOUT="horizontal"
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --use-tmux)
-            USE_TMUX=true
+        --no-tmux)
+            NO_TMUX=true
             shift
             ;;
         --vertical)
@@ -27,9 +29,11 @@ while [[ $# -gt 0 ]]; do
             echo "Usage: ./scripts/start-servers.sh [options]"
             echo ""
             echo "Options:"
-            echo "  --use-tmux    Start servers in tmux panes with live console output"
+            echo "  --no-tmux     Disable tmux even if available (use background process mode)"
             echo "  --vertical    Use vertical (top/bottom) pane layout (default: horizontal/side-by-side)"
             echo "  --help        Show this help message"
+            echo ""
+            echo "By default, uses tmux if available for split-pane view of both servers."
             exit 0
             ;;
         *)
@@ -39,6 +43,12 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# Determine if we should use tmux (available and not disabled)
+USE_TMUX=false
+if [ "$NO_TMUX" = false ] && command -v tmux &> /dev/null; then
+    USE_TMUX=true
+fi
 
 # Get repository root (one level up from scripts directory)
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -71,13 +81,6 @@ echo "✅ Prerequisites check passed"
 echo ""
 
 if [ "$USE_TMUX" = true ]; then
-    # Check if tmux is actually available
-    if ! command -v tmux &> /dev/null; then
-        echo "❌ --use-tmux specified but tmux is not installed!"
-        echo "   Install tmux or run without --use-tmux flag"
-        exit 1
-    fi
-    
     echo "📺 Starting servers in tmux session ($TMUX_LAYOUT layout)..."
     echo ""
     
