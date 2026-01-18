@@ -45,7 +45,6 @@
           </div>
           <TitleMenu
             class="conversation-menu"
-            :show-delete="conversation.id !== activeConversationId"
             @rename="$emit('rename-conversation', conversation.id)"
             @delete="$emit('delete-conversation', conversation.id)"
           />

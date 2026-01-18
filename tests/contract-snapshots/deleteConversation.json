@@ -1,0 +1,13 @@
+{
+  "metadata": {
+    "operationId": "deleteConversation",
+    "capturedAt": "2026-01-18T18:05:01.915Z",
+    "frontendVersion": "1.0.0"
+  },
+  "request": {
+    "method": "DELETE",
+    "path": "/api/v1/conversations/550e8400-e29b-41d4-a716-446655440000",
+    "headers": {},
+    "body": null
+  }
+}

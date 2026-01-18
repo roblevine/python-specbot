@@ -22,7 +22,6 @@
         Rename
       </button>
       <button
-        v-if="showDelete"
         class="menu-item menu-item-danger"
         role="menuitem"
         @click="handleDelete"
@@ -38,12 +37,6 @@ import { ref, onMounted, onUnmounted } from 'vue'
 
 export default {
   name: 'TitleMenu',
-  props: {
-    showDelete: {
-      type: Boolean,
-      default: true,
-    },
-  },
   emits: ['rename', 'delete'],
   setup(props, { emit }) {
     const isOpen = ref(false)
