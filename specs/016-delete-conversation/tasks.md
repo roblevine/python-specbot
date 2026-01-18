@@ -19,9 +19,9 @@
 
 **Purpose**: Verify existing infrastructure and prepare for implementation
 
-- [ ] T001 Verify backend DELETE endpoint works at `/api/v1/conversations/{id}` (manual test or existing tests)
-- [ ] T002 Verify existing deleteConversation method in `frontend/src/state/useConversations.js` works
-- [ ] T003 Verify existing TitleMenu component structure in `frontend/src/components/TitleMenu/TitleMenu.vue`
+- [x] T001 Verify backend DELETE endpoint works at `/api/v1/conversations/{id}` (manual test or existing tests)
+- [x] T002 Verify existing deleteConversation method in `frontend/src/state/useConversations.js` works
+- [x] T003 Verify existing TitleMenu component structure in `frontend/src/components/TitleMenu/TitleMenu.vue`
 
 **Checkpoint**: Existing infrastructure verified - user story implementation can begin
 
@@ -37,19 +37,19 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T004 [P] [US1] Unit test: TitleMenu emits 'delete' event when Delete clicked in `frontend/tests/unit/TitleMenu.spec.js`
-- [ ] T005 [P] [US1] Unit test: TitleMenu shows Delete option by default in `frontend/tests/unit/TitleMenu.spec.js`
-- [ ] T006 [P] [US1] Integration test: Delete flow removes conversation from list in `frontend/tests/integration/delete-conversation.spec.js`
+- [x] T004 [P] [US1] Unit test: TitleMenu emits 'delete' event when Delete clicked in `frontend/tests/unit/TitleMenu.spec.js`
+- [x] T005 [P] [US1] Unit test: TitleMenu shows Delete option by default in `frontend/tests/unit/TitleMenu.spec.js`
+- [x] T006 [P] [US1] Integration test: Delete flow removes conversation from list in `frontend/tests/integration/delete-conversation.spec.js`
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] Add 'delete' emit definition to TitleMenu component in `frontend/src/components/TitleMenu/TitleMenu.vue`
-- [ ] T008 [US1] Add "Delete" menu item to TitleMenu template in `frontend/src/components/TitleMenu/TitleMenu.vue`
-- [ ] T009 [US1] Add @delete handler to TitleMenu in HistoryBar that emits 'delete-conversation' in `frontend/src/components/HistoryBar/HistoryBar.vue`
-- [ ] T010 [US1] Add 'delete-conversation' emit definition to HistoryBar in `frontend/src/components/HistoryBar/HistoryBar.vue`
-- [ ] T011 [US1] Add @delete-conversation handler in App.vue that calls deleteConversation() in `frontend/src/components/App/App.vue`
-- [ ] T012 [US1] Add error handling with setError() for failed deletions in `frontend/src/components/App/App.vue`
-- [ ] T013 [US1] Run US1 tests and verify they pass
+- [x] T007 [US1] Add 'delete' emit definition to TitleMenu component in `frontend/src/components/TitleMenu/TitleMenu.vue`
+- [x] T008 [US1] Add "Delete" menu item to TitleMenu template in `frontend/src/components/TitleMenu/TitleMenu.vue`
+- [x] T009 [US1] Add @delete handler to TitleMenu in HistoryBar that emits 'delete-conversation' in `frontend/src/components/HistoryBar/HistoryBar.vue`
+- [x] T010 [US1] Add 'delete-conversation' emit definition to HistoryBar in `frontend/src/components/HistoryBar/HistoryBar.vue`
+- [x] T011 [US1] Add @delete-conversation handler in App.vue that calls deleteConversation() in `frontend/src/components/App/App.vue`
+- [x] T012 [US1] Add error handling with setError() for failed deletions in `frontend/src/components/App/App.vue`
+- [x] T013 [US1] Run US1 tests and verify they pass
 
 **Checkpoint**: User Story 1 complete - users can delete conversations (immediate deletion, no confirmation)
 
@@ -65,26 +65,26 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T014 [P] [US2] Unit test: DeleteConfirmationDialog renders with conversationTitle prop in `frontend/tests/unit/DeleteConfirmationDialog.spec.js`
-- [ ] T015 [P] [US2] Unit test: DeleteConfirmationDialog emits 'confirm' when Delete clicked in `frontend/tests/unit/DeleteConfirmationDialog.spec.js`
-- [ ] T016 [P] [US2] Unit test: DeleteConfirmationDialog emits 'cancel' when Cancel clicked in `frontend/tests/unit/DeleteConfirmationDialog.spec.js`
-- [ ] T017 [P] [US2] Unit test: DeleteConfirmationDialog emits 'cancel' on Escape key in `frontend/tests/unit/DeleteConfirmationDialog.spec.js`
-- [ ] T018 [P] [US2] Unit test: DeleteConfirmationDialog emits 'cancel' on overlay click in `frontend/tests/unit/DeleteConfirmationDialog.spec.js`
-- [ ] T019 [P] [US2] Integration test: Confirmation dialog flow in `frontend/tests/integration/delete-conversation.spec.js`
+- [x] T014 [P] [US2] Unit test: DeleteConfirmationDialog renders with conversationTitle prop in `frontend/tests/unit/DeleteConfirmationDialog.spec.js`
+- [x] T015 [P] [US2] Unit test: DeleteConfirmationDialog emits 'confirm' when Delete clicked in `frontend/tests/unit/DeleteConfirmationDialog.spec.js`
+- [x] T016 [P] [US2] Unit test: DeleteConfirmationDialog emits 'cancel' when Cancel clicked in `frontend/tests/unit/DeleteConfirmationDialog.spec.js`
+- [x] T017 [P] [US2] Unit test: DeleteConfirmationDialog emits 'cancel' on Escape key in `frontend/tests/unit/DeleteConfirmationDialog.spec.js`
+- [x] T018 [P] [US2] Unit test: DeleteConfirmationDialog emits 'cancel' on overlay click in `frontend/tests/unit/DeleteConfirmationDialog.spec.js`
+- [x] T019 [P] [US2] Integration test: Confirmation dialog flow in `frontend/tests/integration/delete-conversation.spec.js`
 
 ### Implementation for User Story 2
 
-- [ ] T020 [US2] Create DeleteConfirmationDialog directory at `frontend/src/components/DeleteConfirmationDialog/`
-- [ ] T021 [US2] Create DeleteConfirmationDialog component with template (overlay, dialog box, title, message, buttons) in `frontend/src/components/DeleteConfirmationDialog/DeleteConfirmationDialog.vue`
-- [ ] T022 [US2] Add props (conversationTitle) and emits (confirm, cancel) to DeleteConfirmationDialog in `frontend/src/components/DeleteConfirmationDialog/DeleteConfirmationDialog.vue`
-- [ ] T023 [US2] Add keyboard support (Escape to cancel) to DeleteConfirmationDialog in `frontend/src/components/DeleteConfirmationDialog/DeleteConfirmationDialog.vue`
-- [ ] T024 [US2] Add overlay click-outside to cancel in DeleteConfirmationDialog in `frontend/src/components/DeleteConfirmationDialog/DeleteConfirmationDialog.vue`
-- [ ] T025 [US2] Style Delete button as destructive (red/danger) in DeleteConfirmationDialog in `frontend/src/components/DeleteConfirmationDialog/DeleteConfirmationDialog.vue`
-- [ ] T026 [US2] Add delete dialog state (showDeleteDialog, deletingConversationId, deletingConversationTitle) to App.vue in `frontend/src/components/App/App.vue`
-- [ ] T027 [US2] Import and render DeleteConfirmationDialog conditionally in App.vue in `frontend/src/components/App/App.vue`
-- [ ] T028 [US2] Modify delete handler to show dialog instead of immediate deletion in `frontend/src/components/App/App.vue`
-- [ ] T029 [US2] Add handleDeleteConfirm and handleDeleteCancel handlers in `frontend/src/components/App/App.vue`
-- [ ] T030 [US2] Run US2 tests and verify they pass
+- [x] T020 [US2] Create DeleteConfirmationDialog directory at `frontend/src/components/DeleteConfirmationDialog/`
+- [x] T021 [US2] Create DeleteConfirmationDialog component with template (overlay, dialog box, title, message, buttons) in `frontend/src/components/DeleteConfirmationDialog/DeleteConfirmationDialog.vue`
+- [x] T022 [US2] Add props (conversationTitle) and emits (confirm, cancel) to DeleteConfirmationDialog in `frontend/src/components/DeleteConfirmationDialog/DeleteConfirmationDialog.vue`
+- [x] T023 [US2] Add keyboard support (Escape to cancel) to DeleteConfirmationDialog in `frontend/src/components/DeleteConfirmationDialog/DeleteConfirmationDialog.vue`
+- [x] T024 [US2] Add overlay click-outside to cancel in DeleteConfirmationDialog in `frontend/src/components/DeleteConfirmationDialog/DeleteConfirmationDialog.vue`
+- [x] T025 [US2] Style Delete button as destructive (red/danger) in DeleteConfirmationDialog in `frontend/src/components/DeleteConfirmationDialog/DeleteConfirmationDialog.vue`
+- [x] T026 [US2] Add delete dialog state (showDeleteDialog, deletingConversationId, deletingConversationTitle) to App.vue in `frontend/src/components/App/App.vue`
+- [x] T027 [US2] Import and render DeleteConfirmationDialog conditionally in App.vue in `frontend/src/components/App/App.vue`
+- [x] T028 [US2] Modify delete handler to show dialog instead of immediate deletion in `frontend/src/components/App/App.vue`
+- [x] T029 [US2] Add handleDeleteConfirm and handleDeleteCancel handlers in `frontend/src/components/App/App.vue`
+- [x] T030 [US2] Run US2 tests and verify they pass
 
 **Checkpoint**: User Story 2 complete - confirmation dialog prevents accidental deletions
 
@@ -100,15 +100,15 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T031 [P] [US3] Unit test: TitleMenu hides Delete when showDelete=false in `frontend/tests/unit/TitleMenu.spec.js`
-- [ ] T032 [P] [US3] Integration test: Delete option hidden for active conversation in `frontend/tests/integration/delete-conversation.spec.js`
+- [x] T031 [P] [US3] Unit test: TitleMenu hides Delete when showDelete=false in `frontend/tests/unit/TitleMenu.spec.js`
+- [x] T032 [P] [US3] Integration test: Delete option hidden for active conversation in `frontend/tests/integration/delete-conversation.spec.js`
 
 ### Implementation for User Story 3
 
-- [ ] T033 [US3] Add showDelete prop (Boolean, default: true) to TitleMenu in `frontend/src/components/TitleMenu/TitleMenu.vue`
-- [ ] T034 [US3] Conditionally render Delete menu item based on showDelete prop in `frontend/src/components/TitleMenu/TitleMenu.vue`
-- [ ] T035 [US3] Pass showDelete prop to TitleMenu in HistoryBar based on `conversation.id !== activeConversationId` in `frontend/src/components/HistoryBar/HistoryBar.vue`
-- [ ] T036 [US3] Run US3 tests and verify they pass
+- [x] T033 [US3] Add showDelete prop (Boolean, default: true) to TitleMenu in `frontend/src/components/TitleMenu/TitleMenu.vue`
+- [x] T034 [US3] Conditionally render Delete menu item based on showDelete prop in `frontend/src/components/TitleMenu/TitleMenu.vue`
+- [x] T035 [US3] Pass showDelete prop to TitleMenu in HistoryBar based on `conversation.id !== activeConversationId` in `frontend/src/components/HistoryBar/HistoryBar.vue`
+- [x] T036 [US3] Run US3 tests and verify they pass
 
 **Checkpoint**: User Story 3 complete - active conversation protected from deletion
 
@@ -118,10 +118,10 @@
 
 **Purpose**: Final validation and cleanup
 
-- [ ] T037 Run full test suite with `./scripts/test-all.sh`
-- [ ] T038 Verify all acceptance scenarios from spec.md manually
-- [ ] T039 Run quickstart.md verification checklist
-- [ ] T040 [P] Code cleanup: Remove any debug statements or console.logs
+- [x] T037 Run full test suite with `./scripts/test-all.sh`
+- [x] T038 Verify all acceptance scenarios from spec.md manually
+- [x] T039 Run quickstart.md verification checklist
+- [x] T040 [P] Code cleanup: Remove any debug statements or console.logs
 
 ---
 

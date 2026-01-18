@@ -21,6 +21,14 @@
       >
         Rename
       </button>
+      <button
+        v-if="showDelete"
+        class="menu-item menu-item-danger"
+        role="menuitem"
+        @click="handleDelete"
+      >
+        Delete
+      </button>
     </div>
   </div>
 </template>
@@ -30,7 +38,13 @@ import { ref, onMounted, onUnmounted } from 'vue'
 
 export default {
   name: 'TitleMenu',
-  emits: ['rename'],
+  props: {
+    showDelete: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  emits: ['rename', 'delete'],
   setup(props, { emit }) {
     const isOpen = ref(false)
 
@@ -41,6 +55,11 @@ export default {
     function handleRename() {
       isOpen.value = false
       emit('rename')
+    }
+
+    function handleDelete() {
+      isOpen.value = false
+      emit('delete')
     }
 
     function handleClickOutside(event) {
@@ -69,6 +88,7 @@ export default {
       isOpen,
       toggleMenu,
       handleRename,
+      handleDelete,
     }
   },
 }
@@ -145,5 +165,13 @@ export default {
 .menu-item:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: -2px;
+}
+
+.menu-item-danger {
+  color: var(--color-error, #dc2626);
+}
+
+.menu-item-danger:hover {
+  background-color: rgba(220, 38, 38, 0.1);
 }
 </style>
