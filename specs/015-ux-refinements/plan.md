@@ -110,6 +110,10 @@ No constitution violations requiring justification.
 
 3. **Button Styling**: Define CSS classes for enabled/disabled states using the existing warm color palette. Enabled buttons will have a solid background color; disabled buttons will be muted/grayed.
 
-4. **Model Selector Relocation**: Move `<ModelSelector />` from App.vue into InputArea.vue, positioned above the textarea/button container.
+4. **Model Selector Relocation**: Move `<ModelSelector />` from App.vue into InputArea.vue, positioned above the textarea/button container. Additional styling requirements:
+   - Remove `border-bottom` divider from ModelSelector component
+   - Reduce padding in ModelSelector to use minimal vertical space
+   - Remove `max-width` constraint from input-container to restore full-width textarea
+   - Ensure input textarea fills available width (matching pre-relocation behavior)
 
 5. **Status Indicator Removal**: Remove the status indicator dot and text from StatusBar.vue, keeping only the conversation title and rename functionality.

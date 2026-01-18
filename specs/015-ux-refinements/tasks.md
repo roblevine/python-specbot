@@ -104,8 +104,12 @@
 - [x] T014 [US4] Add ModelSelector import and component registration to `frontend/src/components/InputArea/InputArea.vue`
 - [x] T015 [US4] Add `<ModelSelector />` to InputArea.vue template above the `.input-container` div in `frontend/src/components/InputArea/InputArea.vue`
 - [x] T016 [US4] Adjust InputArea.vue styles to accommodate the model selector (may need padding/margin adjustments) in `frontend/src/components/InputArea/InputArea.vue`
+- [ ] T025 [US4] Remove `border-bottom` divider from `.model-selector` class in `frontend/src/components/ModelSelector/ModelSelector.vue`
+- [ ] T026 [US4] Reduce padding in `.model-selector` class to minimal vertical space in `frontend/src/components/ModelSelector/ModelSelector.vue`
+- [ ] T027 [US4] Remove `max-width` constraint from `.input-container` and `.model-selector-container` in `frontend/src/components/InputArea/InputArea.vue` to restore full-width textarea
+- [ ] T028 [US4] Verify chat input textarea fills full available width matching pre-relocation behavior
 
-**Checkpoint**: Model selector appears within the input pane, above the chat input
+**Checkpoint**: Model selector appears within the input pane with minimal footprint, full-width textarea restored
 
 ---
 
@@ -131,9 +135,9 @@
 
 **Purpose**: Final verification and cleanup
 
-- [x] T022 Run all frontend tests to verify no regressions: `cd frontend && npm test`
-- [x] T023 Manual verification per quickstart.md testing checklist
-- [x] T024 [P] Remove any dead code or unused imports across modified files
+- [ ] T022 Run all frontend tests to verify no regressions: `cd frontend && npm test`
+- [ ] T023 Manual verification per quickstart.md testing checklist
+- [ ] T024 [P] Remove any dead code or unused imports across modified files
 
 ---
 
