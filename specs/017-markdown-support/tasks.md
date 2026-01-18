@@ -19,8 +19,8 @@
 
 **Purpose**: Install dependencies and create foundational utilities
 
-- [ ] T001 Install markdown dependencies: `cd frontend && npm install marked dompurify highlight.js`
-- [ ] T002 [P] Import highlight.js theme CSS in frontend/src/index.js
+- [x] T001 Install markdown dependencies: `cd frontend && npm install marked dompurify highlight.js`
+- [x] T002 [P] Import highlight.js theme CSS in frontend/src/index.js
 
 ---
 
@@ -30,9 +30,9 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Create markdownRenderer.js utility with renderMarkdown() and escapeHtml() functions in frontend/src/utils/markdownRenderer.js
-- [ ] T004 [P] Write unit tests for markdownRenderer (sanitization, malformed markdown handling) in frontend/tests/unit/markdownRenderer.test.js
-- [ ] T005 Verify markdownRenderer tests FAIL before implementation, then implement to make them pass
+- [x] T003 Create markdownRenderer.js utility with renderMarkdown() and escapeHtml() functions in frontend/src/utils/markdownRenderer.js
+- [x] T004 [P] Write unit tests for markdownRenderer (sanitization, malformed markdown handling) in frontend/tests/unit/markdownRenderer.test.js
+- [x] T005 Verify markdownRenderer tests FAIL before implementation, then implement to make them pass
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -48,16 +48,16 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T006 [P] [US1] Unit test for MessageBubble markdown rendering (system messages render HTML, user messages render plain text) in frontend/tests/unit/MessageBubble.test.js
-- [ ] T007 [P] [US1] Integration test for streaming markdown rendering (no flicker, progressive formatting) in frontend/tests/integration/markdown-streaming.test.js
+- [x] T006 [P] [US1] Unit test for MessageBubble markdown rendering (system messages render HTML, user messages render plain text) in frontend/tests/unit/MessageBubble.test.js
+- [x] T007 [P] [US1] Integration test for streaming markdown rendering (no flicker, progressive formatting) in frontend/tests/integration/markdown-streaming.test.js
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Update MessageBubble.vue to use v-html with renderedContent computed property for system messages in frontend/src/components/ChatArea/MessageBubble.vue
-- [ ] T009 [US1] Add conditional rendering: markdown for sender='system', plain text for sender='user' in frontend/src/components/ChatArea/MessageBubble.vue
-- [ ] T010 [P] [US1] Add markdown element styles (.markdown-content h1-h6, p, ul, ol, code, pre, table, blockquote, a) in frontend/public/styles/global.css
-- [ ] T011 [US1] Add horizontal scrolling styles for code blocks and tables (overflow-x: auto) in frontend/public/styles/global.css
-- [ ] T012 [US1] Verify all US1 tests pass and manually test with streaming responses
+- [x] T008 [US1] Update MessageBubble.vue to use v-html with renderedContent computed property for system messages in frontend/src/components/ChatArea/MessageBubble.vue
+- [x] T009 [US1] Add conditional rendering: markdown for sender='system', plain text for sender='user' in frontend/src/components/ChatArea/MessageBubble.vue
+- [x] T010 [P] [US1] Add markdown element styles (.markdown-content h1-h6, p, ul, ol, code, pre, table, blockquote, a) in frontend/public/styles/global.css
+- [x] T011 [US1] Add horizontal scrolling styles for code blocks and tables (overflow-x: auto) in frontend/public/styles/global.css
+- [x] T012 [US1] Verify all US1 tests pass and manually test with streaming responses
 
 **Checkpoint**: User Story 1 complete - basic markdown rendering works independently
 
@@ -75,15 +75,15 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T013 [P] [US2] Unit test for syntax highlighting (specified language highlights correctly, unspecified language shows plain code) in frontend/tests/unit/markdownRenderer.test.js
+- [x] T013 [P] [US2] Unit test for syntax highlighting (specified language highlights correctly, unspecified language shows plain code) in frontend/tests/unit/markdownRenderer.test.js
 
 ### Implementation for User Story 2
 
-- [ ] T014 [US2] Configure highlight.js with language imports (javascript, typescript, python, bash, json, css, xml, sql, markdown) in frontend/src/utils/markdownRenderer.js
-- [ ] T015 [US2] Register language aliases (js→javascript, ts→typescript, py→python, sh→bash, md→markdown, html→xml) in frontend/src/utils/markdownRenderer.js
-- [ ] T016 [US2] Configure marked.setOptions with highlight callback using hljs.highlight() for specified languages and hljs.highlightAuto() fallback in frontend/src/utils/markdownRenderer.js
-- [ ] T017 [P] [US2] Add syntax highlighting color styles or import highlight.js theme (vs2015.css for dark theme) in frontend/src/index.js
-- [ ] T018 [US2] Verify all US2 tests pass and manually test with code blocks in multiple languages
+- [x] T014 [US2] Configure highlight.js with language imports (javascript, typescript, python, bash, json, css, xml, sql, markdown) in frontend/src/utils/markdownRenderer.js
+- [x] T015 [US2] Register language aliases (js→javascript, ts→typescript, py→python, sh→bash, md→markdown, html→xml) in frontend/src/utils/markdownRenderer.js
+- [x] T016 [US2] Configure marked.setOptions with highlight callback using hljs.highlight() for specified languages and hljs.highlightAuto() fallback in frontend/src/utils/markdownRenderer.js
+- [x] T017 [P] [US2] Add syntax highlighting color styles or import highlight.js theme (vs2015.css for dark theme) in frontend/src/index.js
+- [x] T018 [US2] Verify all US2 tests pass and manually test with code blocks in multiple languages
 
 **Checkpoint**: User Stories 1 AND 2 work - markdown renders with syntax highlighting
 
@@ -101,16 +101,16 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T019 [P] [US3] Unit test for CodeBlock component (copy button visible on hover, clipboard API called, success feedback shown) in frontend/tests/unit/CodeBlock.test.js
+- [x] T019 [P] [US3] Unit test for CodeBlock component (copy button visible on hover, clipboard API called, success feedback shown) in frontend/tests/unit/CodeBlock.test.js
 
 ### Implementation for User Story 3
 
-- [ ] T020 [US3] Create CodeBlock.vue component with props: code (string), language (string|null) in frontend/src/components/ChatArea/CodeBlock.vue
-- [ ] T021 [US3] Add copy button that appears on hover with clipboard API integration in frontend/src/components/ChatArea/CodeBlock.vue
-- [ ] T022 [US3] Add copied state with visual feedback (checkmark icon or "Copied!" text for 2 seconds) in frontend/src/components/ChatArea/CodeBlock.vue
-- [ ] T023 [US3] Add CodeBlock component styles (position relative for button, hover states, button styling) in frontend/src/components/ChatArea/CodeBlock.vue or frontend/public/styles/global.css
-- [ ] T024 [US3] Update markdownRenderer.js to use custom renderer that wraps code blocks with CodeBlock component integration point in frontend/src/utils/markdownRenderer.js
-- [ ] T025 [US3] Verify all US3 tests pass and manually test copy functionality
+- [x] T020 [US3] Create CodeBlock.vue component with props: code (string), language (string|null) in frontend/src/components/ChatArea/CodeBlock.vue
+- [x] T021 [US3] Add copy button that appears on hover with clipboard API integration in frontend/src/components/ChatArea/CodeBlock.vue
+- [x] T022 [US3] Add copied state with visual feedback (checkmark icon or "Copied!" text for 2 seconds) in frontend/src/components/ChatArea/CodeBlock.vue
+- [x] T023 [US3] Add CodeBlock component styles (position relative for button, hover states, button styling) in frontend/src/components/ChatArea/CodeBlock.vue or frontend/public/styles/global.css
+- [x] T024 [US3] Update markdownRenderer.js to use custom renderer that wraps code blocks with CodeBlock component integration point in frontend/src/utils/markdownRenderer.js
+- [x] T025 [US3] Verify all US3 tests pass and manually test copy functionality
 
 **Checkpoint**: All user stories complete - full markdown support with copy functionality
 
@@ -120,10 +120,10 @@
 
 **Purpose**: Documentation, cleanup, and final validation
 
-- [ ] T026 [P] Update architecture.md with markdown rendering dependencies (marked, DOMPurify, highlight.js) if architecture.md exists
-- [ ] T027 [P] Run all tests: `cd frontend && npm test`
-- [ ] T028 Run quickstart.md validation: verify all test prompts render correctly
-- [ ] T029 Manual E2E test: full conversation with streaming, code blocks, tables, and copy functionality
+- [x] T026 [P] Update architecture.md with markdown rendering dependencies (marked, DOMPurify, highlight.js) if architecture.md exists
+- [x] T027 [P] Run all tests: `cd frontend && npm test`
+- [x] T028 Run quickstart.md validation: verify all test prompts render correctly
+- [x] T029 Manual E2E test: full conversation with streaming, code blocks, tables, and copy functionality
 
 ---
 

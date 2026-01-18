@@ -575,3 +575,263 @@ describe('MessageBubble - Streaming', () => {
     expect(wrapper.find('.message-text').text()).toBe('Hello 🚀 世界')
   })
 })
+
+/**
+ * T006: Tests for markdown rendering in MessageBubble
+ * Feature: 017-markdown-support User Story 1
+ */
+describe('MessageBubble - Markdown Rendering', () => {
+  it('should render markdown as HTML for system messages', () => {
+    const systemMessage = {
+      id: 'msg-1',
+      text: '**bold** and *italic*',
+      sender: 'system',
+      timestamp: new Date().toISOString(),
+      status: 'sent'
+    }
+
+    const wrapper = mount(MessageBubble, {
+      props: { message: systemMessage }
+    })
+
+    const messageText = wrapper.find('.message-text')
+    expect(messageText.html()).toContain('<strong>bold</strong>')
+    expect(messageText.html()).toContain('<em>italic</em>')
+  })
+
+  it('should render plain text for user messages (no markdown)', () => {
+    const userMessage = {
+      id: 'msg-1',
+      text: '**bold** and *italic*',
+      sender: 'user',
+      timestamp: new Date().toISOString(),
+      status: 'sent'
+    }
+
+    const wrapper = mount(MessageBubble, {
+      props: { message: userMessage }
+    })
+
+    const messageText = wrapper.find('.message-text')
+    // User messages should show raw text, not rendered markdown
+    expect(messageText.text()).toBe('**bold** and *italic*')
+    expect(messageText.html()).not.toContain('<strong>')
+  })
+
+  it('should apply markdown-content class to system messages', () => {
+    const systemMessage = {
+      id: 'msg-1',
+      text: '# Header',
+      sender: 'system',
+      timestamp: new Date().toISOString(),
+      status: 'sent'
+    }
+
+    const wrapper = mount(MessageBubble, {
+      props: { message: systemMessage }
+    })
+
+    expect(wrapper.find('.markdown-content').exists()).toBe(true)
+  })
+
+  it('should NOT apply markdown-content class to user messages', () => {
+    const userMessage = {
+      id: 'msg-1',
+      text: '# Header',
+      sender: 'user',
+      timestamp: new Date().toISOString(),
+      status: 'sent'
+    }
+
+    const wrapper = mount(MessageBubble, {
+      props: { message: userMessage }
+    })
+
+    expect(wrapper.find('.markdown-content').exists()).toBe(false)
+  })
+
+  it('should render code blocks with syntax highlighting', () => {
+    const systemMessage = {
+      id: 'msg-1',
+      text: '```javascript\nconst x = 1;\n```',
+      sender: 'system',
+      timestamp: new Date().toISOString(),
+      status: 'sent'
+    }
+
+    const wrapper = mount(MessageBubble, {
+      props: { message: systemMessage }
+    })
+
+    const messageText = wrapper.find('.message-text')
+    expect(messageText.html()).toContain('<pre>')
+    expect(messageText.html()).toContain('<code')
+    expect(messageText.html()).toContain('hljs')
+  })
+
+  it('should render headers', () => {
+    const systemMessage = {
+      id: 'msg-1',
+      text: '# Heading 1\n## Heading 2',
+      sender: 'system',
+      timestamp: new Date().toISOString(),
+      status: 'sent'
+    }
+
+    const wrapper = mount(MessageBubble, {
+      props: { message: systemMessage }
+    })
+
+    const html = wrapper.find('.message-text').html()
+    expect(html).toContain('<h1')
+    expect(html).toContain('<h2')
+  })
+
+  it('should render lists', () => {
+    const systemMessage = {
+      id: 'msg-1',
+      text: '- Item 1\n- Item 2',
+      sender: 'system',
+      timestamp: new Date().toISOString(),
+      status: 'sent'
+    }
+
+    const wrapper = mount(MessageBubble, {
+      props: { message: systemMessage }
+    })
+
+    const html = wrapper.find('.message-text').html()
+    expect(html).toContain('<ul>')
+    expect(html).toContain('<li>')
+  })
+
+  it('should render links', () => {
+    const systemMessage = {
+      id: 'msg-1',
+      text: '[Google](https://google.com)',
+      sender: 'system',
+      timestamp: new Date().toISOString(),
+      status: 'sent'
+    }
+
+    const wrapper = mount(MessageBubble, {
+      props: { message: systemMessage }
+    })
+
+    const html = wrapper.find('.message-text').html()
+    expect(html).toContain('<a href="https://google.com"')
+    expect(html).toContain('Google</a>')
+  })
+
+  it('should render tables (GFM)', () => {
+    const systemMessage = {
+      id: 'msg-1',
+      text: '| Col1 | Col2 |\n|------|------|\n| A    | B    |',
+      sender: 'system',
+      timestamp: new Date().toISOString(),
+      status: 'sent'
+    }
+
+    const wrapper = mount(MessageBubble, {
+      props: { message: systemMessage }
+    })
+
+    const html = wrapper.find('.message-text').html()
+    expect(html).toContain('<table>')
+    expect(html).toContain('<th>')
+    expect(html).toContain('<td>')
+  })
+
+  it('should sanitize XSS attempts in markdown', () => {
+    const systemMessage = {
+      id: 'msg-1',
+      text: '<script>alert("XSS")</script>',
+      sender: 'system',
+      timestamp: new Date().toISOString(),
+      status: 'sent'
+    }
+
+    const wrapper = mount(MessageBubble, {
+      props: { message: systemMessage }
+    })
+
+    const html = wrapper.find('.message-text').html()
+    expect(html).not.toContain('<script>')
+    expect(html).not.toContain('alert')
+  })
+
+  it('should handle streaming markdown content', async () => {
+    const streamingMessage = {
+      id: 'msg-1',
+      text: '**bold',
+      sender: 'system',
+      timestamp: new Date().toISOString(),
+      status: 'streaming'
+    }
+
+    const wrapper = mount(MessageBubble, {
+      props: { message: streamingMessage }
+    })
+
+    // Incomplete markdown should still render
+    expect(wrapper.find('.message-text').html()).toContain('bold')
+
+    // Complete the markdown
+    await wrapper.setProps({
+      message: { ...streamingMessage, text: '**bold**' }
+    })
+
+    expect(wrapper.find('.message-text').html()).toContain('<strong>bold</strong>')
+  })
+
+  it('should handle empty message text', () => {
+    const systemMessage = {
+      id: 'msg-1',
+      text: '',
+      sender: 'system',
+      timestamp: new Date().toISOString(),
+      status: 'sent'
+    }
+
+    const wrapper = mount(MessageBubble, {
+      props: { message: systemMessage }
+    })
+
+    // Should not crash, should render empty
+    expect(wrapper.find('.message-text').exists()).toBe(true)
+  })
+
+  it('should render inline code', () => {
+    const systemMessage = {
+      id: 'msg-1',
+      text: 'Use the `const` keyword',
+      sender: 'system',
+      timestamp: new Date().toISOString(),
+      status: 'sent'
+    }
+
+    const wrapper = mount(MessageBubble, {
+      props: { message: systemMessage }
+    })
+
+    const html = wrapper.find('.message-text').html()
+    expect(html).toContain('<code>const</code>')
+  })
+
+  it('should render blockquotes', () => {
+    const systemMessage = {
+      id: 'msg-1',
+      text: '> This is a quote',
+      sender: 'system',
+      timestamp: new Date().toISOString(),
+      status: 'sent'
+    }
+
+    const wrapper = mount(MessageBubble, {
+      props: { message: systemMessage }
+    })
+
+    const html = wrapper.find('.message-text').html()
+    expect(html).toContain('<blockquote>')
+  })
+})

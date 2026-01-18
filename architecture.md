@@ -1,7 +1,7 @@
 # SpecBot Architecture
 
-**Last Updated**: 2026-01-13
-**Current Version**: P1 + Backend API + OpenAI LangChain Chat + Model Selector + Message Streaming MVP (Features 006, 008, 009 Partial)
+**Last Updated**: 2026-01-18
+**Current Version**: P1 + Backend API + OpenAI LangChain Chat + Model Selector + Message Streaming MVP + Markdown Support (Features 006, 008, 009 Partial, 017)
 
 This document describes the current implemented architecture and planned future architecture for SpecBot.
 
@@ -124,7 +124,8 @@ frontend/
 │   └── utils/               # Shared utilities
 │       ├── validators.js    # Input validation
 │       ├── logger.js        # Logging utilities
-│       └── idGenerator.js   # UUID generation
+│       ├── idGenerator.js   # UUID generation
+│       └── markdownRenderer.js  # Feature 017: Markdown parsing, sanitization, syntax highlighting
 │
 ├── tests/
 │   ├── unit/                # Unit tests (Vitest) - 68 tests
@@ -184,6 +185,9 @@ backend/
 | **API Documentation** | OpenAPI 3.1 (auto-generated) | 3.1.0 | ✅ In Use |
 | **Code Quality** | ESLint + Prettier (frontend) | Latest | ✅ In Use |
 | **Package Manager** | npm (frontend), pip (backend) | 8+ / Latest | ✅ In Use |
+| **Markdown Parsing** | marked | Latest | ✅ In Use (Feature 017) |
+| **XSS Sanitization** | DOMPurify | Latest | ✅ In Use (Feature 017) |
+| **Syntax Highlighting** | highlight.js | Latest | ✅ In Use (Feature 017) |
 
 ### Data Flow (Current Implementation)
 
