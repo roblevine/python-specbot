@@ -1,8 +1,6 @@
 <template>
-  <div
-    class="status-bar"
-    :class="statusClass"
-  >
+  <!-- Feature 015: Simplified StatusBar - status indicator removed -->
+  <div class="status-bar">
     <div class="status-bar-content">
       <div class="title-section">
         <span class="conversation-title">{{ title }}</span>
@@ -11,19 +9,12 @@
           @rename="$emit('rename')"
         />
       </div>
-      <div class="status-section">
-        <div
-          class="status-indicator"
-          :class="`indicator-${statusType}`"
-        />
-        <span class="status-text">{{ status }}</span>
-      </div>
     </div>
   </div>
 </template>
 
 <script>
-import { computed } from 'vue'
+// Feature 015: Simplified StatusBar - status/statusType props removed
 import TitleMenu from '../TitleMenu/TitleMenu.vue'
 
 export default {
@@ -36,32 +27,13 @@ export default {
       type: String,
       default: 'New Conversation',
     },
-    status: {
-      type: String,
-      default: 'Ready',
-    },
-    statusType: {
-      type: String,
-      default: 'ready',
-      validator: value => ['ready', 'processing', 'error'].includes(value),
-    },
   },
   emits: ['rename'],
-  setup(props) {
-    const statusClass = computed(() => ({
-      'status-ready': props.statusType === 'ready',
-      'status-processing': props.statusType === 'processing',
-      'status-error': props.statusType === 'error',
-    }))
-
-    return {
-      statusClass,
-    }
-  },
 }
 </script>
 
 <style scoped>
+/* Feature 015: Simplified StatusBar - status indicator styles removed */
 .status-bar {
   display: flex;
   align-items: center;
@@ -74,7 +46,6 @@ export default {
 .status-bar-content {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   width: 100%;
   max-width: var(--chat-max-width);
   margin: 0 auto;
@@ -96,51 +67,5 @@ export default {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.status-section {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  flex-shrink: 0;
-}
-
-.status-indicator {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  transition: background-color 0.3s;
-}
-
-.indicator-ready {
-  background-color: var(--color-success);
-}
-
-.indicator-processing {
-  background-color: var(--color-warning);
-  animation: pulse 1s ease-in-out infinite;
-}
-
-.indicator-error {
-  background-color: var(--color-error);
-}
-
-.status-text {
-  color: var(--color-text-secondary);
-}
-
-.status-error .status-text {
-  color: var(--color-error);
-  font-weight: 600;
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.4;
-  }
 }
 </style>

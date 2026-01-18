@@ -44,8 +44,8 @@
 
 ### Implementation for User Story 1
 
-- [ ] T001 [US1] Add sorting logic after fetching conversations in `frontend/src/state/useConversations.js` - sort by `updatedAt` descending with `id` as secondary key for tie-breaking
-- [ ] T002 [US1] Verify sorting is applied in both `loadFromStorage()` success path (line ~169) and localStorage fallback path (line ~192) in `frontend/src/state/useConversations.js`
+- [x] T001 [US1] Add sorting logic after fetching conversations in `frontend/src/state/useConversations.js` - sort by `updatedAt` descending with `id` as secondary key for tie-breaking
+- [x] T002 [US1] Verify sorting is applied in both `loadFromStorage()` success path (line ~169) and localStorage fallback path (line ~192) in `frontend/src/state/useConversations.js`
 
 **Checkpoint**: Conversations now appear in deterministic order across app restarts
 
@@ -59,9 +59,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T003 [P] [US2] Update `.send-button` styles in `frontend/src/components/InputArea/InputArea.vue` - enabled state: solid `--color-primary` background with white text; disabled state: transparent with muted colors
-- [ ] T004 [P] [US2] Update `.new-conversation-btn` styles in `frontend/src/components/HistoryBar/HistoryBar.vue` to match the enabled button pattern (solid background when clickable)
-- [ ] T005 [US2] Review other buttons (collapse-button, error-toggle, dialog buttons) and ensure consistent enabled/disabled styling across the application
+- [x] T003 [P] [US2] Update `.send-button` styles in `frontend/src/components/InputArea/InputArea.vue` - enabled state: solid `--color-primary` background with white text; disabled state: transparent with muted colors
+- [x] T004 [P] [US2] Update `.new-conversation-btn` styles in `frontend/src/components/HistoryBar/HistoryBar.vue` to match the enabled button pattern (solid background when clickable)
+- [x] T005 [US2] Review other buttons (collapse-button, error-toggle, dialog buttons) and ensure consistent enabled/disabled styling across the application
 
 **Checkpoint**: All buttons clearly show enabled vs disabled states
 
@@ -77,15 +77,15 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T006 [P] [US3] Create unit tests for `formatMessageDatetime()` in `frontend/tests/unit/utils/dateFormatter.test.js` - test various dates, times (midnight, noon, PM times), edge cases
+- [x] T006 [P] [US3] Create unit tests for `formatMessageDatetime()` in `frontend/tests/unit/utils/dateFormatter.test.js` - test various dates, times (midnight, noon, PM times), edge cases
 
 ### Implementation for User Story 3
 
-- [ ] T007 [US3] Create `formatMessageDatetime(isoTimestamp)` utility function in `frontend/src/utils/dateFormatter.js` that returns format "Sun 18-Jan-26 09:58am"
-- [ ] T008 [US3] Verify unit tests pass for the datetime formatter
-- [ ] T009 [US3] Update `MessageBubble.vue` to import and use `formatMessageDatetime` - replace `formattedTime` computed with `formattedDatetime` in `frontend/src/components/ChatArea/MessageBubble.vue`
-- [ ] T010 [US3] Update `MessageBubble.vue` template to wrap datetime and model indicator in a `.message-metadata` container with vertical stacking in `frontend/src/components/ChatArea/MessageBubble.vue`
-- [ ] T011 [US3] Update CSS styles in `MessageBubble.vue` for `.message-metadata`, `.message-datetime` (replacing `.message-timestamp`), and adjust `.model-indicator` to remove right-alignment
+- [x] T007 [US3] Create `formatMessageDatetime(isoTimestamp)` utility function in `frontend/src/utils/dateFormatter.js` that returns format "Sun 18-Jan-26 09:58am"
+- [x] T008 [US3] Verify unit tests pass for the datetime formatter
+- [x] T009 [US3] Update `MessageBubble.vue` to import and use `formatMessageDatetime` - replace `formattedTime` computed with `formattedDatetime` in `frontend/src/components/ChatArea/MessageBubble.vue`
+- [x] T010 [US3] Update `MessageBubble.vue` template to wrap datetime and model indicator in a `.message-metadata` container with vertical stacking in `frontend/src/components/ChatArea/MessageBubble.vue`
+- [x] T011 [US3] Update CSS styles in `MessageBubble.vue` for `.message-metadata`, `.message-datetime` (replacing `.message-timestamp`), and adjust `.model-indicator` to remove right-alignment
 
 **Checkpoint**: All messages display datetime in correct format, model indicator stacked below datetime on system messages
 
@@ -99,11 +99,11 @@
 
 ### Implementation for User Story 4
 
-- [ ] T012 [P] [US4] Remove `<ModelSelector />` component from template (line 24) in `frontend/src/components/App/App.vue`
-- [ ] T013 [P] [US4] Remove ModelSelector import (line 47) and component registration (line 62) from `frontend/src/components/App/App.vue`
-- [ ] T014 [US4] Add ModelSelector import and component registration to `frontend/src/components/InputArea/InputArea.vue`
-- [ ] T015 [US4] Add `<ModelSelector />` to InputArea.vue template above the `.input-container` div in `frontend/src/components/InputArea/InputArea.vue`
-- [ ] T016 [US4] Adjust InputArea.vue styles to accommodate the model selector (may need padding/margin adjustments) in `frontend/src/components/InputArea/InputArea.vue`
+- [x] T012 [P] [US4] Remove `<ModelSelector />` component from template (line 24) in `frontend/src/components/App/App.vue`
+- [x] T013 [P] [US4] Remove ModelSelector import (line 47) and component registration (line 62) from `frontend/src/components/App/App.vue`
+- [x] T014 [US4] Add ModelSelector import and component registration to `frontend/src/components/InputArea/InputArea.vue`
+- [x] T015 [US4] Add `<ModelSelector />` to InputArea.vue template above the `.input-container` div in `frontend/src/components/InputArea/InputArea.vue`
+- [x] T016 [US4] Adjust InputArea.vue styles to accommodate the model selector (may need padding/margin adjustments) in `frontend/src/components/InputArea/InputArea.vue`
 
 **Checkpoint**: Model selector appears within the input pane, above the chat input
 
@@ -117,11 +117,11 @@
 
 ### Implementation for User Story 5
 
-- [ ] T017 [P] [US5] Remove `.status-section` containing `.status-indicator` and `.status-text` elements from template in `frontend/src/components/StatusBar/StatusBar.vue`
-- [ ] T018 [P] [US5] Remove `status` and `statusType` props definitions from `frontend/src/components/StatusBar/StatusBar.vue`
-- [ ] T019 [P] [US5] Remove related CSS styles (`.status-section`, `.status-indicator`, `.status-text`, `.indicator-*` classes) from `frontend/src/components/StatusBar/StatusBar.vue`
-- [ ] T020 [US5] Remove `:status` and `:status-type` prop bindings from StatusBar in `frontend/src/components/App/App.vue` (line 5-6)
-- [ ] T021 [US5] Remove unused `status` and `statusType` variables from App.vue setup if no longer needed elsewhere in `frontend/src/components/App/App.vue`
+- [x] T017 [P] [US5] Remove `.status-section` containing `.status-indicator` and `.status-text` elements from template in `frontend/src/components/StatusBar/StatusBar.vue`
+- [x] T018 [P] [US5] Remove `status` and `statusType` props definitions from `frontend/src/components/StatusBar/StatusBar.vue`
+- [x] T019 [P] [US5] Remove related CSS styles (`.status-section`, `.status-indicator`, `.status-text`, `.indicator-*` classes) from `frontend/src/components/StatusBar/StatusBar.vue`
+- [x] T020 [US5] Remove `:status` and `:status-type` prop bindings from StatusBar in `frontend/src/components/App/App.vue` (line 5-6)
+- [x] T021 [US5] Remove unused `status` and `statusType` variables from App.vue setup if no longer needed elsewhere in `frontend/src/components/App/App.vue`
 
 **Checkpoint**: Status indicator removed, StatusBar shows only title with rename functionality
 
@@ -131,9 +131,9 @@
 
 **Purpose**: Final verification and cleanup
 
-- [ ] T022 Run all frontend tests to verify no regressions: `cd frontend && npm test`
-- [ ] T023 Manual verification per quickstart.md testing checklist
-- [ ] T024 [P] Remove any dead code or unused imports across modified files
+- [x] T022 Run all frontend tests to verify no regressions: `cd frontend && npm test`
+- [x] T023 Manual verification per quickstart.md testing checklist
+- [x] T024 [P] Remove any dead code or unused imports across modified files
 
 ---
 

@@ -1,5 +1,7 @@
 <template>
   <div class="input-area">
+    <!-- Feature 015: ModelSelector positioned above chat input within input pane -->
+    <ModelSelector class="model-selector-container" />
     <div class="input-container">
       <textarea
         v-model="inputText"
@@ -22,9 +24,14 @@
 
 <script>
 import { ref, computed } from 'vue'
+// Feature 015: Import ModelSelector for positioning within input area
+import ModelSelector from '../ModelSelector/ModelSelector.vue'
 
 export default {
   name: 'InputArea',
+  components: {
+    ModelSelector,
+  },
   props: {
     disabled: {
       type: Boolean,
@@ -81,7 +88,19 @@ export default {
   padding: var(--spacing-md);
   background-color: var(--color-surface);
   border-top: 1px solid var(--color-border);
-  height: var(--input-area-height);
+  /* Feature 015: Increased height to accommodate model selector above input */
+  min-height: var(--input-area-height);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+/* Feature 015: Model selector container styling within input area */
+.model-selector-container {
+  max-width: var(--chat-max-width);
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
 }
 
 .input-container {
@@ -90,7 +109,8 @@ export default {
   max-width: var(--chat-max-width);
   margin-left: auto;
   margin-right: auto;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .input-textarea {
@@ -115,11 +135,12 @@ export default {
   cursor: not-allowed;
 }
 
+/* Feature 015: Clear enabled/disabled button states */
 .send-button {
   padding: 0 var(--spacing-xl);
-  background-color: transparent;
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
+  background-color: var(--color-primary);
+  color: white;
+  border: 1px solid var(--color-primary);
   border-radius: var(--border-radius-md);
   font-size: var(--font-size-md);
   font-weight: 500;
@@ -128,8 +149,8 @@ export default {
 }
 
 .send-button:hover:not(:disabled) {
-  background-color: rgba(0, 0, 0, 0.05);
-  border-color: var(--color-primary);
+  background-color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
 }
 
 .send-button:focus-visible {
@@ -138,12 +159,16 @@ export default {
 }
 
 .send-button:disabled {
+  background-color: transparent;
+  color: var(--color-text-secondary);
+  border-color: var(--color-border);
   opacity: 0.5;
   cursor: not-allowed;
 }
 
 .send-button:active:not(:disabled) {
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: var(--color-warm-dark);
+  border-color: var(--color-warm-dark);
   transform: scale(0.98);
 }
 </style>

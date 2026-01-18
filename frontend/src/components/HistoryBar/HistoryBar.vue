@@ -189,12 +189,13 @@ export default {
   border-bottom: 1px solid var(--color-warm-dark);
 }
 
+/* Feature 015: Clear enabled button state with solid background */
 .new-conversation-btn {
   width: 100%;
   padding: var(--spacing-sm) var(--spacing-md);
-  background-color: transparent;
-  color: #1d1d1f;
-  border: 1px solid var(--color-warm-dark);
+  background-color: var(--color-primary);
+  color: white;
+  border: 1px solid var(--color-primary);
   border-radius: var(--border-radius-md);
   cursor: pointer;
   font-size: var(--font-size-sm);
@@ -203,12 +204,13 @@ export default {
 }
 
 .new-conversation-btn:hover {
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: var(--color-warm-dark);
   border-color: var(--color-warm-dark);
 }
 
 .new-conversation-btn:active {
-  background-color: rgba(0, 0, 0, 0.15);
+  background-color: var(--color-warm-dark);
+  border-color: var(--color-warm-dark);
   transform: translateY(1px);
 }
 
