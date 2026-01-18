@@ -10,7 +10,7 @@
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)
-- **[Story]**: Which user story this task belongs to (US1, US2, US3)
+- **[Story]**: Which user story this task belongs to (US1, US2)
 - Paths use web app structure: `frontend/src/`, `frontend/tests/`
 
 ---
@@ -27,19 +27,19 @@
 
 ---
 
-## Phase 2: User Story 1 - Delete Historical Conversation (Priority: P1) 🎯 MVP
+## Phase 2: User Story 1 - Delete Conversation (Priority: P1) 🎯 MVP
 
-**Goal**: Users can delete non-active conversations via the context menu. Deletion is immediate (no confirmation in this story).
+**Goal**: Users can delete any conversation via the context menu. Deletion is immediate (no confirmation in this story).
 
-**Independent Test**: Create multiple conversations, click ellipsis menu on non-active conversation, click Delete, verify conversation removed from list and persists after refresh.
+**Independent Test**: Create multiple conversations, click ellipsis menu on any conversation, click Delete, verify conversation removed from list and persists after refresh.
 
 ### Tests for User Story 1
 
-> **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
+> **NOTE: Tests written in Phase 4 (Comprehensive Testing)**
 
-- [x] T004 [P] [US1] Unit test: TitleMenu emits 'delete' event when Delete clicked in `frontend/tests/unit/TitleMenu.spec.js`
-- [x] T005 [P] [US1] Unit test: TitleMenu shows Delete option by default in `frontend/tests/unit/TitleMenu.spec.js`
-- [x] T006 [P] [US1] Integration test: Delete flow removes conversation from list in `frontend/tests/integration/delete-conversation.spec.js`
+- [x] T004 [P] [US1] Unit test: TitleMenu emits 'delete' event when Delete clicked in `frontend/tests/unit/TitleMenu.test.js`
+- [x] T005 [P] [US1] Unit test: TitleMenu shows Delete option by default in `frontend/tests/unit/TitleMenu.test.js`
+- [x] T006 [P] [US1] Integration test: Delete flow removes conversation from list in `frontend/tests/integration/delete-conversation.test.js`
 
 ### Implementation for User Story 1
 
@@ -49,7 +49,7 @@
 - [x] T010 [US1] Add 'delete-conversation' emit definition to HistoryBar in `frontend/src/components/HistoryBar/HistoryBar.vue`
 - [x] T011 [US1] Add @delete-conversation handler in App.vue that calls deleteConversation() in `frontend/src/components/App/App.vue`
 - [x] T012 [US1] Add error handling with setError() for failed deletions in `frontend/src/components/App/App.vue`
-- [x] T013 [US1] Run US1 tests and verify they pass
+- [x] T013 [US1] Run US1 tests and verify they pass (depends on Phase 6)
 
 **Checkpoint**: User Story 1 complete - users can delete conversations (immediate deletion, no confirmation)
 
@@ -63,14 +63,14 @@
 
 ### Tests for User Story 2
 
-> **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
+> **NOTE: Tests written in Phase 4 (Comprehensive Testing)**
 
-- [x] T014 [P] [US2] Unit test: DeleteConfirmationDialog renders with conversationTitle prop in `frontend/tests/unit/DeleteConfirmationDialog.spec.js`
-- [x] T015 [P] [US2] Unit test: DeleteConfirmationDialog emits 'confirm' when Delete clicked in `frontend/tests/unit/DeleteConfirmationDialog.spec.js`
-- [x] T016 [P] [US2] Unit test: DeleteConfirmationDialog emits 'cancel' when Cancel clicked in `frontend/tests/unit/DeleteConfirmationDialog.spec.js`
-- [x] T017 [P] [US2] Unit test: DeleteConfirmationDialog emits 'cancel' on Escape key in `frontend/tests/unit/DeleteConfirmationDialog.spec.js`
-- [x] T018 [P] [US2] Unit test: DeleteConfirmationDialog emits 'cancel' on overlay click in `frontend/tests/unit/DeleteConfirmationDialog.spec.js`
-- [x] T019 [P] [US2] Integration test: Confirmation dialog flow in `frontend/tests/integration/delete-conversation.spec.js`
+- [x] T014 [P] [US2] Unit test: DeleteConfirmationDialog renders with conversationTitle prop in `frontend/tests/unit/DeleteConfirmationDialog.test.js`
+- [x] T015 [P] [US2] Unit test: DeleteConfirmationDialog emits 'confirm' when Delete clicked in `frontend/tests/unit/DeleteConfirmationDialog.test.js`
+- [x] T016 [P] [US2] Unit test: DeleteConfirmationDialog emits 'cancel' when Cancel clicked in `frontend/tests/unit/DeleteConfirmationDialog.test.js`
+- [x] T017 [P] [US2] Unit test: DeleteConfirmationDialog emits 'cancel' on Escape key in `frontend/tests/unit/DeleteConfirmationDialog.test.js`
+- [x] T018 [P] [US2] Unit test: DeleteConfirmationDialog emits 'cancel' on overlay click in `frontend/tests/unit/DeleteConfirmationDialog.test.js`
+- [x] T019 [P] [US2] Integration test: Confirmation dialog flow in `frontend/tests/integration/delete-conversation.test.js`
 
 ### Implementation for User Story 2
 
@@ -84,44 +84,53 @@
 - [x] T027 [US2] Import and render DeleteConfirmationDialog conditionally in App.vue in `frontend/src/components/App/App.vue`
 - [x] T028 [US2] Modify delete handler to show dialog instead of immediate deletion in `frontend/src/components/App/App.vue`
 - [x] T029 [US2] Add handleDeleteConfirm and handleDeleteCancel handlers in `frontend/src/components/App/App.vue`
-- [x] T030 [US2] Run US2 tests and verify they pass
+- [x] T030 [US2] Run US2 tests and verify they pass (depends on Phase 6)
 
 **Checkpoint**: User Story 2 complete - confirmation dialog prevents accidental deletions
 
 ---
 
-## Phase 4: User Story 3 - Protected Active Conversation (Priority: P3)
+## Phase 4: Comprehensive Testing
 
-**Goal**: The Delete option is hidden for the currently active conversation, preventing users from deleting what they're working on.
+**Purpose**: Write all tests for the delete conversation feature
 
-**Independent Test**: Select a conversation (making it active), open its ellipsis menu, verify Delete option is NOT visible. Switch to another conversation, verify Delete now appears on the previously active one.
+**⚠️ CRITICAL**: Tests must be written to ensure feature quality and prevent regressions
 
-### Tests for User Story 3
+### Frontend Unit Tests
 
-> **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
+- [x] T037 [P] Create TitleMenu.test.js with delete functionality tests in `frontend/tests/unit/TitleMenu.test.js`
+- [x] T038 [P] Create DeleteConfirmationDialog.test.js in `frontend/tests/unit/DeleteConfirmationDialog.test.js`
+- [x] T039 [P] Add delete-conversation emit tests to HistoryBar.test.js in `frontend/tests/unit/HistoryBar.test.js`
 
-- [x] T031 [P] [US3] Unit test: TitleMenu hides Delete when showDelete=false in `frontend/tests/unit/TitleMenu.spec.js`
-- [x] T032 [P] [US3] Integration test: Delete option hidden for active conversation in `frontend/tests/integration/delete-conversation.spec.js`
+### Frontend Integration Tests
 
-### Implementation for User Story 3
+- [x] T040 Create delete-conversation.test.js with full flow tests in `frontend/tests/integration/delete-conversation.test.js`
 
-- [x] T033 [US3] Add showDelete prop (Boolean, default: true) to TitleMenu in `frontend/src/components/TitleMenu/TitleMenu.vue`
-- [x] T034 [US3] Conditionally render Delete menu item based on showDelete prop in `frontend/src/components/TitleMenu/TitleMenu.vue`
-- [x] T035 [US3] Pass showDelete prop to TitleMenu in HistoryBar based on `conversation.id !== activeConversationId` in `frontend/src/components/HistoryBar/HistoryBar.vue`
-- [x] T036 [US3] Run US3 tests and verify they pass
+### Frontend Contract Tests
 
-**Checkpoint**: User Story 3 complete - active conversation protected from deletion
+- [x] T041 [P] Create deleteConversation.test.js contract snapshot in `frontend/tests/contract/deleteConversation.test.js`
+
+### Backend Integration Tests
+
+- [x] T042 [P] Create test_conversations_api.py with DELETE endpoint tests in `backend/tests/integration/test_conversations_api.py`
+
+### Backend Contract Tests
+
+- [x] T043 [P] Add DELETE conversation contract validation in `backend/tests/contract/test_conversations_contract.py`
+
+**Checkpoint**: All tests written and passing
 
 ---
 
-## Phase 5: Polish & Cross-Cutting Concerns
+## Phase 5: Polish & Validation
 
 **Purpose**: Final validation and cleanup
 
-- [x] T037 Run full test suite with `./scripts/test-all.sh`
-- [x] T038 Verify all acceptance scenarios from spec.md manually
-- [x] T039 Run quickstart.md verification checklist
-- [x] T040 [P] Code cleanup: Remove any debug statements or console.logs
+- [x] T044 Run full test suite with `./scripts/test-all.sh` and verify all tests pass
+- [ ] T045 Verify all acceptance scenarios from spec.md manually
+- [ ] T046 Run quickstart.md verification checklist
+- [ ] T047 [P] Code cleanup: Remove any debug statements or console.logs
+- [x] T048 Update T013, T030 to mark as complete after tests pass
 
 ---
 
@@ -132,8 +141,8 @@
 - **Setup (Phase 1)**: No dependencies - start immediately
 - **User Story 1 (Phase 2)**: Depends on Setup - delivers MVP
 - **User Story 2 (Phase 3)**: Depends on Setup only - can run parallel with US1 if needed, but sequentially recommended
-- **User Story 3 (Phase 4)**: Depends on Setup only - can run parallel with US1/US2 if needed
-- **Polish (Phase 5)**: Depends on all user stories being complete
+- **Comprehensive Testing (Phase 4)**: Depends on all user stories being complete
+- **Polish (Phase 5)**: Depends on Phase 4 tests passing
 
 ### User Story Dependencies
 
@@ -142,46 +151,47 @@ Setup (Phase 1)
     │
     ├──► User Story 1 (P1) ──► MVP COMPLETE
     │
-    ├──► User Story 2 (P2) ──► Confirmation added
-    │
-    └──► User Story 3 (P3) ──► Active protection added
+    └──► User Story 2 (P2) ──► Confirmation added
+                                    │
+                                    ▼
+                         Comprehensive Testing (Phase 4)
                                     │
                                     ▼
                               Polish (Phase 5)
 ```
 
-**Note**: While US2 and US3 can technically start after Setup, the recommended order is US1 → US2 → US3 to build incrementally.
+**Note**: While US2 can technically start after Setup, the recommended order is US1 → US2 to build incrementally.
 
 ### Within Each User Story
 
-1. Tests FIRST - write and verify they FAIL
-2. Implementation tasks in order
-3. Run tests to verify they PASS
-4. Story complete
+1. Implementation tasks in order (TDD tests deferred to Phase 4)
+2. Manual verification of functionality
+3. Story complete (tests written in Phase 4)
 
 ### Parallel Opportunities
 
-**Within Phase 2 (US1):**
-- T004, T005, T006 can run in parallel (all test files)
-
-**Within Phase 3 (US2):**
-- T014, T015, T016, T017, T018, T019 can run in parallel (all test files)
-
-**Within Phase 4 (US3):**
-- T031, T032 can run in parallel (test files)
+**Within Phase 4 (Comprehensive Testing):**
+- T037, T038, T039 can run in parallel (all frontend unit test files)
+- T041, T042, T043 can run in parallel (contract tests)
+- T040 depends on unit tests completing first
 
 ---
 
-## Parallel Example: User Story 2 Tests
+## Parallel Example: Phase 4 Tests
 
 ```bash
-# Launch all US2 tests together:
-Task: "Unit test: DeleteConfirmationDialog renders with conversationTitle prop"
-Task: "Unit test: DeleteConfirmationDialog emits 'confirm' when Delete clicked"
-Task: "Unit test: DeleteConfirmationDialog emits 'cancel' when Cancel clicked"
-Task: "Unit test: DeleteConfirmationDialog emits 'cancel' on Escape key"
-Task: "Unit test: DeleteConfirmationDialog emits 'cancel' on overlay click"
-Task: "Integration test: Confirmation dialog flow"
+# Launch frontend unit tests in parallel:
+Task: "Create TitleMenu.test.js with delete functionality tests"
+Task: "Create DeleteConfirmationDialog.test.js"
+Task: "Add delete-conversation emit tests to HistoryBar.test.js"
+
+# After unit tests, run integration tests:
+Task: "Create delete-conversation.test.js with full flow tests"
+
+# Contract tests can run in parallel:
+Task: "Create deleteConversation.test.js contract snapshot"
+Task: "Create test_conversations_api.py with DELETE endpoint tests"
+Task: "Add DELETE conversation contract validation"
 ```
 
 ---
@@ -198,16 +208,17 @@ Task: "Integration test: Confirmation dialog flow"
 ### Incremental Delivery
 
 1. Setup → Verify infrastructure
-2. Add User Story 1 → Test independently → Deploy (MVP!)
-3. Add User Story 2 → Test independently → Deploy (safer with confirmation)
-4. Add User Story 3 → Test independently → Deploy (fully protected)
+2. Add User Story 1 → Manual verification → Deploy (MVP!)
+3. Add User Story 2 → Manual verification → Deploy (safer with confirmation)
+4. Add comprehensive tests → Ensure quality and prevent regressions
 5. Each story adds value without breaking previous stories
 
 ### Recommended Execution
 
-For single developer, execute in order: T001 → T002 → ... → T040
+For single developer, execute in order: T001 → T002 → ... → T048 (skipping removed T031-T036)
 
 Each user story can be committed separately after its checkpoint.
+Tests should be committed as a final quality assurance phase.
 
 ---
 

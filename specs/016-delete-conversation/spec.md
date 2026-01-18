@@ -17,7 +17,7 @@ A user wants to remove an old conversation they no longer need from their histor
 
 **Acceptance Scenarios**:
 
-1. **Given** a user has multiple conversations in their history, **When** they click the ellipsis menu on a non-active conversation, **Then** they see both "Rename" and "Delete" options in the menu.
+1. **Given** a user has multiple conversations in their history, **When** they click the ellipsis menu on any conversation, **Then** they see both "Rename" and "Delete" options in the menu.
 2. **Given** a user clicks "Delete" on a conversation, **When** the deletion completes, **Then** the conversation is removed from the sidebar history list.
 3. **Given** a user deletes a conversation, **When** they refresh the page, **Then** the deleted conversation does not reappear.
 
@@ -39,24 +39,9 @@ A user accidentally clicks "Delete" on a conversation they didn't mean to remove
 
 ---
 
-### User Story 3 - Protected Active Conversation (Priority: P3)
-
-A user is actively working in a conversation. The ellipsis menu for this active conversation does not show the Delete option, preventing users from accidentally deleting the conversation they are currently using.
-
-**Why this priority**: This is a safeguard feature that prevents edge-case user errors. The core delete and confirmation features must work first before adding this protection layer.
-
-**Independent Test**: Can be tested by selecting a conversation and verifying its context menu does not contain the Delete option while it remains active.
-
-**Acceptance Scenarios**:
-
-1. **Given** a conversation is currently active (selected/displayed in the main area), **When** a user opens its ellipsis context menu, **Then** the "Delete" option is not visible.
-2. **Given** a conversation was previously active but user switched to another, **When** the user opens the ellipsis menu on the now-inactive conversation, **Then** the "Delete" option is visible.
-
----
-
 ### Edge Cases
 
-- What happens when the user deletes the last non-active conversation? The history shows only the active conversation.
+- What happens when the user deletes the active conversation? A new conversation is created and becomes active, or the next conversation in the list becomes active.
 - What happens if deletion fails due to a server error? An error message is displayed and the conversation remains in the list.
 - What happens if user tries to delete while offline? The operation fails gracefully with an appropriate error message.
 - What happens if user rapidly clicks delete on multiple conversations? Each deletion request is processed independently with individual confirmations.
@@ -65,13 +50,13 @@ A user is actively working in a conversation. The ellipsis menu for this active 
 
 ### Functional Requirements
 
-- **FR-001**: System MUST display a "Delete" option in the ellipsis context menu for all conversations except the currently active conversation.
+- **FR-001**: System MUST display a "Delete" option in the ellipsis context menu for all conversations.
 - **FR-002**: System MUST display a confirmation dialog when a user selects "Delete" from the context menu.
 - **FR-003**: The confirmation dialog MUST clearly identify which conversation will be deleted (showing the conversation title).
 - **FR-004**: The confirmation dialog MUST provide "Cancel" and "Delete" action buttons with "Delete" styled as a destructive action.
 - **FR-005**: Upon confirmation, the system MUST permanently remove all conversation data from storage (both frontend and backend).
 - **FR-006**: System MUST update the conversation history list immediately after successful deletion without requiring a page refresh.
-- **FR-007**: System MUST NOT display the "Delete" option for the currently active conversation in the sidebar.
+- **FR-007**: When deleting the active conversation, the system MUST switch to another conversation or create a new one.
 - **FR-008**: System MUST display an error message if deletion fails, keeping the conversation intact.
 - **FR-009**: The confirmation dialog MUST be dismissible via Escape key or clicking outside the dialog (same as existing Rename dialog).
 - **FR-010**: System MUST prevent multiple simultaneous delete operations on the same conversation.
@@ -85,12 +70,11 @@ A user is actively working in a conversation. The ellipsis menu for this active 
 
 ### Measurable Outcomes
 
-- **SC-001**: Users can delete any non-active conversation in 3 or fewer clicks (open menu, click Delete, confirm).
+- **SC-001**: Users can delete any conversation in 3 or fewer clicks (open menu, click Delete, confirm).
 - **SC-002**: Deleted conversations are completely removed from history with no residual data remaining after deletion.
 - **SC-003**: The confirmation dialog prevents 100% of accidental single-click deletions by requiring explicit confirmation.
 - **SC-004**: Users receive immediate visual feedback upon successful deletion (conversation disappears from list).
 - **SC-005**: Users receive clear error feedback within 2 seconds if deletion fails.
-- **SC-006**: 100% of active conversations are protected from accidental deletion (Delete option hidden).
 
 ## Assumptions
 
@@ -98,4 +82,3 @@ A user is actively working in a conversation. The ellipsis menu for this active 
 - The existing TitleMenu component can be extended to support additional menu options.
 - The delete confirmation dialog will follow the same modal pattern as the existing RenameDialog component.
 - Users understand that deletion is permanent and irreversible (communicated via confirmation dialog text).
-- The active conversation is determined by the `activeConversationId` state variable already in use.
