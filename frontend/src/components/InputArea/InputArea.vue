@@ -95,22 +95,17 @@ export default {
   gap: var(--spacing-sm);
 }
 
-/* Feature 015: Model selector container styling within input area */
+/* Feature 015: Model selector container - no width constraints for full-width layout */
 .model-selector-container {
-  max-width: var(--chat-max-width);
-  margin-left: auto;
-  margin-right: auto;
   width: 100%;
 }
 
 .input-container {
   display: flex;
   gap: var(--spacing-md);
-  max-width: var(--chat-max-width);
-  margin-left: auto;
-  margin-right: auto;
   flex: 1;
   min-height: 0;
+  /* Feature 015: Removed max-width constraint to restore full-width textarea */
 }
 
 .input-textarea {
