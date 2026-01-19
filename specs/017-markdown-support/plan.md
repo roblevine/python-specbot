@@ -190,3 +190,34 @@ marked.setOptions({
   white-space: normal;
 }
 ```
+
+### Table Display Block Removal
+
+**Decision**: Remove `display: block` from table elements
+
+**Context**: The original CSS used `display: block` on tables to enable horizontal scrolling:
+```css
+.markdown-content table {
+  display: block;
+  overflow-x: auto;
+}
+```
+
+**Problem**: `display: block` breaks normal table layout:
+1. `border-collapse: collapse` no longer works - borders don't merge
+2. `<thead>` and `<tbody>` become separate block elements with visual gaps
+3. Column alignment breaks
+
+**Trade-off**: Removing `display: block` means wide tables won't scroll horizontally (they'll overflow). However, correct table rendering with proper borders is more important than scrolling for now.
+
+**Future improvement**: Wrap tables in a container `<div>` with `overflow-x: auto` via the markdown renderer to get both proper layout and horizontal scrolling.
+
+**Implementation**: In `frontend/public/styles/global.css`:
+```css
+.markdown-content table {
+  border-collapse: collapse;
+  width: auto;  /* Changed from 100% */
+  margin-bottom: 0.75em;
+  /* Removed: display: block; overflow-x: auto; */
+}
+```

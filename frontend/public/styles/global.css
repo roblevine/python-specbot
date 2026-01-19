@@ -245,13 +245,12 @@ html, body {
   display: block;
 }
 
-/* T011: Tables with horizontal scrolling */
+/* T011, T039: Tables - removed display:block which broke border-collapse
+   See plan.md "Table Display Block Removal" for rationale */
 .markdown-content table {
   border-collapse: collapse;
-  width: 100%;
+  width: auto;
   margin-bottom: 0.75em;
-  display: block;
-  overflow-x: auto;
 }
 
 .markdown-content th,

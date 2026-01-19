@@ -139,7 +139,10 @@
 - [x] T035 [BUG] Manual verification: List items render with proper compact spacing - SUPERSEDED by T036
 - [x] T036 [BUG] Fix white-space pre-wrap override: Add `.message-text.markdown-content { white-space: normal; }` in MessageBubble.vue (see plan.md Technical Decisions)
 - [x] T037 [BUG] Run all tests to verify white-space fix doesn't break existing functionality (407 tests passing)
-- [ ] T038 [BUG] Manual verification: All markdown elements render with proper spacing (lists, tables, sections)
+- [x] T038 [BUG] Manual verification: All markdown elements render with proper spacing (lists, tables, sections) - spacing fixed, table borders still broken
+- [x] T039 [BUG] Fix table display block: Remove `display: block` from table CSS to restore proper border-collapse behavior (see plan.md Technical Decisions)
+- [x] T040 [BUG] Run all tests to verify table fix doesn't break existing functionality (407 tests passing)
+- [ ] T041 [BUG] Manual verification: Tables render with proper merged borders
 
 ---
 
