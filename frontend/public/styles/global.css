@@ -205,6 +205,17 @@ html, body {
   margin-top: 0.25em;
 }
 
+/* T033: Remove excessive paragraph margins inside list items
+   When AI outputs blank lines between list items, marked wraps content
+   in <p> tags. This rule prevents double-spacing. See plan.md */
+.markdown-content li > p {
+  margin-bottom: 0.25em;
+}
+
+.markdown-content li > p:last-child {
+  margin-bottom: 0;
+}
+
 /* T010: Inline code */
 .markdown-content code {
   font-family: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;

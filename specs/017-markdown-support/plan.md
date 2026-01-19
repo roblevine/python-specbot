@@ -117,3 +117,44 @@ marked.setOptions({
   breaks: false, // Let standard markdown paragraph rules handle spacing
 })
 ```
+
+### List Item Paragraph Margins
+
+**Decision**: Remove paragraph margins inside list items
+
+**Context**: When AI responses contain blank lines between list item content, the marked parser wraps list item content in `<p>` tags:
+
+```html
+<!-- AI writes markdown like: -->
+- Item 1
+
+- Item 2
+
+<!-- Marked renders as: -->
+<ul>
+  <li><p>Item 1</p></li>
+  <li><p>Item 2</p></li>
+</ul>
+```
+
+**Problem**: The default `<p>` margin (`margin-bottom: 0.75em`) creates excessive spacing between list items because:
+1. Each `<li>` already has `margin-bottom: 0.25em`
+2. The `<p>` inside adds another `0.75em`
+3. Result: ~1em spacing between items instead of expected ~0.25em
+
+**Rationale for removing inner paragraph margins**:
+- List items should have consistent, compact spacing regardless of whether they contain `<p>` tags
+- Matches rendering behavior of GitHub markdown, VS Code, and other viewers
+- The `<li>` element's margin provides sufficient visual separation
+
+**Implementation**: In `frontend/public/styles/global.css`:
+```css
+/* Remove paragraph margins inside list items */
+.markdown-content li > p {
+  margin-bottom: 0.25em;
+}
+
+.markdown-content li > p:last-child {
+  margin-bottom: 0;
+}
+```

@@ -133,7 +133,10 @@
 
 - [x] T030 [BUG] Fix double-newline spacing: Change marked `breaks: true` to `breaks: false` in frontend/src/utils/markdownRenderer.js (see plan.md Technical Decisions)
 - [x] T031 [BUG] Run all tests to verify fix doesn't break existing functionality (407 tests passing)
-- [ ] T032 [BUG] Manual verification: AI responses render with proper single-spacing between elements
+- [x] T032 [BUG] Manual verification: AI responses render with proper single-spacing between elements
+- [x] T033 [BUG] Fix list item paragraph spacing: Add CSS rules for `.markdown-content li > p` to remove excessive margins (see plan.md Technical Decisions)
+- [x] T034 [BUG] Run all tests to verify list fix doesn't break existing functionality (407 tests passing)
+- [ ] T035 [BUG] Manual verification: List items render with proper compact spacing
 
 ---
 
