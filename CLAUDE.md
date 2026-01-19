@@ -25,6 +25,8 @@ Auto-generated from all feature plans. Last updated: 2026-01-12
 - 015-ux-refinements: Added JavaScript ES6+ (Frontend), Python 3.13 (Backend - no changes) + Vue 3.4.0, Vite 5.0.0
 - 014-conversation-titles: Added JavaScript (ES6+) for frontend, Python 3.13 for backend + Vue 3.4.0, Vite 5.0.0, FastAPI 0.115.0
 - 013-redesign-frontend-palette: Added JavaScript (ES6+) + Vue 3.4.0, Vite 5.0.0
+- JavaScript ES6+ (Frontend) + Vue 3.4.0, Vite 5.0.0, marked (markdown parser - to be added), DOMPurify (XSS sanitization - to be added), highlight.js (syntax highlighting - to be added) (017-markdown-support)
+- N/A (no storage changes - markdown rendered at display time) (017-markdown-support)
 
 ### 009-message-streaming (2026-01-14) ✅ MVP COMPLETE
 **Real-time LLM response streaming with Server-Sent Events (SSE)**
@@ -74,3 +76,6 @@ Added model configuration system (Pydantic validation), GET /api/v1/models endpo
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
+
+## Recent Changes
+- 017-markdown-support: Added JavaScript ES6+ (Frontend) + Vue 3.4.0, Vite 5.0.0, marked (markdown parser - to be added), DOMPurify (XSS sanitization - to be added), highlight.js (syntax highlighting - to be added)

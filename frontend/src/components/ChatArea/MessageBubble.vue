@@ -5,7 +5,16 @@
     :data-sender="message.sender"
     :data-message-id="message.id"
   >
-    <div class="message-text">
+    <!-- Feature 017: Conditional rendering - markdown for system, plain text for user -->
+    <div
+      v-if="message.sender === 'system'"
+      class="message-text markdown-content"
+      v-html="renderedContent"
+    />
+    <div
+      v-else
+      class="message-text"
+    >
       {{ message.text }}
     </div>
     <!-- Feature 015: Message metadata with datetime and model indicator stacked vertically -->
@@ -76,6 +85,8 @@ import { useCollapsible } from '../../composables/useCollapsible.js'
 import { redactSensitiveData } from '../../utils/sensitiveDataRedactor.js'
 // Feature 015: Import datetime formatter
 import { formatMessageDatetime } from '../../utils/dateFormatter.js'
+// Feature 017: Import markdown renderer
+import { renderMarkdown } from '../../utils/markdownRenderer.js'
 
 export default {
   name: 'MessageBubble',
@@ -106,6 +117,11 @@ export default {
     // Feature 015: Full datetime format "Sun 18-Jan-26 09:58am"
     const formattedDatetime = computed(() => {
       return formatMessageDatetime(props.message.timestamp)
+    })
+
+    // Feature 017: Rendered markdown content for system messages
+    const renderedContent = computed(() => {
+      return renderMarkdown(props.message.text)
     })
 
     // T050: Add errorCollapsible instance
@@ -147,6 +163,7 @@ export default {
     return {
       messageClass,
       formattedDatetime,
+      renderedContent,
       errorCollapsible,
       hasErrorDetails,
       redactedErrorDetails,
@@ -197,6 +214,12 @@ export default {
   font-size: var(--font-size-md);
   line-height: 1.5;
   white-space: pre-wrap;
+}
+
+/* T036: Override pre-wrap for markdown content - let HTML control spacing
+   See plan.md "White-Space Pre-Wrap Override" for rationale */
+.message-text.markdown-content {
+  white-space: normal;
 }
 
 /* Feature 015: Message metadata container for datetime and model indicator */
