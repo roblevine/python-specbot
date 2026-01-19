@@ -42,9 +42,11 @@ hljs.registerLanguage('html', xml)
 hljs.registerLanguage('md', markdown)
 
 // Configure marked with syntax highlighting
+// Note: breaks: false lets standard markdown paragraph rules handle spacing
+// See plan.md "Technical Decisions" for rationale (fixes double-spacing issue)
 marked.setOptions({
   gfm: true, // GitHub Flavored Markdown (tables, strikethrough)
-  breaks: true, // Convert \n to <br>
+  breaks: false, // Let paragraph rules handle spacing (not \n → <br>)
 })
 
 // Custom renderer for code blocks with syntax highlighting

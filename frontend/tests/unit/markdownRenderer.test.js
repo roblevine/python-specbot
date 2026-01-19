@@ -94,9 +94,23 @@ describe('markdownRenderer', () => {
       expect(result).toContain('<code')
     })
 
-    it('should convert line breaks to <br> (GFM breaks)', () => {
+    it('should NOT convert single line breaks to <br> (breaks: false)', () => {
+      // With breaks: false, single newlines within a paragraph are treated as
+      // soft line breaks (space), not <br> tags. This prevents double-spacing
+      // when AI responses have standard markdown formatting.
+      // See plan.md "Technical Decisions" for rationale.
       const result = renderMarkdown('Line 1\nLine 2')
-      expect(result).toContain('<br')
+      expect(result).not.toContain('<br')
+      expect(result).toContain('Line 1')
+      expect(result).toContain('Line 2')
+    })
+
+    it('should create separate paragraphs with blank lines', () => {
+      // Blank lines (double newline) should create separate paragraphs
+      const result = renderMarkdown('Paragraph 1\n\nParagraph 2')
+      // Should have two <p> tags (or the content in separate blocks)
+      expect(result).toContain('Paragraph 1')
+      expect(result).toContain('Paragraph 2')
     })
   })
 

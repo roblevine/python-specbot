@@ -87,3 +87,33 @@ frontend/
 | Syntax Highlighting | highlight.js | Comprehensive language support, tree-shakeable |
 | XSS Prevention | DOMPurify | Industry standard, well-maintained |
 | Code Block Component | Separate component | Encapsulates copy button, language label, highlighting |
+
+## Technical Decisions
+
+### Markdown Line Break Handling
+
+**Decision**: Use `breaks: false` in marked configuration
+
+**Context**: The marked library has a `breaks` option that controls how single newlines are handled:
+- `breaks: true` - Convert every `\n` to a `<br>` tag (GFM-style line breaks)
+- `breaks: false` - Let standard markdown paragraph rules handle spacing (blank line = paragraph break)
+
+**Problem with `breaks: true`**: When AI responses contain standard markdown with blank lines between sections, using `breaks: true` causes double-spacing because:
+1. Single `\n` characters become `<br>` tags
+2. Blank lines still create paragraph breaks (`<p>` tags)
+3. CSS margins on `<p>`, `<ul>`, `<li>` elements add additional spacing
+4. Result: excessive whitespace between all elements
+
+**Rationale for `breaks: false`**:
+- AI models output properly formatted markdown with blank lines for paragraph separation
+- Standard markdown rules handle this correctly without manual intervention
+- CSS margins provide consistent, predictable spacing
+- Matches rendering behavior of other markdown viewers (GitHub, VS Code, etc.)
+
+**Implementation**: In `frontend/src/utils/markdownRenderer.js`:
+```javascript
+marked.setOptions({
+  gfm: true,
+  breaks: false, // Let standard markdown paragraph rules handle spacing
+})
+```

@@ -127,6 +127,16 @@
 
 ---
 
+## Bug Fixes
+
+**Purpose**: Post-implementation fixes discovered during testing
+
+- [x] T030 [BUG] Fix double-newline spacing: Change marked `breaks: true` to `breaks: false` in frontend/src/utils/markdownRenderer.js (see plan.md Technical Decisions)
+- [x] T031 [BUG] Run all tests to verify fix doesn't break existing functionality (407 tests passing)
+- [ ] T032 [BUG] Manual verification: AI responses render with proper single-spacing between elements
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
