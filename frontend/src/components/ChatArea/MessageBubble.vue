@@ -216,6 +216,12 @@ export default {
   white-space: pre-wrap;
 }
 
+/* T036: Override pre-wrap for markdown content - let HTML control spacing
+   See plan.md "White-Space Pre-Wrap Override" for rationale */
+.message-text.markdown-content {
+  white-space: normal;
+}
+
 /* Feature 015: Message metadata container for datetime and model indicator */
 .message-metadata {
   margin-top: var(--spacing-xs);

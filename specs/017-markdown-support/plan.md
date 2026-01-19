@@ -158,3 +158,35 @@ marked.setOptions({
   margin-bottom: 0;
 }
 ```
+
+### White-Space Pre-Wrap Override
+
+**Decision**: Override `white-space: pre-wrap` for markdown content
+
+**Context**: The MessageBubble component uses `white-space: pre-wrap` on `.message-text` to preserve formatting in user messages and plain text. However, this conflicts with markdown rendering because:
+
+```html
+<!-- Markdown HTML output has formatting newlines: -->
+<ul>
+<li>Item 1</li>
+<li>Item 2</li>
+</ul>
+```
+
+**Problem**: With `white-space: pre-wrap`, the newlines between HTML tags are rendered as visual line breaks, causing:
+1. Excessive spacing between list items
+2. Gap between table header and body rows
+3. Extra space between all block elements
+
+**Rationale**: Markdown-rendered HTML should use normal whitespace handling where:
+- HTML controls element spacing via CSS margins/padding
+- Whitespace between tags is collapsed (standard browser behavior)
+- The `white-space: normal` rule in global.css for `.markdown-content` needs to override the scoped Vue style
+
+**Implementation**: In `frontend/src/components/ChatArea/MessageBubble.vue`, add specific override:
+```css
+/* Override pre-wrap for markdown content - let HTML control spacing */
+.message-text.markdown-content {
+  white-space: normal;
+}
+```
