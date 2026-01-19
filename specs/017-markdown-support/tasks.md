@@ -142,7 +142,7 @@
 - [x] T038 [BUG] Manual verification: All markdown elements render with proper spacing (lists, tables, sections) - spacing fixed, table borders still broken
 - [x] T039 [BUG] Fix table display block: Remove `display: block` from table CSS to restore proper border-collapse behavior (see plan.md Technical Decisions)
 - [x] T040 [BUG] Run all tests to verify table fix doesn't break existing functionality (407 tests passing)
-- [ ] T041 [BUG] Manual verification: Tables render with proper merged borders
+- [x] T041 [BUG] Manual verification: Tables render with proper merged borders
 
 ---
 
