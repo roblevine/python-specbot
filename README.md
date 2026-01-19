@@ -95,6 +95,10 @@ npm run test:e2e
 npm run test:e2e:ui
 ```
 
+**Future Testing Improvements:**
+- Visual regression tests (Playwright screenshots) for UI components
+- Snapshot tests for markdown HTML output to catch rendering changes
+
 **Backend Tests (Manual):**
 
 ```bash
