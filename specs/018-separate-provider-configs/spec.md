@@ -13,6 +13,12 @@ This feature reverses part of the 012-modular-model-providers implementation, wh
 
 **Desired State (018)**: Separate environment variables per provider (`OPENAI_MODELS`, `ANTHROPIC_MODELS`) plus a single `DEFAULT_MODEL` key that references a model ID from any provider collection.
 
+## Clarifications
+
+### Session 2026-01-20
+
+- Q: Should the system support backward compatibility with the legacy `MODELS` format? → A: No backward compatibility required. Transition in one go.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Separate Provider Model Collections (Priority: P1)
@@ -50,8 +56,6 @@ DEFAULT_MODEL=gpt-3.5-turbo
 
 4. **Given** a provider's models are configured but its API key is not set, **When** the application loads, **Then** that provider's models are excluded from the available models list while the other provider's models remain available.
 
-5. **Given** the legacy unified `MODELS` variable is set alongside new provider-specific variables, **When** the application starts, **Then** the provider-specific variables take precedence and the legacy `MODELS` variable is ignored.
-
 ---
 
 ### User Story 2 - Single Default Model Reference (Priority: P1)
@@ -78,24 +82,6 @@ As a developer, I want to specify the default model using a single `DEFAULT_MODE
 
 ---
 
-### User Story 3 - Backward Compatibility Migration (Priority: P2)
-
-As a developer with an existing deployment, I want the system to support the legacy `MODELS` configuration during a transition period, so that I can migrate to the new format without immediate downtime.
-
-**Why this priority**: Existing deployments should not break immediately. This provides a graceful migration path.
-
-**Independent Test**: Can be fully tested by configuring only the legacy `MODELS` variable and verifying the system still works, with deprecation warnings logged.
-
-**Acceptance Scenarios**:
-
-1. **Given** only the legacy `MODELS` variable is configured (no provider-specific variables), **When** the application starts, **Then** the system loads models from `MODELS` with a deprecation warning logged.
-
-2. **Given** the legacy `MODELS` variable is configured, **When** loading models, **Then** a warning message indicates the recommended migration to provider-specific variables.
-
-3. **Given** both legacy `MODELS` and provider-specific variables are configured, **When** the application starts, **Then** provider-specific variables take precedence and a warning is logged about the ignored legacy variable.
-
----
-
 ### Edge Cases
 
 - **Duplicate model IDs across providers**: When the same model ID appears in both `OPENAI_MODELS` and `ANTHROPIC_MODELS`, the system rejects the configuration with a clear error message indicating which IDs are duplicated.
@@ -107,6 +93,8 @@ As a developer with an existing deployment, I want the system to support the leg
 - **All providers disabled**: When no provider API keys are configured, the system fails with a clear error indicating that at least one provider must be enabled.
 
 - **Invalid JSON in provider config**: When a provider's models variable contains invalid JSON, a clear error message identifies which provider configuration has the issue.
+
+- **Legacy MODELS variable present**: If the old unified `MODELS` variable is set, the system ignores it completely. No backward compatibility is provided - users must migrate to the new provider-specific format.
 
 ## Requirements *(mandatory)*
 
@@ -126,13 +114,9 @@ As a developer with an existing deployment, I want the system to support the leg
 
 - **FR-007**: System MUST fall back to the first available model when `DEFAULT_MODEL` is not set or references an unavailable model.
 
-- **FR-008**: System MUST support the legacy `MODELS` variable for backward compatibility with deprecation warnings.
+- **FR-008**: System MUST preserve all existing API contracts and response formats (the `/api/v1/models` endpoint continues to return models with provider information).
 
-- **FR-009**: System MUST prioritize provider-specific variables over the legacy `MODELS` variable when both are present.
-
-- **FR-010**: System MUST preserve all existing API contracts and response formats (the `/api/v1/models` endpoint continues to return models with provider information).
-
-- **FR-011**: System MUST log clear error messages identifying which provider configuration has issues when validation fails.
+- **FR-009**: System MUST log clear error messages identifying which provider configuration has issues when validation fails.
 
 ### Key Entities
 
@@ -150,13 +134,11 @@ As a developer with an existing deployment, I want the system to support the leg
 
 - **SC-002**: Changing the default model requires modifying only the `DEFAULT_MODEL` variable, not any model definitions.
 
-- **SC-003**: Existing deployments using the legacy `MODELS` format continue to work without immediate changes.
+- **SC-003**: All existing frontend and backend tests pass without modification to test assertions (tests may need config updates for new env var format).
 
-- **SC-004**: All existing frontend and backend tests pass without modification to test assertions.
+- **SC-004**: The `/api/v1/models` endpoint returns identical response structure as before (models include provider information for frontend display).
 
-- **SC-005**: The `/api/v1/models` endpoint returns identical response structure as before (models include provider information for frontend display).
-
-- **SC-006**: Configuration errors clearly identify which provider's configuration has the issue.
+- **SC-005**: Configuration errors clearly identify which provider's configuration has the issue.
 
 ## Assumptions
 
@@ -171,3 +153,4 @@ As a developer with an existing deployment, I want the system to support the leg
 - Changes to the frontend model selector UI.
 - Changes to the provider factory pattern or error handling from 012.
 - Provider-specific configuration options beyond model lists (this feature prepares the ground but does not implement provider-specific settings).
+- Backward compatibility with legacy `MODELS` format (clean break - users must migrate configuration).

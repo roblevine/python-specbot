@@ -31,7 +31,7 @@
 
 ## Notes
 
-- All checklist items pass. Specification is ready for `/speckit.clarify` or `/speckit.plan`.
+- All checklist items pass. Specification is ready for `/speckit.plan`.
 - The spec clearly separates what we're changing (configuration format) from how it will be implemented.
-- Backward compatibility is addressed via User Story 3 (P2).
+- Clarification session 2026-01-20: Removed backward compatibility (User Story 3, FR-008/009, SC-003) per user request - clean break migration only.
 - The Background section provides helpful context about the reversal of the 012 spec.
