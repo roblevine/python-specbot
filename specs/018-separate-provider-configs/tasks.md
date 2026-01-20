@@ -117,7 +117,7 @@
 - [x] T035 [P] Remove old ModelConfig.provider field requirement (now computed) in backend/src/config/models.py
 - [x] T036 Clean up any deprecated code paths in backend/src/config/models.py
 - [x] T037 Run full test suite and verify all tests pass
-- [ ] T038 Run quickstart.md validation scenarios manually
+- [x] T038 Run quickstart.md validation scenarios manually
 - [x] T039 [P] Update CLAUDE.md with 018 feature summary in Active Technologies section
 
 ---
