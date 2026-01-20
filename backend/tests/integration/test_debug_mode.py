@@ -23,7 +23,7 @@ def test_debug_mode_model_configuration_error():
     with patch.dict(os.environ, {
         "DEBUG": "true",
         "OPENAI_API_KEY": "test-key",
-        "MODELS": "invalid json"
+        "OPENAI_MODELS": "invalid json"  # Invalid JSON in provider-specific env var
     }, clear=True):
         client = TestClient(app)
 
@@ -57,7 +57,7 @@ def test_debug_mode_disabled_hides_details():
     with patch.dict(os.environ, {
         "DEBUG": "false",
         "OPENAI_API_KEY": "test-key",
-        "MODELS": "invalid json"
+        "OPENAI_MODELS": "invalid json"  # Invalid JSON in provider-specific env var
     }, clear=True):
         client = TestClient(app)
 

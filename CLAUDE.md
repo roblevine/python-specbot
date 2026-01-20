@@ -76,8 +76,35 @@ data: {"type":"complete","model":"gpt-3.5-turbo","totalTokens":2}
 ### 008-openai-model-selector
 Added model configuration system (Pydantic validation), GET /api/v1/models endpoint, ModelSelector component with descriptions, model indicators on messages, localStorage v1.1.0 schema with selectedModelId, per-request model selection
 
+### 018-separate-provider-configs (2026-01-20) ✅ COMPLETE
+**Separate provider model configurations with simplified format**
+
+**What Changed**:
+- Model configs now use provider-specific env vars: `OPENAI_MODELS`, `ANTHROPIC_MODELS`
+- Each model only needs: `id`, `name`, `description` (no `provider` or `default` fields)
+- Provider is inferred from which env var the model is defined in
+- Default model specified via `DEFAULT_MODEL` env var (model ID string)
+- Legacy `MODELS` env var is silently ignored
+
+**Configuration Example**:
+```bash
+OPENAI_MODELS='[{"id": "gpt-4", "name": "GPT-4", "description": "Most capable"}]'
+ANTHROPIC_MODELS='[{"id": "claude-sonnet", "name": "Claude Sonnet", "description": "Fast"}]'
+DEFAULT_MODEL=gpt-4
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+**Key Files**:
+- `backend/src/config/models.py` - Core model loading with `load_provider_models()`, `load_model_configuration()`
+- `backend/.env.example` - Updated with new format and migration guide
+- `backend/tests/unit/test_model_config.py` - Comprehensive tests for new format
+
+**API Contract**: Unchanged - `/api/v1/models` response format preserved for frontend compatibility
+
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
 
 ## Recent Changes
+- 018-separate-provider-configs: Refactored model configuration to use provider-specific env vars (OPENAI_MODELS, ANTHROPIC_MODELS, DEFAULT_MODEL)
 - 017-markdown-support: Added JavaScript ES6+ (Frontend) + Vue 3.4.0, Vite 5.0.0, marked (markdown parser - to be added), DOMPurify (XSS sanitization - to be added), highlight.js (syntax highlighting - to be added)

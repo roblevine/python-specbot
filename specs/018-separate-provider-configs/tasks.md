@@ -24,8 +24,8 @@
 
 **Purpose**: Update test configuration files to use new env var format
 
-- [ ] T001 Update test configuration in backend/.env.test to use new provider-specific format
-- [ ] T002 [P] Update example configuration in backend/.env.example with new format and migration guide
+- [x] T001 Update test configuration in backend/.env.test to use new provider-specific format
+- [x] T002 [P] Update example configuration in backend/.env.example with new format and migration guide
 
 **Checkpoint**: Test and example configurations ready for new format
 
@@ -37,9 +37,9 @@
 
 **⚠️ CRITICAL**: These changes must be complete before user story implementation
 
-- [ ] T003 Create ProviderModelConfig Pydantic model (simplified, no provider/default fields) in backend/src/config/models.py
-- [ ] T004 Add PROVIDER_ENV_VARS constant mapping provider IDs to env var names in backend/src/config/models.py
-- [ ] T005 Create helper function to load models from a single provider env var in backend/src/config/models.py
+- [x] T003 Create ProviderModelConfig Pydantic model (simplified, no provider/default fields) in backend/src/config/models.py
+- [x] T004 Add PROVIDER_ENV_VARS constant mapping provider IDs to env var names in backend/src/config/models.py
+- [x] T005 Create helper function to load models from a single provider env var in backend/src/config/models.py
 
 **Checkpoint**: Foundation ready - core models and helpers in place
 
@@ -55,24 +55,24 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T006 [P] [US1] Unit test for loading OPENAI_MODELS only in backend/tests/unit/test_model_config.py
-- [ ] T007 [P] [US1] Unit test for loading ANTHROPIC_MODELS only in backend/tests/unit/test_model_config.py
-- [ ] T008 [P] [US1] Unit test for loading both provider configs in backend/tests/unit/test_model_config.py
-- [ ] T009 [P] [US1] Unit test for provider filtering when API key not set in backend/tests/unit/test_model_config.py
-- [ ] T010 [P] [US1] Unit test for duplicate model ID validation across providers in backend/tests/unit/test_model_config.py
-- [ ] T011 [P] [US1] Unit test for invalid JSON error messages identifying provider in backend/tests/unit/test_model_config.py
-- [ ] T012 [P] [US1] Unit test for empty provider array handling in backend/tests/unit/test_model_config.py
-- [ ] T013 [US1] Contract test verifying /api/v1/models response format unchanged in backend/tests/contract/test_models_api_contract.py
+- [x] T006 [P] [US1] Unit test for loading OPENAI_MODELS only in backend/tests/unit/test_model_config.py
+- [x] T007 [P] [US1] Unit test for loading ANTHROPIC_MODELS only in backend/tests/unit/test_model_config.py
+- [x] T008 [P] [US1] Unit test for loading both provider configs in backend/tests/unit/test_model_config.py
+- [x] T009 [P] [US1] Unit test for provider filtering when API key not set in backend/tests/unit/test_model_config.py
+- [x] T010 [P] [US1] Unit test for duplicate model ID validation across providers in backend/tests/unit/test_model_config.py
+- [x] T011 [P] [US1] Unit test for invalid JSON error messages identifying provider in backend/tests/unit/test_model_config.py
+- [x] T012 [P] [US1] Unit test for empty provider array handling in backend/tests/unit/test_model_config.py
+- [x] T013 [US1] Contract test verifying /api/v1/models response format unchanged in backend/tests/contract/test_models_api_contract.py
 
 ### Implementation for User Story 1
 
-- [ ] T014 [US1] Implement load_provider_models() function to parse single provider env var in backend/src/config/models.py
-- [ ] T015 [US1] Update load_model_configuration() to iterate over all providers and merge configs in backend/src/config/models.py
-- [ ] T016 [US1] Add provider ID to each model when merging (provider field computed from source) in backend/src/config/models.py
-- [ ] T017 [US1] Implement duplicate model ID validation across all provider configs in backend/src/config/models.py
-- [ ] T018 [US1] Update error messages to identify which provider config has issues in backend/src/config/models.py
-- [ ] T019 [US1] Remove support for legacy MODELS env var (silently ignore if present) in backend/src/config/models.py
-- [ ] T020 [US1] Update integration test env setup to use new format in backend/tests/integration/test_model_selection.py
+- [x] T014 [US1] Implement load_provider_models() function to parse single provider env var in backend/src/config/models.py
+- [x] T015 [US1] Update load_model_configuration() to iterate over all providers and merge configs in backend/src/config/models.py
+- [x] T016 [US1] Add provider ID to each model when merging (provider field computed from source) in backend/src/config/models.py
+- [x] T017 [US1] Implement duplicate model ID validation across all provider configs in backend/src/config/models.py
+- [x] T018 [US1] Update error messages to identify which provider config has issues in backend/src/config/models.py
+- [x] T019 [US1] Remove support for legacy MODELS env var (silently ignore if present) in backend/src/config/models.py
+- [x] T020 [US1] Update integration test env setup to use new format in backend/tests/integration/test_model_selection.py
 
 **Checkpoint**: User Story 1 complete - separate provider configs working, tests passing
 
@@ -88,21 +88,21 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T021 [P] [US2] Unit test for DEFAULT_MODEL set to valid OpenAI model in backend/tests/unit/test_model_config.py
-- [ ] T022 [P] [US2] Unit test for DEFAULT_MODEL set to valid Anthropic model in backend/tests/unit/test_model_config.py
-- [ ] T023 [P] [US2] Unit test for DEFAULT_MODEL not set (fallback to first available) in backend/tests/unit/test_model_config.py
-- [ ] T024 [P] [US2] Unit test for DEFAULT_MODEL referencing invalid model ID (error) in backend/tests/unit/test_model_config.py
-- [ ] T025 [P] [US2] Unit test for DEFAULT_MODEL provider disabled (fallback with warning) in backend/tests/unit/test_model_config.py
-- [ ] T026 [US2] Integration test for default model selection flow in backend/tests/integration/test_model_selection.py
+- [x] T021 [P] [US2] Unit test for DEFAULT_MODEL set to valid OpenAI model in backend/tests/unit/test_model_config.py
+- [x] T022 [P] [US2] Unit test for DEFAULT_MODEL set to valid Anthropic model in backend/tests/unit/test_model_config.py
+- [x] T023 [P] [US2] Unit test for DEFAULT_MODEL not set (fallback to first available) in backend/tests/unit/test_model_config.py
+- [x] T024 [P] [US2] Unit test for DEFAULT_MODEL referencing invalid model ID (error) in backend/tests/unit/test_model_config.py
+- [x] T025 [P] [US2] Unit test for DEFAULT_MODEL provider disabled (fallback with warning) in backend/tests/unit/test_model_config.py
+- [x] T026 [US2] Integration test for default model selection flow in backend/tests/integration/test_model_selection.py
 
 ### Implementation for User Story 2
 
-- [ ] T027 [US2] Add DEFAULT_MODEL env var loading in backend/src/config/models.py
-- [ ] T028 [US2] Implement resolve_default_model() function with fallback logic in backend/src/config/models.py
-- [ ] T029 [US2] Update ModelsConfiguration validation to remove "exactly one default" requirement in backend/src/config/models.py
-- [ ] T030 [US2] Set default=True on the resolved default model when building final config in backend/src/config/models.py
-- [ ] T031 [US2] Add warning log when DEFAULT_MODEL provider is disabled and fallback used in backend/src/config/models.py
-- [ ] T032 [US2] Add clear error for invalid DEFAULT_MODEL reference in backend/src/config/models.py
+- [x] T027 [US2] Add DEFAULT_MODEL env var loading in backend/src/config/models.py
+- [x] T028 [US2] Implement resolve_default_model() function with fallback logic in backend/src/config/models.py
+- [x] T029 [US2] Update ModelsConfiguration validation to remove "exactly one default" requirement in backend/src/config/models.py
+- [x] T030 [US2] Set default=True on the resolved default model when building final config in backend/src/config/models.py
+- [x] T031 [US2] Add warning log when DEFAULT_MODEL provider is disabled and fallback used in backend/src/config/models.py
+- [x] T032 [US2] Add clear error for invalid DEFAULT_MODEL reference in backend/src/config/models.py
 
 **Checkpoint**: User Story 2 complete - DEFAULT_MODEL working, tests passing
 
@@ -112,13 +112,13 @@
 
 **Purpose**: Documentation, cleanup, and final validation
 
-- [ ] T033 [P] Update backend/.env.example with complete migration guide in comments
-- [ ] T034 [P] Remove old ModelConfig.default field validator that required exactly one default in backend/src/config/models.py
-- [ ] T035 [P] Remove old ModelConfig.provider field requirement (now computed) in backend/src/config/models.py
-- [ ] T036 Clean up any deprecated code paths in backend/src/config/models.py
-- [ ] T037 Run full test suite and verify all tests pass
+- [x] T033 [P] Update backend/.env.example with complete migration guide in comments
+- [x] T034 [P] Remove old ModelConfig.default field validator that required exactly one default in backend/src/config/models.py
+- [x] T035 [P] Remove old ModelConfig.provider field requirement (now computed) in backend/src/config/models.py
+- [x] T036 Clean up any deprecated code paths in backend/src/config/models.py
+- [x] T037 Run full test suite and verify all tests pass
 - [ ] T038 Run quickstart.md validation scenarios manually
-- [ ] T039 [P] Update CLAUDE.md with 018 feature summary in Active Technologies section
+- [x] T039 [P] Update CLAUDE.md with 018 feature summary in Active Technologies section
 
 ---
 
