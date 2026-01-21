@@ -27,6 +27,8 @@ Auto-generated from all feature plans. Last updated: 2026-01-12
 - 013-redesign-frontend-palette: Added JavaScript (ES6+) + Vue 3.4.0, Vite 5.0.0
 - JavaScript ES6+ (Frontend) + Vue 3.4.0, Vite 5.0.0, marked (markdown parser - to be added), DOMPurify (XSS sanitization - to be added), highlight.js (syntax highlighting - to be added) (017-markdown-support)
 - N/A (no storage changes - markdown rendered at display time) (017-markdown-support)
+- JavaScript ES6+ + Vue 3.4.0, Vite 5.0.0 (018-audit-local-storage)
+- Browser localStorage (settings only) (018-audit-local-storage)
 
 ### 009-message-streaming (2026-01-14) ✅ MVP COMPLETE
 **Real-time LLM response streaming with Server-Sent Events (SSE)**
