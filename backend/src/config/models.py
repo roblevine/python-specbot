@@ -1,10 +1,18 @@
 """
 Model Configuration Module
 
-Manages model configuration from the unified MODELS environment variable.
+Manages model configuration from provider-specific environment variables.
 Supports OpenAI and Anthropic providers with automatic filtering based on API key availability.
 
-Feature: 012-modular-model-providers
+Feature: 018-separate-provider-configs (replaces 012-modular-model-providers)
+
+Configuration format:
+- OPENAI_MODELS: JSON array of models for OpenAI
+- ANTHROPIC_MODELS: JSON array of models for Anthropic
+- DEFAULT_MODEL: Model ID to use as default (optional, falls back to first available)
+
+Each model in provider configs only needs: id, name, description
+Provider is inferred from the env var name, default is set via DEFAULT_MODEL.
 """
 
 import json
@@ -29,6 +37,12 @@ PROVIDERS: Dict[str, Dict[str, str]] = {
     }
 }
 
+# Provider-specific model env var names (018-separate-provider-configs)
+PROVIDER_ENV_VARS: Dict[str, str] = {
+    "openai": "OPENAI_MODELS",
+    "anthropic": "ANTHROPIC_MODELS",
+}
+
 
 class ModelConfigurationError(Exception):
     """Custom exception for model configuration errors with helpful context."""
@@ -40,6 +54,43 @@ class ModelConfigurationError(Exception):
         if help_text:
             full_message = f"{message}\n\nHow to fix:\n{help_text}"
         super().__init__(full_message)
+
+
+class ProviderModelConfig(BaseModel):
+    """
+    Simplified model configuration for provider-specific env vars.
+
+    Used when parsing OPENAI_MODELS or ANTHROPIC_MODELS.
+    Does not include 'provider' (inferred from env var) or 'default' (set via DEFAULT_MODEL).
+    """
+
+    id: str = Field(..., description="Model identifier (e.g., 'gpt-4', 'claude-3-5-sonnet-20241022')")
+    name: str = Field(..., max_length=50, description="Human-readable display name")
+    description: str = Field(..., max_length=200, description="Brief model description")
+
+    @field_validator('id')
+    @classmethod
+    def validate_id(cls, v: str) -> str:
+        """Validate model ID is non-empty."""
+        if not v or not v.strip():
+            raise ValueError("Model ID cannot be empty")
+        return v.strip()
+
+    @field_validator('name')
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        """Validate model name is non-empty."""
+        if not v or not v.strip():
+            raise ValueError("Model name cannot be empty")
+        return v.strip()
+
+    @field_validator('description')
+    @classmethod
+    def validate_description(cls, v: str) -> str:
+        """Validate model description is non-empty."""
+        if not v or not v.strip():
+            raise ValueError("Model description cannot be empty")
+        return v.strip()
 
 
 class ModelConfig(BaseModel):
@@ -124,13 +175,64 @@ def check_provider_enabled(provider_id: str) -> bool:
     return bool(api_key and api_key.strip())
 
 
+def load_provider_models(provider_id: str) -> List[ProviderModelConfig]:
+    """
+    Load models from a provider-specific environment variable.
+
+    Args:
+        provider_id: Provider identifier ('openai' or 'anthropic')
+
+    Returns:
+        List[ProviderModelConfig]: List of validated model configs for this provider
+
+    Raises:
+        ModelConfigurationError: If the env var contains invalid JSON or model data
+    """
+    if provider_id not in PROVIDER_ENV_VARS:
+        return []
+
+    env_var_name = PROVIDER_ENV_VARS[provider_id]
+    models_json = os.getenv(env_var_name)
+
+    if not models_json:
+        return []
+
+    try:
+        models_data = json.loads(models_json)
+        if not isinstance(models_data, list):
+            raise ModelConfigurationError(
+                f"{env_var_name} must be a JSON array",
+                f'Set {env_var_name} to a JSON array: \'[{{"id": "model-id", "name": "...", "description": "..."}}]\''
+            )
+    except json.JSONDecodeError as e:
+        raise ModelConfigurationError(
+            f"Invalid JSON in {env_var_name}: {str(e)}",
+            f"Ensure {env_var_name} contains valid JSON."
+        ) from e
+
+    models: List[ProviderModelConfig] = []
+    for i, model_data in enumerate(models_data):
+        try:
+            model = ProviderModelConfig(**model_data)
+            models.append(model)
+        except ValueError as e:
+            raise ModelConfigurationError(
+                f"Invalid model configuration in {env_var_name} at index {i}: {str(e)}",
+                f"Each model in {env_var_name} must have: id, name, description."
+            ) from e
+
+    return models
+
+
 def load_model_configuration() -> ModelsConfiguration:
     """
-    Load model configuration from the unified MODELS environment variable.
+    Load model configuration from provider-specific environment variables.
 
-    All models must be configured in the MODELS env var. Each model must have
-    a 'provider' field. Models are filtered to only include those from providers
-    that have their API keys configured.
+    Models are loaded from OPENAI_MODELS and ANTHROPIC_MODELS env vars.
+    Each model only needs id, name, description - the provider is inferred from
+    the env var source. The default model is specified via DEFAULT_MODEL env var.
+
+    The legacy MODELS env var is silently ignored.
 
     Returns:
         ModelsConfiguration: Validated model configuration with all enabled models
@@ -153,73 +255,98 @@ def load_model_configuration() -> ModelsConfiguration:
             "At least one provider must be configured. Set either:\n"
             "- OPENAI_API_KEY for OpenAI, or\n"
             "- ANTHROPIC_API_KEY for Anthropic\n"
-            "And configure models in the MODELS environment variable."
+            "And configure models in OPENAI_MODELS or ANTHROPIC_MODELS."
         )
 
-    # Load from unified MODELS env var (required)
-    models_env = os.getenv("MODELS")
-
-    if not models_env:
-        raise ModelConfigurationError(
-            "MODELS environment variable not configured",
-            "Set the MODELS environment variable with your model configuration:\n"
-            'MODELS=\'[{"id": "gpt-4", "name": "GPT-4", "description": "...", "provider": "openai", "default": true}]\''
-        )
-
-    try:
-        models_data = json.loads(models_env)
-        if not isinstance(models_data, list):
-            raise ModelConfigurationError(
-                "MODELS must be a JSON array",
-                "Set MODELS to a JSON array: '[{\"id\": \"model-id\", \"provider\": \"openai\", ...}]'"
-            )
-    except json.JSONDecodeError as e:
-        raise ModelConfigurationError(
-            f"Invalid JSON in MODELS: {str(e)}",
-            "Ensure MODELS contains valid JSON."
-        ) from e
-
-    # Parse and filter models by enabled provider
+    # Load models from provider-specific env vars (018-separate-provider-configs)
     all_models: List[ModelConfig] = []
-    total_count = len(models_data)
+    seen_ids: Dict[str, str] = {}  # model_id -> provider (for duplicate detection)
 
-    for model_data in models_data:
-        # Provider is required
-        if "provider" not in model_data:
-            raise ModelConfigurationError(
-                "Missing 'provider' field in MODELS configuration",
-                "Each model in MODELS must have a 'provider' field ('openai' or 'anthropic')"
+    # Process providers in alphabetical order for deterministic fallback behavior
+    for provider_id in sorted(PROVIDER_ENV_VARS.keys()):
+        if not check_provider_enabled(provider_id):
+            logger.debug(f"Skipping {provider_id} models - provider not enabled")
+            continue
+
+        provider_models = load_provider_models(provider_id)
+
+        for pmodel in provider_models:
+            # Check for duplicate model IDs across providers
+            if pmodel.id in seen_ids:
+                other_provider = seen_ids[pmodel.id]
+                raise ModelConfigurationError(
+                    f"Duplicate model ID '{pmodel.id}' found in both {PROVIDER_ENV_VARS[other_provider]} and {PROVIDER_ENV_VARS[provider_id]}",
+                    "Model IDs must be unique across all providers."
+                )
+            seen_ids[pmodel.id] = provider_id
+
+            # Convert ProviderModelConfig to full ModelConfig with provider and default=False
+            # (default will be set later based on DEFAULT_MODEL)
+            full_model = ModelConfig(
+                id=pmodel.id,
+                name=pmodel.name,
+                description=pmodel.description,
+                provider=provider_id,
+                default=False
             )
+            all_models.append(full_model)
 
-        try:
-            model = ModelConfig(**model_data)
-        except ValueError as e:
-            raise ModelConfigurationError(
-                f"Invalid model configuration in MODELS: {str(e)}",
-                "Each model must have: id, name, description, provider, default (boolean)."
-            ) from e
-
-        # Filter by enabled provider
-        provider_enabled = check_provider_enabled(model.provider)
-        if provider_enabled:
-            all_models.append(model)
-        else:
-            logger.debug(f"Filtering out model '{model.id}' - provider '{model.provider}' not enabled")
-
-    logger.info(f"Loaded {len(all_models)} of {total_count} model(s) from MODELS (filtered by enabled providers)")
+        logger.info(f"Loaded {len(provider_models)} model(s) from {PROVIDER_ENV_VARS[provider_id]}")
 
     # Validate we have at least one model after filtering
     if not all_models:
         raise ModelConfigurationError(
             "No models available for enabled providers",
-            "Configure models in MODELS for providers with API keys set."
+            "Configure models in OPENAI_MODELS or ANTHROPIC_MODELS for providers with API keys set."
         )
 
-    # Handle case where the default model was filtered out
-    has_default = any(model.default for model in all_models)
-    if not has_default:
-        # Make the first model the default
-        logger.info(f"Default model was filtered out, making '{all_models[0].id}' the default")
+    # Resolve default model from DEFAULT_MODEL env var
+    default_model_id = os.getenv("DEFAULT_MODEL")
+    default_model_index: Optional[int] = None
+
+    if default_model_id:
+        default_model_id = default_model_id.strip()
+        # Find the model with this ID
+        for i, model in enumerate(all_models):
+            if model.id == default_model_id:
+                default_model_index = i
+                break
+
+        if default_model_index is None:
+            # DEFAULT_MODEL references a model that doesn't exist or is filtered out
+            # Check if it exists in any provider config but is filtered due to disabled provider
+            model_exists_but_filtered = False
+            for provider_id in PROVIDER_ENV_VARS.keys():
+                if not check_provider_enabled(provider_id):
+                    provider_models = load_provider_models(provider_id)
+                    if any(m.id == default_model_id for m in provider_models):
+                        model_exists_but_filtered = True
+                        logger.warning(
+                            f"DEFAULT_MODEL '{default_model_id}' references a model from "
+                            f"provider '{provider_id}' which is disabled. Using fallback."
+                        )
+                        break
+
+            if not model_exists_but_filtered:
+                raise ModelConfigurationError(
+                    f"Invalid DEFAULT_MODEL: '{default_model_id}' not found in any provider configuration",
+                    f"Set DEFAULT_MODEL to a valid model ID from OPENAI_MODELS or ANTHROPIC_MODELS."
+                )
+
+    # Set the default model (either from DEFAULT_MODEL or fallback to first available)
+    if default_model_index is not None:
+        # Mark the specified default model
+        model = all_models[default_model_index]
+        all_models[default_model_index] = ModelConfig(
+            id=model.id,
+            name=model.name,
+            description=model.description,
+            provider=model.provider,
+            default=True
+        )
+        logger.info(f"Using '{default_model_id}' as default model (from DEFAULT_MODEL)")
+    else:
+        # Fallback to first model (alphabetical provider order ensures deterministic behavior)
         first_model = all_models[0]
         all_models[0] = ModelConfig(
             id=first_model.id,
@@ -228,13 +355,17 @@ def load_model_configuration() -> ModelsConfiguration:
             provider=first_model.provider,
             default=True
         )
+        if default_model_id:
+            logger.info(f"DEFAULT_MODEL provider disabled, using '{first_model.id}' as fallback default")
+        else:
+            logger.info(f"DEFAULT_MODEL not set, using '{first_model.id}' as default")
 
     try:
         return ModelsConfiguration(models=all_models)
     except ValueError as e:
         raise ModelConfigurationError(
             f"Invalid model configuration: {str(e)}",
-            "Ensure exactly one model has 'default': true across all providers."
+            "Check your OPENAI_MODELS and ANTHROPIC_MODELS configuration."
         ) from e
 
 
