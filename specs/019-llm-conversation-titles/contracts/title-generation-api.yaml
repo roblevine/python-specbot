@@ -1,0 +1,282 @@
+# OpenAPI Specification for Title Generation
+# Feature: 019-llm-conversation-titles
+# This file documents the new title generation API endpoint
+
+openapi: 3.0.3
+info:
+  title: SpecBot Chat API - Title Generation Extension
+  version: 1.2.0
+  description: |
+    API contract for the LLM-generated conversation titles feature.
+    Adds a new endpoint for generating conversation titles using LLM.
+
+paths:
+  /api/v1/titles/generate:
+    post:
+      summary: Generate a conversation title
+      description: |
+        Generates a succinct title for a conversation using an LLM.
+        Takes conversation messages and a model ID, returns a generated title.
+        The title is limited to 60 characters maximum.
+      operationId: generateTitle
+      tags:
+        - Titles
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TitleGenerationRequest'
+            examples:
+              minimal:
+                summary: Minimal request with first exchange
+                value:
+                  messages:
+                    - sender: user
+                      text: "How do I implement a binary search tree in Python?"
+                    - sender: system
+                      text: "To implement a binary search tree in Python, you'll need to create a Node class and a BST class..."
+                  model: "gpt-3.5-turbo"
+              fullConversation:
+                summary: Request with full conversation
+                value:
+                  messages:
+                    - sender: user
+                      text: "How do I implement a binary search tree in Python?"
+                    - sender: system
+                      text: "To implement a binary search tree in Python..."
+                    - sender: user
+                      text: "Can you show me the insert method?"
+                    - sender: system
+                      text: "Here's the insert method..."
+                  model: "claude-haiku-4-5-20251001"
+      responses:
+        '200':
+          description: Title generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TitleGenerationResponse'
+              example:
+                status: success
+                title: "Python Binary Search Tree Implementation"
+        '400':
+          description: Bad request (validation error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                emptyMessages:
+                  summary: Empty messages array
+                  value:
+                    status: error
+                    error: "Messages array must contain at least 2 messages"
+                    code: "VALIDATION_ERROR"
+                invalidModel:
+                  summary: Invalid model ID
+                  value:
+                    status: error
+                    error: "Invalid model: gpt-5. Available models: gpt-4, gpt-3.5-turbo"
+                    code: "INVALID_MODEL"
+                missingMessages:
+                  summary: Missing messages field
+                  value:
+                    status: error
+                    error: "messages field is required"
+                    code: "VALIDATION_ERROR"
+        '503':
+          description: Service unavailable (LLM error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                error: "AI service temporarily unavailable"
+                code: "LLM_ERROR"
+
+  /api/v1/models:
+    get:
+      summary: List available models (extended)
+      description: |
+        Returns the list of available models configured in the system.
+        Extended to include titleModel field indicating which model is used for title generation.
+      operationId: listModels
+      tags:
+        - Models
+      responses:
+        '200':
+          description: List of available models
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelsResponse'
+              example:
+                models:
+                  - id: gpt-4
+                    name: GPT-4
+                    description: Most capable model for complex tasks
+                    provider: openai
+                    default: false
+                    titleModel: false
+                  - id: gpt-3.5-turbo
+                    name: GPT-3.5 Turbo
+                    description: Fast and efficient for most tasks
+                    provider: openai
+                    default: true
+                    titleModel: true
+                  - id: claude-sonnet-4-5-20250929
+                    name: Claude 4.5 Sonnet
+                    description: Most capable Claude model
+                    provider: anthropic
+                    default: false
+                    titleModel: false
+                  - id: claude-haiku-4-5-20251001
+                    name: Claude 4.5 Haiku
+                    description: Fast and efficient
+                    provider: anthropic
+                    default: false
+                    titleModel: true
+
+components:
+  schemas:
+    TitleGenerationRequest:
+      type: object
+      description: Request payload for title generation
+      required:
+        - messages
+        - model
+      properties:
+        messages:
+          type: array
+          description: |
+            Conversation messages to generate title from.
+            Must contain at least 2 messages (first user message and first assistant response).
+          items:
+            $ref: '#/components/schemas/ConversationMessage'
+          minItems: 2
+        model:
+          type: string
+          description: |
+            Model ID to use for title generation.
+            Should be a valid model ID from /api/v1/models.
+            Typically a cost-effective model (e.g., gpt-3.5-turbo, claude-haiku).
+          example: gpt-3.5-turbo
+
+    ConversationMessage:
+      type: object
+      description: Individual message in conversation
+      required:
+        - sender
+        - text
+      properties:
+        sender:
+          type: string
+          enum: [user, system]
+          description: Message sender type (user or system/assistant)
+        text:
+          type: string
+          minLength: 1
+          description: Message content
+
+    TitleGenerationResponse:
+      type: object
+      description: Response payload for successful title generation
+      required:
+        - status
+        - title
+      properties:
+        status:
+          type: string
+          enum: [success]
+          description: Response status
+        title:
+          type: string
+          maxLength: 60
+          description: |
+            Generated conversation title.
+            Maximum 60 characters, truncated at word boundary if necessary.
+          example: "Python Binary Search Tree Implementation"
+
+    ModelInfo:
+      type: object
+      description: Information about an available model (extended)
+      required:
+        - id
+        - name
+        - description
+        - provider
+        - default
+        - titleModel
+      properties:
+        id:
+          type: string
+          description: Model identifier for API requests
+          example: gpt-4
+        name:
+          type: string
+          description: Human-readable display name
+          example: GPT-4
+        description:
+          type: string
+          description: Brief description of model characteristics
+          example: Most capable model for complex tasks
+        provider:
+          type: string
+          enum: [openai, anthropic]
+          description: Provider identifier
+          example: openai
+        default:
+          type: boolean
+          description: Whether this is the default model
+          example: false
+        titleModel:
+          type: boolean
+          description: |
+            NEW: Whether this model is the title generation model for its provider.
+            Only one model per provider can be the title model.
+            If no title model is configured for a provider, all models have titleModel=false.
+          example: true
+
+    ModelsResponse:
+      type: object
+      description: Response containing available models
+      required:
+        - models
+      properties:
+        models:
+          type: array
+          description: List of available models
+          items:
+            $ref: '#/components/schemas/ModelInfo'
+          minItems: 1
+
+    ErrorResponse:
+      type: object
+      description: Response payload for errors
+      required:
+        - status
+        - error
+      properties:
+        status:
+          type: string
+          enum: [error]
+          description: Response status
+        error:
+          type: string
+          description: Human-readable error message
+        code:
+          type: string
+          description: Machine-readable error code
+          enum:
+            - VALIDATION_ERROR
+            - INVALID_MODEL
+            - LLM_ERROR
+            - AUTH_ERROR
+            - RATE_LIMIT
+            - TIMEOUT
+        debug_info:
+          type: object
+          description: Additional debug information (only in DEBUG mode)
+          additionalProperties: true
