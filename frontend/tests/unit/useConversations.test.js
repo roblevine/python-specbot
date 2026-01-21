@@ -19,6 +19,9 @@ vi.mock('../../src/services/apiClient.js', () => ({
   ),
   updateConversation: vi.fn().mockResolvedValue({ conversation: {} }),
   deleteConversation: vi.fn().mockResolvedValue(undefined),
+  // Feature 019: Title generation mocks
+  generateTitle: vi.fn().mockResolvedValue('LLM Generated Title'),
+  getTitleModel: vi.fn().mockReturnValue('gpt-3.5-turbo'),
 }))
 
 describe('useConversations', () => {
@@ -68,7 +71,9 @@ describe('useConversations', () => {
     expect(conversation.messages[0]).toEqual(message)
   })
 
-  it('should update conversation title from first message', async () => {
+  // Feature 019: Title is no longer automatically set from first message
+  // Title stays as "New Conversation" until LLM generates it via generateAndSetTitle
+  it('should keep default title until LLM generates it', async () => {
     const { createConversation, addMessage } = useConversations()
 
     const conversation = await createConversation()
@@ -82,7 +87,8 @@ describe('useConversations', () => {
 
     addMessage(conversation.id, message)
 
-    expect(conversation.title).toBe('This is my first message')
+    // Title should remain as "New Conversation" until generateAndSetTitle is called
+    expect(conversation.title).toBe('New Conversation')
   })
 
   it('should update conversation updatedAt when message added', async () => {
@@ -256,6 +262,154 @@ describe('useConversations', () => {
 
       setActiveConversation(conv2.id)
       expect(activeConversationId.value).toBe(conv2.id)
+    })
+  })
+
+  /**
+   * T015, T016, T017: Tests for generateAndSetTitle
+   * Feature: 019-llm-conversation-titles User Story 1
+   */
+  describe('generateAndSetTitle', () => {
+    it('T015: should use getTitleModel to select the title model', async () => {
+      const { generateTitle, getTitleModel } = await import('../../src/services/apiClient.js')
+      const { createConversation, addMessage, generateAndSetTitle } = useConversations()
+
+      const conversation = await createConversation()
+      addMessage(conversation.id, {
+        id: 'msg-1',
+        text: 'Hello',
+        sender: 'user',
+        timestamp: new Date().toISOString(),
+        status: 'sent',
+      })
+      addMessage(conversation.id, {
+        id: 'msg-2',
+        text: 'Hi there!',
+        sender: 'system',
+        timestamp: new Date().toISOString(),
+        status: 'sent',
+      })
+
+      const mockModels = [
+        { id: 'gpt-4', provider: 'openai', titleModel: false },
+        { id: 'gpt-3.5-turbo', provider: 'openai', titleModel: true },
+      ]
+
+      await generateAndSetTitle(conversation.id, mockModels, 'gpt-4')
+
+      expect(getTitleModel).toHaveBeenCalledWith('gpt-4', mockModels)
+    })
+
+    it('T016: should not trigger title generation for conversations with custom titles', async () => {
+      const { generateTitle } = await import('../../src/services/apiClient.js')
+      const { createConversation, addMessage, generateAndSetTitle, renameConversation } = useConversations()
+
+      const conversation = await createConversation()
+      addMessage(conversation.id, {
+        id: 'msg-1',
+        text: 'Hello',
+        sender: 'user',
+        timestamp: new Date().toISOString(),
+        status: 'sent',
+      })
+      addMessage(conversation.id, {
+        id: 'msg-2',
+        text: 'Hi!',
+        sender: 'system',
+        timestamp: new Date().toISOString(),
+        status: 'sent',
+      })
+
+      // Set a custom title
+      await renameConversation(conversation.id, 'My Custom Title')
+
+      // Clear any previous calls
+      generateTitle.mockClear()
+
+      // Try to generate title - should be skipped
+      await generateAndSetTitle(conversation.id, [], 'gpt-4')
+
+      // Should not have called generateTitle since title is not "New Conversation"
+      expect(generateTitle).not.toHaveBeenCalled()
+    })
+
+    it('T016: should require at least 2 messages before generating title', async () => {
+      const { generateTitle } = await import('../../src/services/apiClient.js')
+      const { createConversation, addMessage, generateAndSetTitle } = useConversations()
+
+      const conversation = await createConversation()
+      addMessage(conversation.id, {
+        id: 'msg-1',
+        text: 'Hello',
+        sender: 'user',
+        timestamp: new Date().toISOString(),
+        status: 'sent',
+      })
+
+      // Clear any previous calls
+      generateTitle.mockClear()
+
+      // Try to generate title with only 1 message
+      await generateAndSetTitle(conversation.id, [], 'gpt-4')
+
+      // Should not have called generateTitle since not enough messages
+      expect(generateTitle).not.toHaveBeenCalled()
+    })
+
+    it('T017: should fallback to first message text on title generation error', async () => {
+      const { generateTitle } = await import('../../src/services/apiClient.js')
+      const { createConversation, addMessage, generateAndSetTitle } = useConversations()
+
+      // Mock generateTitle to throw an error
+      generateTitle.mockRejectedValueOnce(new Error('API Error'))
+
+      const conversation = await createConversation()
+      addMessage(conversation.id, {
+        id: 'msg-1',
+        text: 'My fallback title message',
+        sender: 'user',
+        timestamp: new Date().toISOString(),
+        status: 'sent',
+      })
+      addMessage(conversation.id, {
+        id: 'msg-2',
+        text: 'Response',
+        sender: 'system',
+        timestamp: new Date().toISOString(),
+        status: 'sent',
+      })
+
+      await generateAndSetTitle(conversation.id, [], 'gpt-4')
+
+      // Should have fallen back to first user message text
+      expect(conversation.title).toBe('My fallback title message')
+    })
+
+    it('should update conversation title with LLM-generated title on success', async () => {
+      const { generateTitle } = await import('../../src/services/apiClient.js')
+      const { createConversation, addMessage, generateAndSetTitle } = useConversations()
+
+      generateTitle.mockResolvedValueOnce('Python Binary Search Guide')
+
+      const conversation = await createConversation()
+      addMessage(conversation.id, {
+        id: 'msg-1',
+        text: 'How do I implement binary search?',
+        sender: 'user',
+        timestamp: new Date().toISOString(),
+        status: 'sent',
+      })
+      addMessage(conversation.id, {
+        id: 'msg-2',
+        text: 'Binary search works by...',
+        sender: 'system',
+        timestamp: new Date().toISOString(),
+        status: 'sent',
+      })
+
+      await generateAndSetTitle(conversation.id, [], 'gpt-4')
+
+      expect(conversation.title).toBe('Python Binary Search Guide')
     })
   })
 })
