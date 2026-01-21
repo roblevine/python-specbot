@@ -128,10 +128,12 @@ async def health_check():
 from src.api.routes.messages import router as messages_router
 from src.api.routes.models import router as models_router
 from src.api.routes.conversations import router as conversations_router
+from src.api.routes.titles import router as titles_router  # Feature: 019-llm-conversation-titles
 
 app.include_router(messages_router, prefix="/api/v1")
 app.include_router(models_router, prefix="/api/v1")
 app.include_router(conversations_router)  # Already has /api/v1 prefix
+app.include_router(titles_router, prefix="/api/v1")  # Title generation endpoint
 
 
 if __name__ == "__main__":

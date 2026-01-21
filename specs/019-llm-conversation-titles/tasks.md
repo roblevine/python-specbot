@@ -24,9 +24,9 @@
 
 **Purpose**: Configuration and schema updates for title model support
 
-- [ ] T001 Add OPENAI_TITLE_MODEL and ANTHROPIC_TITLE_MODEL to backend/.env.example with documentation
-- [ ] T002 [P] Create Pydantic schemas for title generation request/response in backend/src/schemas.py
-- [ ] T003 [P] Add title generation route registration in backend/main.py
+- [x] T001 Add OPENAI_TITLE_MODEL and ANTHROPIC_TITLE_MODEL to backend/.env.example with documentation
+- [x] T002 [P] Create Pydantic schemas for title generation request/response in backend/src/schemas.py
+- [x] T003 [P] Add title generation route registration in backend/main.py
 
 ---
 
@@ -44,19 +44,19 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T004 [P] [US3] Unit test for title prompt construction and truncation in backend/tests/unit/test_title_service.py
-- [ ] T005 [P] [US3] Unit test for title model config loading in backend/tests/unit/test_model_config.py
-- [ ] T006 [P] [US3] Integration test for POST /api/v1/titles/generate (valid request) in backend/tests/integration/test_titles_api.py
-- [ ] T007 [P] [US3] Integration test for POST /api/v1/titles/generate (invalid model) in backend/tests/integration/test_titles_api.py
-- [ ] T008 [P] [US3] Integration test for POST /api/v1/titles/generate (empty messages) in backend/tests/integration/test_titles_api.py
+- [x] T004 [P] [US3] Unit test for title prompt construction and truncation in backend/tests/unit/test_title_service.py
+- [x] T005 [P] [US3] Unit test for title model config loading in backend/tests/unit/test_model_config.py
+- [x] T006 [P] [US3] Integration test for POST /api/v1/titles/generate (valid request) in backend/tests/integration/test_titles_api.py
+- [x] T007 [P] [US3] Integration test for POST /api/v1/titles/generate (invalid model) in backend/tests/integration/test_titles_api.py
+- [x] T008 [P] [US3] Integration test for POST /api/v1/titles/generate (empty messages) in backend/tests/integration/test_titles_api.py
 
 ### Implementation for US3
 
-- [ ] T009 [US3] Implement title generation service with prompt and post-processing in backend/src/services/title_service.py
-- [ ] T010 [US3] Add load_title_model_config() to read OPENAI_TITLE_MODEL and ANTHROPIC_TITLE_MODEL in backend/src/config/models.py
-- [ ] T011 [US3] Implement POST /api/v1/titles/generate endpoint in backend/src/api/routes/titles.py
-- [ ] T012 [US3] Add titleModel field to /api/v1/models response in backend/src/api/routes/models.py
-- [ ] T013 [US3] Add structured logging for title generation operations in backend/src/services/title_service.py
+- [x] T009 [US3] Implement title generation service with prompt and post-processing in backend/src/services/title_service.py
+- [x] T010 [US3] Add load_title_model_config() to read OPENAI_TITLE_MODEL and ANTHROPIC_TITLE_MODEL in backend/src/config/models.py
+- [x] T011 [US3] Implement POST /api/v1/titles/generate endpoint in backend/src/api/routes/titles.py
+- [x] T012 [US3] Add titleModel field to /api/v1/models response in backend/src/api/routes/models.py
+- [x] T013 [US3] Add structured logging for title generation operations in backend/src/services/title_service.py
 
 **Checkpoint**: At this point, `POST /api/v1/titles/generate` should work and return generated titles. Verify with:
 ```bash
@@ -77,19 +77,19 @@ curl -X POST http://localhost:8000/api/v1/titles/generate \
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T014 [P] [US1] Unit test for generateTitle API client function in frontend/tests/unit/apiClient.test.js
-- [ ] T015 [P] [US1] Unit test for getTitleModel helper (provider-based selection) in frontend/tests/unit/useConversations.test.js
-- [ ] T016 [P] [US1] Unit test for title generation trigger logic in frontend/tests/unit/useConversations.test.js
-- [ ] T017 [P] [US1] Unit test for fallback to first message text on error in frontend/tests/unit/useConversations.test.js
+- [x] T014 [P] [US1] Unit test for generateTitle API client function in frontend/tests/unit/apiClient.test.js
+- [x] T015 [P] [US1] Unit test for getTitleModel helper (provider-based selection) in frontend/tests/unit/useConversations.test.js
+- [x] T016 [P] [US1] Unit test for title generation trigger logic in frontend/tests/unit/useConversations.test.js
+- [x] T017 [P] [US1] Unit test for fallback to first message text on error in frontend/tests/unit/useConversations.test.js
 
 ### Implementation for User Story 1
 
-- [ ] T018 [US1] Add generateTitle(messages, model) function to frontend/src/services/apiClient.js
-- [ ] T019 [US1] Add getTitleModel(currentModelId, models) helper function to frontend/src/state/useConversations.js
-- [ ] T020 [US1] Modify addMessage() to track when title generation should trigger in frontend/src/state/useConversations.js
-- [ ] T021 [US1] Implement async title generation call after streaming completes in frontend/src/components/App/App.vue
-- [ ] T022 [US1] Add fallback to first message text when title generation fails in frontend/src/state/useConversations.js
-- [ ] T023 [US1] Ensure title is NOT regenerated for conversations with existing non-default titles in frontend/src/state/useConversations.js
+- [x] T018 [US1] Add generateTitle(messages, model) function to frontend/src/services/apiClient.js
+- [x] T019 [US1] Add getTitleModel(currentModelId, models) helper function to frontend/src/services/apiClient.js (implemented in apiClient, imported by useConversations)
+- [x] T020 [US1] Modify addMessage() to track when title generation should trigger in frontend/src/state/useConversations.js
+- [x] T021 [US1] Implement async title generation call after streaming completes in frontend/src/state/useMessages.js (in completeStreaming callback)
+- [x] T022 [US1] Add fallback to first message text when title generation fails in frontend/src/state/useConversations.js
+- [x] T023 [US1] Ensure title is NOT regenerated for conversations with existing non-default titles in frontend/src/state/useConversations.js
 
 **Checkpoint**: At this point, starting a new conversation and sending a message should result in an LLM-generated title appearing in the sidebar after the assistant responds.
 

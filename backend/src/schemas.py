@@ -510,3 +510,78 @@ class ConversationListResponse(BaseModel):
         default_factory=list,
         description="List of conversation summaries"
     )
+
+
+# ============================================================================
+# Title Generation Schemas (Feature: 019-llm-conversation-titles)
+# ============================================================================
+
+class TitleGenerationMessage(BaseModel):
+    """
+    Message in title generation request.
+
+    Feature: 019-llm-conversation-titles Task T002
+    """
+
+    sender: Literal["user", "system"] = Field(
+        ...,
+        description="Message sender (user or system/AI)"
+    )
+    text: str = Field(
+        ...,
+        min_length=1,
+        description="Message content"
+    )
+
+    @field_validator('text')
+    @classmethod
+    def text_not_whitespace(cls, v: str) -> str:
+        """Validate text is not only whitespace."""
+        if not v.strip():
+            raise ValueError('Message text cannot be only whitespace')
+        return v
+
+
+class TitleGenerationRequest(BaseModel):
+    """
+    Request payload for generating a conversation title.
+
+    Feature: 019-llm-conversation-titles Task T002
+    """
+
+    messages: List[TitleGenerationMessage] = Field(
+        ...,
+        min_length=2,
+        description="Conversation messages (at least 2: first user message and first assistant response)"
+    )
+    model: str = Field(
+        ...,
+        min_length=1,
+        description="Model ID to use for title generation"
+    )
+
+    @field_validator('messages')
+    @classmethod
+    def validate_messages(cls, v: List[TitleGenerationMessage]) -> List[TitleGenerationMessage]:
+        """Validate messages array has at least a user and assistant message."""
+        if len(v) < 2:
+            raise ValueError('Messages array must contain at least 2 messages')
+        return v
+
+
+class TitleGenerationResponse(BaseModel):
+    """
+    Response payload for successful title generation.
+
+    Feature: 019-llm-conversation-titles Task T002
+    """
+
+    status: Literal["success"] = Field(
+        default="success",
+        description="Response status"
+    )
+    title: str = Field(
+        ...,
+        max_length=60,
+        description="Generated conversation title (max 60 characters)"
+    )

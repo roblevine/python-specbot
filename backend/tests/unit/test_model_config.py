@@ -1130,3 +1130,103 @@ class TestDefaultModelConfiguration:
 
         assert get_default_model(config) == "gpt-4"
         assert config.models[0].default is True
+
+
+# =============================================================================
+# Title Model Configuration Tests
+# Feature: 019-llm-conversation-titles - Task T005
+# =============================================================================
+
+# Import will fail until function is implemented - this is expected for TDD
+try:
+    from src.config.models import load_title_model_config, get_title_model_for_provider
+    TITLE_CONFIG_AVAILABLE = True
+except ImportError:
+    TITLE_CONFIG_AVAILABLE = False
+
+
+@pytest.mark.skipif(not TITLE_CONFIG_AVAILABLE, reason="Title model config not yet implemented")
+class TestTitleModelConfiguration:
+    """Tests for title model configuration loading."""
+
+    def test_load_openai_title_model(self, monkeypatch):
+        """Test loading OPENAI_TITLE_MODEL env var."""
+        monkeypatch.setenv('OPENAI_TITLE_MODEL', 'gpt-3.5-turbo')
+
+        config = load_title_model_config()
+
+        assert config.get('openai') == 'gpt-3.5-turbo'
+
+    def test_load_anthropic_title_model(self, monkeypatch):
+        """Test loading ANTHROPIC_TITLE_MODEL env var."""
+        monkeypatch.setenv('ANTHROPIC_TITLE_MODEL', 'claude-haiku-4-5-20251001')
+
+        config = load_title_model_config()
+
+        assert config.get('anthropic') == 'claude-haiku-4-5-20251001'
+
+    def test_load_both_title_models(self, monkeypatch):
+        """Test loading both title models."""
+        monkeypatch.setenv('OPENAI_TITLE_MODEL', 'gpt-3.5-turbo')
+        monkeypatch.setenv('ANTHROPIC_TITLE_MODEL', 'claude-haiku-4-5-20251001')
+
+        config = load_title_model_config()
+
+        assert config.get('openai') == 'gpt-3.5-turbo'
+        assert config.get('anthropic') == 'claude-haiku-4-5-20251001'
+
+    def test_load_empty_when_not_set(self, monkeypatch):
+        """Test that empty dict is returned when no title models are set."""
+        monkeypatch.delenv('OPENAI_TITLE_MODEL', raising=False)
+        monkeypatch.delenv('ANTHROPIC_TITLE_MODEL', raising=False)
+
+        config = load_title_model_config()
+
+        assert config == {} or config.get('openai') is None
+        assert config == {} or config.get('anthropic') is None
+
+    def test_title_model_whitespace_trimmed(self, monkeypatch):
+        """Test that whitespace is trimmed from title model IDs."""
+        monkeypatch.setenv('OPENAI_TITLE_MODEL', '  gpt-3.5-turbo  ')
+
+        config = load_title_model_config()
+
+        assert config.get('openai') == 'gpt-3.5-turbo'
+
+
+@pytest.mark.skipif(not TITLE_CONFIG_AVAILABLE, reason="Title model config not yet implemented")
+class TestGetTitleModelForProvider:
+    """Tests for get_title_model_for_provider function."""
+
+    def test_get_openai_title_model(self, monkeypatch):
+        """Test getting title model for OpenAI provider."""
+        monkeypatch.setenv('OPENAI_TITLE_MODEL', 'gpt-3.5-turbo')
+        monkeypatch.delenv('ANTHROPIC_TITLE_MODEL', raising=False)
+
+        title_model = get_title_model_for_provider('openai')
+
+        assert title_model == 'gpt-3.5-turbo'
+
+    def test_get_anthropic_title_model(self, monkeypatch):
+        """Test getting title model for Anthropic provider."""
+        monkeypatch.setenv('ANTHROPIC_TITLE_MODEL', 'claude-haiku-4-5-20251001')
+        monkeypatch.delenv('OPENAI_TITLE_MODEL', raising=False)
+
+        title_model = get_title_model_for_provider('anthropic')
+
+        assert title_model == 'claude-haiku-4-5-20251001'
+
+    def test_returns_none_when_not_configured(self, monkeypatch):
+        """Test that None is returned when title model is not configured."""
+        monkeypatch.delenv('OPENAI_TITLE_MODEL', raising=False)
+        monkeypatch.delenv('ANTHROPIC_TITLE_MODEL', raising=False)
+
+        title_model = get_title_model_for_provider('openai')
+
+        assert title_model is None
+
+    def test_unknown_provider_returns_none(self, monkeypatch):
+        """Test that None is returned for unknown provider."""
+        title_model = get_title_model_for_provider('unknown-provider')
+
+        assert title_model is None

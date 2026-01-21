@@ -431,3 +431,60 @@ def get_provider_for_model(model_id: str, config: ModelsConfiguration) -> Option
     """
     model = get_model_by_id(model_id, config)
     return model.provider if model else None
+
+
+# =============================================================================
+# Title Model Configuration (Feature: 019-llm-conversation-titles)
+# =============================================================================
+
+# Title model env var names per provider
+TITLE_MODEL_ENV_VARS: Dict[str, str] = {
+    "openai": "OPENAI_TITLE_MODEL",
+    "anthropic": "ANTHROPIC_TITLE_MODEL",
+}
+
+
+def load_title_model_config() -> Dict[str, str]:
+    """
+    Load title model configuration from environment variables.
+
+    Returns:
+        Dict[str, str]: Mapping of provider ID to title model ID
+                       Empty dict if no title models are configured
+    """
+    config: Dict[str, str] = {}
+
+    for provider_id, env_var in TITLE_MODEL_ENV_VARS.items():
+        title_model = os.getenv(env_var)
+        if title_model and title_model.strip():
+            config[provider_id] = title_model.strip()
+            logger.debug(f"Loaded title model for {provider_id}: {config[provider_id]}")
+
+    if config:
+        logger.info(f"Title model configuration loaded: {config}")
+    else:
+        logger.debug("No title models configured - will use conversation model")
+
+    return config
+
+
+def get_title_model_for_provider(provider_id: str) -> Optional[str]:
+    """
+    Get the configured title model for a provider.
+
+    Args:
+        provider_id: Provider identifier ('openai' or 'anthropic')
+
+    Returns:
+        Optional[str]: Title model ID if configured, None otherwise
+    """
+    if provider_id not in TITLE_MODEL_ENV_VARS:
+        return None
+
+    env_var = TITLE_MODEL_ENV_VARS[provider_id]
+    title_model = os.getenv(env_var)
+
+    if title_model and title_model.strip():
+        return title_model.strip()
+
+    return None
