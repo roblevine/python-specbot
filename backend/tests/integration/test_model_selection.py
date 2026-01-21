@@ -268,3 +268,61 @@ def test_model_persistence_across_conversation(client: TestClient):
         second_call_model = mock_get_ai.call_args_list[1].kwargs["model"]
         assert first_call_model == "gpt-4"
         assert second_call_model == "gpt-3.5-turbo"
+
+
+# =============================================================================
+# DEFAULT_MODEL Integration Tests
+# Feature: 018-separate-provider-configs - User Story 2
+# =============================================================================
+
+
+@pytest.mark.integration
+def test_default_model_selection_via_api(client: TestClient):
+    """
+    T026: Integration test for default model selection flow.
+
+    Verifies that the DEFAULT_MODEL env var controls which model
+    is marked as default in the /api/v1/models response.
+    """
+    # Get models configuration
+    response = client.get("/api/v1/models")
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert "models" in data
+    assert len(data["models"]) > 0
+
+    # Verify exactly one model is marked as default
+    default_models = [m for m in data["models"] if m["default"]]
+    assert len(default_models) == 1
+
+    # Verify the default model is gpt-3.5-turbo (from conftest.py)
+    assert default_models[0]["id"] == "gpt-3.5-turbo"
+
+
+@pytest.mark.integration
+def test_default_model_used_when_no_model_specified(client: TestClient):
+    """
+    T026: Verify default model is used when request doesn't specify model.
+
+    When a message request doesn't include a model field, the backend
+    should use the configured DEFAULT_MODEL.
+    """
+    with patch('src.api.routes.messages.get_ai_response', new_callable=AsyncMock) as mock_get_ai:
+        # Mock AI response
+        mock_get_ai.return_value = ("Response from default model", "gpt-3.5-turbo")
+
+        # Send request WITHOUT specifying model
+        response = client.post(
+            "/api/v1/messages",
+            json={
+                "message": "Hello, use the default model"
+            }
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Should use the default model
+        assert data["model"] == "gpt-3.5-turbo"

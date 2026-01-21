@@ -28,17 +28,21 @@ def mock_test_env_vars(monkeypatch):
     Args:
         monkeypatch: pytest fixture for modifying environment variables
     """
-    # Clear any existing model configuration
+    # Clear any existing model configuration (including legacy MODELS env var)
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    monkeypatch.delenv("MODELS", raising=False)
+    monkeypatch.delenv("ANTHROPIC_MODELS", raising=False)
+    monkeypatch.delenv("MODELS", raising=False)  # Legacy - silently ignored
 
     # Set predictable test values BEFORE any imports that load config
-    # Use unified MODELS format with provider field
+    # Use provider-specific format (018-separate-provider-configs)
     monkeypatch.setenv(
-        "MODELS",
+        "OPENAI_MODELS",
         '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", '
-        '"description": "Fast and efficient for most tasks", "provider": "openai", "default": true}]'
+        '"description": "Fast and efficient for most tasks"}, '
+        '{"id": "gpt-4", "name": "GPT-4", '
+        '"description": "Most capable model for complex reasoning"}]'
     )
+    monkeypatch.setenv("DEFAULT_MODEL", "gpt-3.5-turbo")
     monkeypatch.setenv("OPENAI_API_KEY", "test-api-key-12345")
 
     # Clear any cached LLM instances to force reload with new env vars
