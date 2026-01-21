@@ -3,14 +3,13 @@
  * Manages conversation list and active conversation state
  *
  * Feature: 010-server-side-conversations
- * Tasks: T016, T017, T023, T024, T026, T030, T031, T034, T036, T038, T039, T040
+ * Updated: 018-audit-local-storage - Removed all localStorage code (server-only)
  */
 
 import { ref, computed } from 'vue'
 import { generateId } from '../utils/idGenerator.js'
 import { validateConversation, validateMessage } from '../utils/validators.js'
 import * as logger from '../utils/logger.js'
-import { saveConversations as saveToLocalStorage, loadConversations as loadFromLocalStorage, clearAllData } from '../storage/LocalStorageAdapter.js'
 import {
   getConversations as apiGetConversations,
   getConversation as apiGetConversation,
@@ -27,9 +26,6 @@ const activeConversationId = ref(null)
 const isLoading = ref(false)
 const loadError = ref(null)
 const saveError = ref(null)
-
-// T038: Migration state
-const hasMigrated = ref(false)
 
 /**
  * Sorts conversations by updatedAt descending (most recent first)
@@ -58,7 +54,7 @@ export function useConversations() {
   })
 
   /**
-   * T024: Creates a new conversation (persists to server)
+   * Creates a new conversation (persists to server)
    * @returns {Promise<Object>} The created conversation
    */
   async function createConversation() {
@@ -78,7 +74,7 @@ export function useConversations() {
     }
 
     try {
-      // T024: Persist to server
+      // Persist to server
       const response = await apiCreateConversation(conversationData)
       const savedConversation = response.conversation
 
@@ -88,7 +84,7 @@ export function useConversations() {
       logger.info('Created new conversation on server', { id: savedConversation.id })
       return savedConversation
     } catch (error) {
-      // T026: Error handling - add locally but flag error
+      // Error handling - add locally but flag error
       logger.error('Failed to create conversation on server, adding locally', error)
       saveError.value = error.message || 'Failed to create conversation'
 
@@ -143,37 +139,25 @@ export function useConversations() {
     activeConversationId.value = conversationId
     logger.info('Set active conversation', { conversationId })
   }
- 
+
   /**
-   * Loads conversations from storage
-   * T016, T017: Loads conversations from server API
-   * Falls back to localStorage migration if server is empty and localStorage has data
+   * Loads conversations from server
+   * T028: Server-only - no localStorage fallback
+   * Feature: 018-audit-local-storage
    */
   async function loadFromStorage() {
     isLoading.value = true
     loadError.value = null
 
     try {
-      // T016: Fetch from server API
+      // Fetch from server API
       const response = await apiGetConversations()
       const serverConversations = response.conversations || []
 
       logger.info('Fetched conversations from server', { count: serverConversations.length })
 
-      // T039: Check for migration scenario (server empty, localStorage has data)
-      if (serverConversations.length === 0 && !hasMigrated.value) {
-        const localData = loadFromLocalStorage()
-        if (localData.conversations && localData.conversations.length > 0) {
-          logger.info('Migrating conversations from localStorage', { count: localData.conversations.length })
-          await migrateFromLocalStorage(localData)
-          return
-        }
-      }
-
-      // If we got full conversation summaries, we need to fetch full conversations
-      // For now, store the summaries and fetch full data as needed
+      // Fetch full conversation data for each
       if (serverConversations.length > 0) {
-        // Fetch full conversation data for each
         const fullConversations = []
         for (const summary of serverConversations) {
           try {
@@ -201,101 +185,20 @@ export function useConversations() {
 
       logger.info('Loaded conversations from server', { count: conversations.value.length })
     } catch (error) {
-      // T017: Error handling
+      // T028: Error handling - no localStorage fallback, just show error
       logger.error('Failed to load conversations from server', error)
       loadError.value = error.message || 'Failed to load conversations'
 
-      // T034: Fallback to localStorage if server unavailable
-      try {
-        const localData = loadFromLocalStorage()
-        conversations.value = localData.conversations || []
-        // Feature 015: Sort conversations by most recent first for deterministic ordering
-        if (conversations.value.length > 0) {
-          sortConversationsByRecent(conversations.value)
-        }
-        activeConversationId.value = localData.activeConversationId
-
-        if (conversations.value.length === 0) {
-          // Create local-only conversation
-          const now = new Date().toISOString()
-          const localConversation = {
-            id: generateId('conv'),
-            createdAt: now,
-            updatedAt: now,
-            messages: [],
-            title: 'New Conversation',
-          }
-          conversations.value.push(localConversation)
-          activeConversationId.value = localConversation.id
-        } else if (!activeConversationId.value && conversations.value.length > 0) {
-          activeConversationId.value = conversations.value[0].id
-        }
-
-        logger.warn('Using localStorage fallback', { count: conversations.value.length })
-      } catch (localError) {
-        logger.error('Failed to load from localStorage fallback', localError)
-      }
+      // Create empty state so app is usable
+      conversations.value = []
     } finally {
       isLoading.value = false
     }
   }
 
   /**
-   * T038, T039, T040: Migrate conversations from localStorage to server
-   * @param {Object} localData - Data from localStorage
-   */
-  async function migrateFromLocalStorage(localData) {
-    logger.info('Starting localStorage migration')
-    hasMigrated.value = true
-
-    try {
-      const migratedConversations = []
-
-      for (const conversation of localData.conversations) {
-        try {
-          // Create each conversation on server
-          const response = await apiCreateConversation(conversation)
-          migratedConversations.push(response.conversation)
-          logger.debug('Migrated conversation', { id: conversation.id })
-        } catch (error) {
-          logger.error('Failed to migrate conversation', { id: conversation.id, error })
-          // Continue with other conversations
-          migratedConversations.push(conversation)
-        }
-      }
-
-      // Feature 015: Sort conversations by most recent first for deterministic ordering
-      sortConversationsByRecent(migratedConversations)
-      conversations.value = migratedConversations
-
-      // Set active conversation
-      if (localData.activeConversationId) {
-        activeConversationId.value = localData.activeConversationId
-      } else if (migratedConversations.length > 0) {
-        activeConversationId.value = migratedConversations[0].id
-      }
-
-      // T040: Clear localStorage after successful migration
-      try {
-        clearAllData()
-        logger.info('Cleared localStorage after migration')
-      } catch (clearError) {
-        logger.warn('Failed to clear localStorage after migration', clearError)
-      }
-
-      logger.info('Migration complete', { count: migratedConversations.length })
-    } catch (error) {
-      logger.error('Migration failed', error)
-      // Use local data as fallback
-      conversations.value = localData.conversations
-      activeConversationId.value = localData.activeConversationId
-    } finally {
-      isLoading.value = false
-    }
-  }
-
-  /**
-   * T023: Saves conversations to server
+   * Saves conversations to server
+   * T027: Server-only - no localStorage fallback
    * @param {string} conversationId - Optional specific conversation to save
    */
   async function saveToStorage(conversationId = null) {
@@ -335,29 +238,14 @@ export function useConversations() {
         logger.debug('Saved all conversations to server', { count: conversationsToSave.length })
       }
     } catch (error) {
-      // T026: Error handling
+      // T027: Error handling - no localStorage fallback
       logger.error('Failed to save to server', error)
       saveError.value = error.message || 'Failed to save conversation'
-
-      // Fallback to localStorage
-      try {
-        const conversationsToSave = conversations.value.filter(c => c.messages.length > 0)
-        const existingData = loadFromLocalStorage()
-        saveToLocalStorage(
-          conversationsToSave,
-          activeConversationId.value,
-          existingData.preferences,
-          existingData.selectedModelId
-        )
-        logger.warn('Saved to localStorage as fallback')
-      } catch (localError) {
-        logger.error('Failed to save to localStorage fallback', localError)
-      }
     }
   }
 
   /**
-   * T030, T031: Deletes a conversation
+   * Deletes a conversation
    * @param {string} conversationId - ID of conversation to delete
    */
   async function deleteConversation(conversationId) {
@@ -418,7 +306,7 @@ export function useConversations() {
   }
 
   /**
-   * T036: Clears the current error state
+   * Clears the current error state
    */
   function clearError() {
     loadError.value = null
@@ -426,7 +314,7 @@ export function useConversations() {
   }
 
   /**
-   * T036: Retries loading conversations after an error
+   * Retries loading conversations after an error
    */
   async function retryLoad() {
     clearError()
@@ -443,7 +331,6 @@ export function useConversations() {
     isLoading.value = false
     loadError.value = null
     saveError.value = null
-    hasMigrated.value = false
   }
 
   return {

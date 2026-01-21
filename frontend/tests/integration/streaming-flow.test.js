@@ -196,7 +196,7 @@ describe('Streaming Flow Integration', () => {
 
     await nextTick()
 
-    // Verify message was added
+    // Verify message was added to in-memory state
     expect(messageState.currentMessages.value.length).toBe(initialCount + 1)
 
     const completedMessage = messageState.currentMessages.value[initialCount]
@@ -205,15 +205,8 @@ describe('Streaming Flow Integration', () => {
     expect(completedMessage.sender).toBe('system')
     expect(completedMessage.model).toBe('gpt-4')
 
-    // Verify localStorage was updated
-    const stored = JSON.parse(localStorage.getItem('chatInterface:v1:data'))
-    expect(stored).toBeTruthy()
-    expect(stored.conversations[0].messages).toContainEqual(
-      expect.objectContaining({
-        text: 'Complete message',
-        status: 'sent'
-      })
-    )
+    // Note: Conversations are now server-only (018-audit-local-storage)
+    // localStorage persistence is no longer used for conversation data
   })
 
   it('T022: should have ChatArea component with streamingMessage ref and auto-scroll watchers', async () => {

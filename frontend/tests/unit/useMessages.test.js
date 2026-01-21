@@ -134,7 +134,7 @@ describe('useMessages', () => {
   it('should save to storage after sending message', async () => {
     const { streamMessage } = await import('../../src/services/apiClient.js')
     const { createConversation } = useConversations()
-    const { sendUserMessage } = useMessages()
+    const { sendUserMessage, currentMessages } = useMessages()
 
     // Mock streaming
     streamMessage.mockImplementation((message, onToken, onComplete) => {
@@ -147,11 +147,12 @@ describe('useMessages', () => {
     await sendUserMessage('Test message')
     await new Promise(resolve => setTimeout(resolve, 50))
 
-    const stored = localStorage.getItem('chatInterface:v1:data')
-    expect(stored).toBeTruthy()
-
-    const data = JSON.parse(stored)
-    expect(data.conversations[0].messages).toHaveLength(2)
+    // Verify messages are stored in-memory state
+    // Note: Conversations are now server-only (018-audit-local-storage)
+    // localStorage persistence is no longer used for conversation data
+    expect(currentMessages.value).toHaveLength(2)
+    expect(currentMessages.value[0].text).toBe('Test message')
+    expect(currentMessages.value[1].text).toBe('Test message')
   })
 
   // US1: Error handling tests

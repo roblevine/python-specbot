@@ -23,8 +23,8 @@
 
 **Purpose**: Verify preconditions and plan review
 
-- [ ] T001 Review data-model.md for schema v2.0.0 structure in specs/018-audit-local-storage/data-model.md
-- [ ] T002 Review quickstart.md implementation guide in specs/018-audit-local-storage/quickstart.md
+- [x] T001 Review data-model.md for schema v2.0.0 structure in specs/018-audit-local-storage/data-model.md
+- [x] T002 Review quickstart.md implementation guide in specs/018-audit-local-storage/quickstart.md
 
 ---
 
@@ -36,16 +36,16 @@
 
 ### Tests (TDD - Write First, Must Fail)
 
-- [ ] T003 [P] Create unit tests for SettingsSchema validation in frontend/tests/unit/SettingsSchema.test.js
-- [ ] T004 [P] Create unit tests for SettingsStorage load/save operations in frontend/tests/unit/SettingsStorage.test.js
-- [ ] T005 Run tests to verify they fail (no implementation yet)
+- [x] T003 [P] Create unit tests for SettingsSchema validation in frontend/tests/unit/SettingsSchema.test.js
+- [x] T004 [P] Create unit tests for SettingsStorage load/save operations in frontend/tests/unit/SettingsStorage.test.js
+- [x] T005 Run tests to verify they fail (no implementation yet)
 
 ### Implementation
 
-- [ ] T006 [P] Create SettingsSchema.js with v2.0.0 schema, SETTINGS_KEY, DEFAULT_SETTINGS, and validation in frontend/src/storage/SettingsSchema.js
-- [ ] T007 Create SettingsStorage.js with loadSettings(), saveSetting(), getSetting() functions in frontend/src/storage/SettingsStorage.js
-- [ ] T008 Run tests to verify SettingsSchema tests pass
-- [ ] T009 Run tests to verify SettingsStorage tests pass
+- [x] T006 [P] Create SettingsSchema.js with v2.0.0 schema, SETTINGS_KEY, DEFAULT_SETTINGS, and validation in frontend/src/storage/SettingsSchema.js
+- [x] T007 Create SettingsStorage.js with loadSettings(), saveSetting(), getSetting() functions in frontend/src/storage/SettingsStorage.js
+- [x] T008 Run tests to verify SettingsSchema tests pass
+- [x] T009 Run tests to verify SettingsStorage tests pass
 
 **Checkpoint**: New storage module ready - user story implementation can now begin
 
@@ -62,25 +62,25 @@
 
 ### User Story 1: Settings Persist Across Sessions
 
-- [ ] T010 [US1] Update useSidebarCollapse.js to load initial state from SettingsStorage in frontend/src/composables/useSidebarCollapse.js
-- [ ] T011 [US1] Update useModels.js to load selectedModelId from SettingsStorage on initialization in frontend/src/state/useModels.js
-- [ ] T012 [US1] Add default value handling when no settings exist in useSidebarCollapse.js
-- [ ] T013 [US1] Add model ID validation against available models with fallback to default in useModels.js
+- [x] T010 [US1] Update useSidebarCollapse.js to load initial state from SettingsStorage in frontend/src/composables/useSidebarCollapse.js
+- [x] T011 [US1] Update useModels.js to load selectedModelId from SettingsStorage on initialization in frontend/src/state/useModels.js
+- [x] T012 [US1] Add default value handling when no settings exist in useSidebarCollapse.js
+- [x] T013 [US1] Add model ID validation against available models with fallback to default in useModels.js
 
 ### User Story 2: Settings Update Immediately on Change
 
-- [ ] T014 [US2] Update useSidebarCollapse.js to save to SettingsStorage when isCollapsed changes in frontend/src/composables/useSidebarCollapse.js
-- [ ] T015 [US2] Update useModels.js to save to SettingsStorage when selectedModelId changes in frontend/src/state/useModels.js
-- [ ] T016 [US2] Remove direct localStorage.getItem/setItem calls from useSidebarCollapse.js
-- [ ] T017 [US2] Remove LocalStorageAdapter imports from useModels.js
+- [x] T014 [US2] Update useSidebarCollapse.js to save to SettingsStorage when isCollapsed changes in frontend/src/composables/useSidebarCollapse.js
+- [x] T015 [US2] Update useModels.js to save to SettingsStorage when selectedModelId changes in frontend/src/state/useModels.js
+- [x] T016 [US2] Remove direct localStorage.getItem/setItem calls from useSidebarCollapse.js
+- [x] T017 [US2] Remove LocalStorageAdapter imports from useModels.js
 
 ### Integration Tests for US1 & US2
 
-- [ ] T018 [P] [US1] Update useSidebarCollapse.test.js to test loading from new SettingsStorage in frontend/tests/unit/useSidebarCollapse.test.js
-- [ ] T019 [P] [US2] Update useSidebarCollapse.test.js to test saving on change in frontend/tests/unit/useSidebarCollapse.test.js
-- [ ] T020 [P] [US1] Update useModels.test.js to test loading from new SettingsStorage in frontend/tests/unit/useModels.test.js
-- [ ] T021 [P] [US2] Update useModels.test.js to test saving on change in frontend/tests/unit/useModels.test.js
-- [ ] T022 Run all tests to verify US1 and US2 pass
+- [x] T018 [P] [US1] Update useSidebarCollapse.test.js to test loading from new SettingsStorage in frontend/tests/unit/useSidebarCollapse.test.js
+- [x] T019 [P] [US2] Update useSidebarCollapse.test.js to test saving on change in frontend/tests/unit/useSidebarCollapse.test.js
+- [x] T020 [P] [US1] Update useModels.test.js to test loading from new SettingsStorage in frontend/tests/unit/useModels.test.js
+- [x] T021 [P] [US2] Update useModels.test.js to test saving on change in frontend/tests/unit/useModels.test.js
+- [x] T022 Run all tests to verify US1 and US2 pass
 
 **Checkpoint**: At this point, settings persistence should be fully functional. Test manually:
 - Collapse sidebar → refresh → still collapsed
@@ -99,21 +99,21 @@
 
 ### User Story 3: Remove Legacy Conversation Storage
 
-- [ ] T023 [US3] Remove localStorage imports from useConversations.js in frontend/src/state/useConversations.js
-- [ ] T024 [US3] Remove migrateFromLocalStorage function from useConversations.js
-- [ ] T025 [US3] Remove hasMigrated ref and related code from useConversations.js
-- [ ] T026 [US3] Remove localStorage fallback in loadFromStorage catch block in useConversations.js
-- [ ] T027 [US3] Remove localStorage fallback in saveToStorage catch block in useConversations.js
-- [ ] T028 [US3] Simplify loadFromStorage to server-only with error display in useConversations.js
+- [x] T023 [US3] Remove localStorage imports from useConversations.js in frontend/src/state/useConversations.js
+- [x] T024 [US3] Remove migrateFromLocalStorage function from useConversations.js
+- [x] T025 [US3] Remove hasMigrated ref and related code from useConversations.js
+- [x] T026 [US3] Remove localStorage fallback in loadFromStorage catch block in useConversations.js
+- [x] T027 [US3] Remove localStorage fallback in saveToStorage catch block in useConversations.js
+- [x] T028 [US3] Simplify loadFromStorage to server-only with error display in useConversations.js
 
 ### User Story 4: Unified Settings Storage Architecture
 
-- [ ] T029 [US4] Delete LocalStorageAdapter.js file in frontend/src/storage/LocalStorageAdapter.js
-- [ ] T030 [US4] Delete StorageSchema.js file in frontend/src/storage/StorageSchema.js
-- [ ] T031 [US4] Delete LocalStorageAdapter.test.js file in frontend/tests/unit/LocalStorageAdapter.test.js
-- [ ] T032 [US4] Delete StorageSchema.test.js file in frontend/tests/unit/StorageSchema.test.js
-- [ ] T033 [US4] Search for and remove any remaining imports of deleted files
-- [ ] T034 [US4] Run all tests to verify no broken imports
+- [x] T029 [US4] Delete LocalStorageAdapter.js file in frontend/src/storage/LocalStorageAdapter.js
+- [x] T030 [US4] Delete StorageSchema.js file in frontend/src/storage/StorageSchema.js
+- [x] T031 [US4] Delete LocalStorageAdapter.test.js file in frontend/tests/unit/LocalStorageAdapter.test.js
+- [x] T032 [US4] Delete StorageSchema.test.js file in frontend/tests/unit/StorageSchema.test.js
+- [x] T033 [US4] Search for and remove any remaining imports of deleted files
+- [x] T034 [US4] Run all tests to verify no broken imports
 
 **Checkpoint**: At this point, all legacy localStorage code should be removed. Verify:
 - `grep -r "LocalStorageAdapter" frontend/src/` returns no results
@@ -126,11 +126,11 @@
 
 **Purpose**: Final verification and documentation
 
-- [ ] T035 [P] Run full test suite to verify all tests pass
-- [ ] T036 [P] Manual test: Settings persist across browser sessions
-- [ ] T037 [P] Manual test: Application works correctly with server-only conversations
-- [ ] T038 Verify schema in browser dev tools shows specbot:settings:v2 key
-- [ ] T039 Run quickstart.md verification checklist
+- [x] T035 [P] Run full test suite to verify all tests pass
+- [x] T036 [P] Manual test: Settings persist across browser sessions
+- [x] T037 [P] Manual test: Application works correctly with server-only conversations
+- [x] T038 Verify schema in browser dev tools shows specbot:settings:v2 key
+- [x] T039 Run quickstart.md verification checklist
 
 ---
 

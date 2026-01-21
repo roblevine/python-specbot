@@ -5,7 +5,8 @@
  * through state management to API communication.
  *
  * Feature: 008-openai-model-selector User Story 1
- * Task: T018
+ * Updated: 018-audit-local-storage - Use SettingsStorage format
+ * Task: T018, T020, T021
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
@@ -15,6 +16,7 @@ import ModelSelector from '@/components/ModelSelector/ModelSelector.vue'
 import { useModels } from '@/state/useModels.js'
 import { useMessages } from '@/state/useMessages.js'
 import * as apiClient from '@/services/apiClient.js'
+import { SETTINGS_KEY } from '@/storage/SettingsSchema.js'
 
 // Mock API client
 vi.mock('@/services/apiClient.js', () => ({
@@ -100,15 +102,15 @@ describe('Model Selection Integration', () => {
   })
 
   it('T018: should restore model selection from localStorage', async () => {
-    // Pre-populate localStorage with selection
+    // Pre-populate localStorage with selection using new SettingsStorage format
     const initialData = {
-      version: '1.1.0',
-      conversations: [],
-      activeConversationId: null,
-      selectedModelId: 'gpt-4',
-      preferences: { sidebarCollapsed: false }
+      version: '2.0.0',
+      settings: {
+        sidebarCollapsed: false,
+        selectedModelId: 'gpt-4',
+      }
     }
-    localStorage.setItem('chat-interface-data', JSON.stringify(initialData))
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(initialData))
 
     const wrapper = mount(ModelSelector)
 
@@ -136,15 +138,15 @@ describe('Model Selection Integration', () => {
   })
 
   it('T018: should validate persisted model against current configuration', async () => {
-    // Pre-populate with model that doesn't exist in current config
+    // Pre-populate with model that doesn't exist in current config using new SettingsStorage format
     const initialData = {
-      version: '1.1.0',
-      conversations: [],
-      activeConversationId: null,
-      selectedModelId: 'nonexistent-model',
-      preferences: { sidebarCollapsed: false }
+      version: '2.0.0',
+      settings: {
+        sidebarCollapsed: false,
+        selectedModelId: 'nonexistent-model',
+      }
     }
-    localStorage.setItem('chat-interface-data', JSON.stringify(initialData))
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(initialData))
 
     const wrapper = mount(ModelSelector)
 
@@ -312,7 +314,7 @@ describe('Model Selection Integration', () => {
     await flushPromises()
 
     // Get the stored value before unmounting
-    const storedBefore = localStorage.getItem('chat-interface-data')
+    const storedBefore = localStorage.getItem(SETTINGS_KEY)
 
     // Simulate page refresh by clearing Vue state but keeping localStorage
     wrapper1.unmount()
