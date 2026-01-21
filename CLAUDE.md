@@ -27,6 +27,8 @@ Auto-generated from all feature plans. Last updated: 2026-01-12
 - 013-redesign-frontend-palette: Added JavaScript (ES6+) + Vue 3.4.0, Vite 5.0.0
 - JavaScript ES6+ (Frontend) + Vue 3.4.0, Vite 5.0.0, marked (markdown parser - to be added), DOMPurify (XSS sanitization - to be added), highlight.js (syntax highlighting - to be added) (017-markdown-support)
 - N/A (no storage changes - markdown rendered at display time) (017-markdown-support)
+- JavaScript ES6+ + Vue 3.4.0, Vite 5.0.0 (018-audit-local-storage)
+- Browser localStorage (settings only) (018-audit-local-storage)
 - Python 3.13 (confirmed in devcontainer) + FastAPI 0.115.0, Pydantic 2.10.0, LangChain 0.3+ (018-separate-provider-configs)
 - N/A (configuration only, file-based JSON storage unchanged) (018-separate-provider-configs)
 

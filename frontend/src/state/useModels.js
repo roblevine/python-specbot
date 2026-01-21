@@ -5,11 +5,11 @@
  * Handles fetching available models, persisting selection, and validation.
  *
  * Feature: 008-openai-model-selector User Story 1
- * Tasks: T027, T034, T035
+ * Updated: 018-audit-local-storage - Use SettingsStorage instead of LocalStorageAdapter
  */
 
 import { ref, watch, onMounted } from 'vue'
-import { loadConversations, saveSelectedModel } from '../storage/LocalStorageAdapter.js'
+import { getSetting, saveSetting } from '../storage/SettingsStorage.js'
 import { fetchModels as apiFetchModels } from '../services/apiClient.js'
 
 // Shared state across all component instances
@@ -79,7 +79,7 @@ export function useModels() {
 
   /**
    * Set the selected model
-   * T027, T034: Update state and persist to localStorage
+   * T015: Update state and persist to SettingsStorage
    */
   function setSelectedModel(modelId) {
     if (!modelId) {
@@ -97,9 +97,9 @@ export function useModels() {
     console.log(`Selected model: ${modelId}`)
     selectedModelId.value = modelId
 
-    // T034: Persist to localStorage
+    // T015: Persist to SettingsStorage
     try {
-      saveSelectedModel(modelId)
+      saveSetting('selectedModelId', modelId)
       console.log(`Persisted model selection: ${modelId}`)
     } catch (err) {
       console.error('Failed to persist model selection:', err)
@@ -107,16 +107,16 @@ export function useModels() {
   }
 
   /**
-   * Load selected model from localStorage
-   * T034: Restore persisted selection on app load
+   * Load selected model from SettingsStorage
+   * T011: Restore persisted selection on app load using SettingsStorage
    */
   function loadSelectedModelFromStorage() {
     try {
-      const data = loadConversations()
+      const storedModelId = getSetting('selectedModelId', null)
 
-      if (data.selectedModelId) {
-        console.log(`Loaded selected model from storage: ${data.selectedModelId}`)
-        return data.selectedModelId
+      if (storedModelId) {
+        console.log(`Loaded selected model from storage: ${storedModelId}`)
+        return storedModelId
       }
 
       return null
@@ -128,7 +128,7 @@ export function useModels() {
 
   /**
    * Initialize model selection
-   * T027, T034, T035: Fetch models, restore selection, validate
+   * T011, T013: Fetch models, restore selection, validate against available models
    */
   async function initializeModels() {
     console.log('Initializing model selection...')
@@ -141,10 +141,10 @@ export function useModels() {
         throw new Error('No models available')
       }
 
-      // T034: Load persisted selection from localStorage
+      // T011: Load persisted selection from SettingsStorage
       const storedModelId = loadSelectedModelFromStorage()
 
-      // T035: Validate stored model exists in current configuration
+      // T013: Validate stored model exists in current configuration
       if (storedModelId) {
         const storedModel = models.find(m => m.id === storedModelId)
 
@@ -154,7 +154,7 @@ export function useModels() {
         } else {
           console.warn(`Stored model ${storedModelId} not available, using default`)
           // Clear invalid selection
-          saveSelectedModel(null)
+          saveSetting('selectedModelId', null)
           // Fall back to default
           const defaultModel = getDefaultModel()
           selectedModelId.value = defaultModel?.id || null

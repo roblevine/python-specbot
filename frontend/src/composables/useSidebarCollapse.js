@@ -1,30 +1,25 @@
 import { ref, watch } from 'vue'
 import * as logger from '../utils/logger.js'
+import { getSetting, saveSetting } from '../storage/SettingsStorage.js'
 
 /**
- * Composable for managing sidebar collapse state with LocalStorage persistence
+ * Composable for managing sidebar collapse state with SettingsStorage persistence
+ *
+ * Feature: 018-audit-local-storage
  * @returns {Object} Sidebar collapse state and control methods
  */
 export function useSidebarCollapse() {
   const isCollapsed = ref(false)
 
   /**
-   * Load sidebar collapsed state from LocalStorage
+   * Load sidebar collapsed state from SettingsStorage
+   * T010: Load initial state from SettingsStorage
+   * T012: Handle default value when no settings exist
    */
   const loadFromStorage = () => {
     try {
-      const stored = localStorage.getItem('sidebar.collapsed')
-
-      // Validate: only accept 'true' or 'false' strings
-      if (stored !== 'true' && stored !== 'false') {
-        if (stored !== null) {
-          logger.warn('Invalid sidebar.collapsed value, defaulting to false', { stored })
-        }
-        isCollapsed.value = false
-        return
-      }
-
-      isCollapsed.value = stored === 'true'
+      const stored = getSetting('sidebarCollapsed', false)
+      isCollapsed.value = stored
       logger.debug('Loaded sidebar state from storage', { isCollapsed: isCollapsed.value })
     } catch (error) {
       logger.error('Failed to load sidebar state', error)
@@ -33,11 +28,12 @@ export function useSidebarCollapse() {
   }
 
   /**
-   * Watch for changes and save to LocalStorage
+   * Watch for changes and save to SettingsStorage
+   * T014: Save to SettingsStorage when isCollapsed changes
    */
   watch(isCollapsed, (newValue) => {
     try {
-      localStorage.setItem('sidebar.collapsed', String(newValue))
+      saveSetting('sidebarCollapsed', newValue)
       logger.debug('Saved sidebar state to storage', { isCollapsed: newValue })
     } catch (error) {
       logger.error('Failed to persist sidebar preference', error)
