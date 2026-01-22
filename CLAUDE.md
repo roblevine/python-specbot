@@ -31,6 +31,8 @@ Auto-generated from all feature plans. Last updated: 2026-01-12
 - Browser localStorage (settings only) (018-audit-local-storage)
 - Python 3.13 (confirmed in devcontainer) + FastAPI 0.115.0, Pydantic 2.10.0, LangChain 0.3+ (018-separate-provider-configs)
 - N/A (configuration only, file-based JSON storage unchanged) (018-separate-provider-configs)
+- Python 3.13 (confirmed in devcontainer) + FastAPI 0.115.0, LangChain 0.3+, langchain-ollama (new dependency), Pydantic 2.10.0 (020-add-ollama-support)
+- N/A (stateless provider, uses existing model configuration infrastructure) (020-add-ollama-support)
 
 ### 009-message-streaming (2026-01-14) ✅ MVP COMPLETE
 **Real-time LLM response streaming with Server-Sent Events (SSE)**
