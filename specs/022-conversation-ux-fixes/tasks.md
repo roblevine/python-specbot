@@ -24,10 +24,10 @@
 
 **Purpose**: Verify development environment and understand existing code
 
-- [ ] T001 Verify frontend development server starts with `npm run dev` in frontend/
-- [ ] T002 [P] Review existing HistoryBar.vue component structure in frontend/src/components/HistoryBar/HistoryBar.vue
-- [ ] T003 [P] Review existing InputArea.vue component structure in frontend/src/components/InputArea/InputArea.vue
-- [ ] T004 [P] Review existing useConversations.js state management in frontend/src/state/useConversations.js
+- [x] T001 Verify frontend development server starts with `npm run dev` in frontend/
+- [x] T002 [P] Review existing HistoryBar.vue component structure in frontend/src/components/HistoryBar/HistoryBar.vue
+- [x] T003 [P] Review existing InputArea.vue component structure in frontend/src/components/InputArea/InputArea.vue
+- [x] T004 [P] Review existing useConversations.js state management in frontend/src/state/useConversations.js
 
 ---
 
@@ -37,8 +37,8 @@
 
 **⚠️ CRITICAL**: US3 (Timestamps) depends on the date formatter utility
 
-- [ ] T005 Create dateFormatter.js utility module in frontend/src/utils/dateFormatter.js with formatConversationTimestamp function
-- [ ] T006 Write unit tests for dateFormatter in frontend/tests/unit/dateFormatter.test.js
+- [x] T005 Create dateFormatter.js utility module in frontend/src/utils/dateFormatter.js with formatConversationTimestamp function
+- [x] T006 Write unit tests for dateFormatter in frontend/tests/unit/dateFormatter.test.js
 
 **Checkpoint**: Date formatter ready - user story implementation can now begin in parallel
 
@@ -52,17 +52,17 @@
 
 ### Tests for User Story 1
 
-- [ ] T007 [P] [US1] Write unit test for sortConversationsByRecent function in frontend/tests/unit/useConversations.test.js
-- [ ] T008 [P] [US1] Write unit test for sort being called after createConversation in frontend/tests/unit/useConversations.test.js
-- [ ] T009 [P] [US1] Write unit test for sort being called after addMessage in frontend/tests/unit/useConversations.test.js
+- [x] T007 [P] [US1] Write unit test for sortConversationsByRecent function in frontend/tests/unit/useConversations.test.js
+- [x] T008 [P] [US1] Write unit test for sort being called after createConversation in frontend/tests/unit/useConversations.test.js
+- [x] T009 [P] [US1] Write unit test for sort being called after addMessage in frontend/tests/unit/useConversations.test.js
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Verify sortConversationsByRecent exists and sorts by updatedAt descending in frontend/src/state/useConversations.js
-- [ ] T011 [US1] Add sortConversationsByRecent call after createConversation mutation in frontend/src/state/useConversations.js
-- [ ] T012 [US1] Add sortConversationsByRecent call after addMessage mutation in frontend/src/state/useConversations.js
-- [ ] T013 [US1] Add sortConversationsByRecent call after any conversation update (title change, etc) in frontend/src/state/useConversations.js
-- [ ] T014 [US1] Manual verification: create conversation, verify at top; send message in old conversation, verify moves to top
+- [x] T010 [US1] Verify sortConversationsByRecent exists and sorts by updatedAt descending in frontend/src/state/useConversations.js
+- [x] T011 [US1] Add sortConversationsByRecent call after createConversation mutation in frontend/src/state/useConversations.js
+- [x] T012 [US1] Add sortConversationsByRecent call after addMessage mutation in frontend/src/state/useConversations.js
+- [x] T013 [US1] Add sortConversationsByRecent call after any conversation update (title change, etc) in frontend/src/state/useConversations.js
+- [x] T014 [US1] Manual verification: create conversation, verify at top; send message in old conversation, verify moves to top
 
 **Checkpoint**: User Story 1 complete - conversations now sort correctly by recency
 
@@ -76,17 +76,17 @@
 
 ### Tests for User Story 2
 
-- [ ] T015 [P] [US2] Write unit test for focus state tracking (hadFocusBeforeSend) in frontend/tests/unit/InputArea.test.js
-- [ ] T016 [P] [US2] Write unit test for focus restoration after response complete in frontend/tests/unit/InputArea.test.js
+- [x] T015 [P] [US2] Write unit test for focus state tracking (hadFocusBeforeSend) in frontend/tests/unit/InputArea.test.js
+- [x] T016 [P] [US2] Write unit test for focus restoration after response complete in frontend/tests/unit/InputArea.test.js
 
 ### Implementation for User Story 2
 
-- [ ] T017 [US2] Add inputRef template ref for textarea element in frontend/src/components/InputArea/InputArea.vue
-- [ ] T018 [US2] Add hadFocusBeforeSend reactive ref to track focus state before send in frontend/src/components/InputArea/InputArea.vue
-- [ ] T019 [US2] Capture focus state in handleSend function (document.activeElement === inputRef.value) in frontend/src/components/InputArea/InputArea.vue
-- [ ] T020 [US2] Add blur event handler to detect when user clicks elsewhere in frontend/src/components/InputArea/InputArea.vue
-- [ ] T021 [US2] Restore focus after response complete using nextTick if hadFocusBeforeSend was true in frontend/src/components/InputArea/InputArea.vue
-- [ ] T022 [US2] Manual verification: send 5 consecutive messages using keyboard only without clicking input
+- [x] T017 [US2] Add inputRef template ref for textarea element in frontend/src/components/InputArea/InputArea.vue
+- [x] T018 [US2] Add hadFocusBeforeSend reactive ref to track focus state before send in frontend/src/components/InputArea/InputArea.vue
+- [x] T019 [US2] Capture focus state in handleSend function (document.activeElement === inputRef.value) in frontend/src/components/InputArea/InputArea.vue
+- [x] T020 [US2] Add blur event handler to detect when user clicks elsewhere in frontend/src/components/InputArea/InputArea.vue
+- [x] T021 [US2] Restore focus after response complete using nextTick if hadFocusBeforeSend was true in frontend/src/components/InputArea/InputArea.vue
+- [x] T022 [US2] Manual verification: send 5 consecutive messages using keyboard only without clicking input
 
 **Checkpoint**: User Story 2 complete - focus retention enables keyboard-only workflow
 
@@ -100,10 +100,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T023 [US3] Import formatConversationTimestamp from dateFormatter.js in frontend/src/components/HistoryBar/HistoryBar.vue
-- [ ] T024 [US3] Add timestamp display element below conversation title in template in frontend/src/components/HistoryBar/HistoryBar.vue
-- [ ] T025 [US3] Add CSS styling for timestamp subtext (smaller font, muted color) in frontend/src/components/HistoryBar/HistoryBar.vue
-- [ ] T026 [US3] Manual verification: check timestamp displays correctly for today/yesterday/older conversations
+- [x] T023 [US3] Import formatConversationTimestamp from dateFormatter.js in frontend/src/components/HistoryBar/HistoryBar.vue
+- [x] T024 [US3] Add timestamp display element below conversation title in template in frontend/src/components/HistoryBar/HistoryBar.vue
+- [x] T025 [US3] Add CSS styling for timestamp subtext (smaller font, muted color) in frontend/src/components/HistoryBar/HistoryBar.vue
+- [x] T026 [US3] Manual verification: check timestamp displays correctly for today/yesterday/older conversations
 
 **Checkpoint**: User Story 3 complete - timestamps visible in conversation list
 
@@ -117,11 +117,11 @@
 
 ### Implementation for User Story 4
 
-- [ ] T027 [US4] Reduce font-size for conversation title (target: ~13px from ~16px) in frontend/src/components/HistoryBar/HistoryBar.vue
-- [ ] T028 [US4] Reduce padding/margin for conversation list items in frontend/src/components/HistoryBar/HistoryBar.vue
-- [ ] T029 [US4] Reduce gap/spacing between conversation entries in frontend/src/components/HistoryBar/HistoryBar.vue
-- [ ] T030 [US4] Verify ellipsis truncation still works for long titles in frontend/src/components/HistoryBar/HistoryBar.vue
-- [ ] T031 [US4] Manual verification: count visible conversations and verify 30%+ increase
+- [x] T027 [US4] Reduce font-size for conversation title (target: ~13px from ~16px) in frontend/src/components/HistoryBar/HistoryBar.vue
+- [x] T028 [US4] Reduce padding/margin for conversation list items in frontend/src/components/HistoryBar/HistoryBar.vue
+- [x] T029 [US4] Reduce gap/spacing between conversation entries in frontend/src/components/HistoryBar/HistoryBar.vue
+- [x] T030 [US4] Verify ellipsis truncation still works for long titles in frontend/src/components/HistoryBar/HistoryBar.vue
+- [x] T031 [US4] Manual verification: count visible conversations and verify 30%+ increase
 
 **Checkpoint**: User Story 4 complete - compact styling increases visible conversations
 
@@ -131,10 +131,10 @@
 
 **Purpose**: Final verification and cleanup
 
-- [ ] T032 [P] Run full test suite to ensure no regressions with `npm run test` in frontend/
-- [ ] T033 [P] Test all edge cases from spec.md (empty list, very old timestamps, rapid messages, errors)
-- [ ] T034 Verify all acceptance scenarios from spec.md pass
-- [ ] T035 Run quickstart.md verification checklist
+- [x] T032 [P] Run full test suite to ensure no regressions with `npm run test` in frontend/
+- [x] T033 [P] Test all edge cases from spec.md (empty list, very old timestamps, rapid messages, errors)
+- [x] T034 Verify all acceptance scenarios from spec.md pass
+- [x] T035 Run quickstart.md verification checklist
 
 ---
 

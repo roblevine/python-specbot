@@ -40,8 +40,14 @@
         @click="$emit('select-conversation', conversation.id)"
       >
         <div class="conversation-content">
-          <div class="conversation-title">
-            {{ conversation.title }}
+          <div class="conversation-info">
+            <div class="conversation-title">
+              {{ conversation.title }}
+            </div>
+            <!-- Feature 022: Display last activity timestamp -->
+            <div class="conversation-timestamp">
+              {{ formatConversationTimestamp(conversation.updatedAt) }}
+            </div>
           </div>
           <TitleMenu
             class="conversation-menu"
@@ -63,6 +69,8 @@
 <script>
 import { ref } from 'vue'
 import TitleMenu from '../TitleMenu/TitleMenu.vue'
+// Feature 022: Import timestamp formatter for conversation list
+import { formatConversationTimestamp } from '../../utils/dateFormatter.js'
 
 export default {
   name: 'HistoryBar',
@@ -103,6 +111,8 @@ export default {
 
     return {
       handleNewConversation,
+      // Feature 022: Expose timestamp formatter to template
+      formatConversationTimestamp,
     }
   },
 }
@@ -225,8 +235,9 @@ export default {
   overflow-y: auto;
 }
 
+/* Feature 022: Reduced padding for compact styling */
 .conversation-item {
-  padding: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
   border-bottom: 1px solid var(--color-warm-dark);
   cursor: pointer;
   transition: background-color 0.2s;
@@ -248,14 +259,34 @@ export default {
   gap: var(--spacing-xs);
 }
 
-.conversation-title {
+/* Feature 022: Wrapper for title and timestamp */
+.conversation-info {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Feature 022: Reduced font size for compact styling */
+.conversation-title {
   font-weight: 600;
-  font-size: var(--font-size-md);
+  font-size: 0.8125rem; /* ~13px instead of 16px */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  min-width: 0;
+  line-height: 1.3;
+}
+
+/* Feature 022: Timestamp styling - smaller, muted color */
+.conversation-timestamp {
+  font-size: 0.7rem;
+  color: var(--color-text-secondary, #6b7280);
+  white-space: nowrap;
+}
+
+.conversation-item.active .conversation-timestamp {
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .conversation-menu {
