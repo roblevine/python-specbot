@@ -8,7 +8,7 @@
       v-model="selectedModelId"
       class="model-selector__select"
       @change="handleModelChange"
-      :disabled="isLoading || availableModels.length === 0"
+      :disabled="disabled || isLoading || availableModels.length === 0"
       :aria-label="isLoading ? 'Loading available models' : 'Select AI model for conversation'"
       :aria-busy="isLoading"
       :aria-invalid="error ? 'true' : 'false'"
@@ -47,11 +47,23 @@
  * Fetches available models from backend and persists selection.
  *
  * Feature: 008-openai-model-selector User Story 1
+ * Feature: 021-disable-model-selector - Added disabled prop for conversation locking
  * Task: T028
  */
 
 import { onMounted } from 'vue'
 import { useModels } from '../../state/useModels.js'
+
+/**
+ * Props for parent-controlled disabled state
+ * Feature: 021-disable-model-selector
+ */
+defineProps({
+  disabled: {
+    type: Boolean,
+    default: false,
+  },
+})
 
 // Get model state and methods from composable
 const {

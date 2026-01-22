@@ -80,8 +80,13 @@ export function useModels() {
   /**
    * Set the selected model
    * T015: Update state and persist to SettingsStorage
+   * Feature 021: Added optional persist parameter
+   *
+   * @param {string} modelId - The model ID to select
+   * @param {boolean} persist - Whether to persist to SettingsStorage (default: true)
+   *                           Set to false when restoring model from conversation (021-disable-model-selector)
    */
-  function setSelectedModel(modelId) {
+  function setSelectedModel(modelId, persist = true) {
     if (!modelId) {
       selectedModelId.value = null
       return
@@ -97,12 +102,14 @@ export function useModels() {
     console.log(`Selected model: ${modelId}`)
     selectedModelId.value = modelId
 
-    // T015: Persist to SettingsStorage
-    try {
-      saveSetting('selectedModelId', modelId)
-      console.log(`Persisted model selection: ${modelId}`)
-    } catch (err) {
-      console.error('Failed to persist model selection:', err)
+    // T015: Persist to SettingsStorage (unless persist=false for conversation restoration)
+    if (persist) {
+      try {
+        saveSetting('selectedModelId', modelId)
+        console.log(`Persisted model selection: ${modelId}`)
+      } catch (err) {
+        console.error('Failed to persist model selection:', err)
+      }
     }
   }
 

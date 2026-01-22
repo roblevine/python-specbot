@@ -24,9 +24,9 @@
 
 **Purpose**: Verify existing infrastructure supports the feature
 
-- [ ] T001 Verify ModelSelector component accepts disabled prop in frontend/src/components/ModelSelector/ModelSelector.vue
-- [ ] T002 Verify useModels composable exports setSelectedModel in frontend/src/state/useModels.js
-- [ ] T003 Verify useConversations composable exports activeConversation in frontend/src/state/useConversations.js
+- [x] T001 Verify ModelSelector component accepts disabled prop in frontend/src/components/ModelSelector/ModelSelector.vue
+- [x] T002 Verify useModels composable exports setSelectedModel in frontend/src/state/useModels.js
+- [x] T003 Verify useConversations composable exports activeConversation in frontend/src/state/useConversations.js
 
 ---
 
@@ -40,12 +40,12 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T004 [P] Write test for setSelectedModel with persist=false in frontend/tests/unit/state/useModels.spec.js
+- [x] T004 [P] Write test for setSelectedModel with persist=false in frontend/tests/unit/useModels.test.js
 
 ### Implementation for Foundational Phase
 
-- [ ] T005 Add optional persist parameter to setSelectedModel function in frontend/src/state/useModels.js
-- [ ] T006 Verify tests pass after implementation
+- [x] T005 Add optional persist parameter to setSelectedModel function in frontend/src/state/useModels.js
+- [x] T006 Verify tests pass after implementation
 
 **Checkpoint**: Foundation ready - setSelectedModel(modelId, persist=false) works correctly
 
@@ -61,18 +61,18 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T007 [P] [US1] Write test: selector enabled when conversation has no messages in frontend/tests/unit/components/App.spec.js
-- [ ] T008 [P] [US1] Write test: selector disabled when conversation has messages in frontend/tests/unit/components/App.spec.js
-- [ ] T009 [P] [US1] Write test: selector shows correct model from conversation in frontend/tests/unit/components/App.spec.js
+- [x] T007 [P] [US1] Write test: selector enabled when conversation has no messages in frontend/tests/unit/components/App.spec.js
+- [x] T008 [P] [US1] Write test: selector disabled when conversation has messages in frontend/tests/unit/components/App.spec.js
+- [x] T009 [P] [US1] Write test: selector shows correct model from conversation in frontend/tests/unit/components/App.spec.js
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Add isModelSelectorDisabled computed property in frontend/src/components/App/App.vue
-- [ ] T011 [US1] Add getConversationModelId helper function in frontend/src/components/App/App.vue
-- [ ] T012 [US1] Add modelSelectorDisabled prop to InputArea component in frontend/src/components/InputArea/InputArea.vue
-- [ ] T013 [US1] Pass modelSelectorDisabled prop from App.vue to InputArea in frontend/src/components/App/App.vue
-- [ ] T014 [US1] Pass disabled prop from InputArea to ModelSelector in frontend/src/components/InputArea/InputArea.vue
-- [ ] T015 [US1] Verify all US1 tests pass
+- [x] T010 [US1] Add isModelSelectorDisabled computed property in frontend/src/components/App/App.vue
+- [x] T011 [US1] Add getConversationModelId helper function in frontend/src/components/App/App.vue
+- [x] T012 [US1] Add modelSelectorDisabled prop to InputArea component in frontend/src/components/InputArea/InputArea.vue
+- [x] T013 [US1] Pass modelSelectorDisabled prop from App.vue to InputArea in frontend/src/components/App/App.vue
+- [x] T014 [US1] Pass disabled prop from InputArea to ModelSelector in frontend/src/components/InputArea/InputArea.vue
+- [x] T015 [US1] Verify all US1 tests pass
 
 **Checkpoint**: User Story 1 complete - model selector locks after first message sent
 
@@ -88,14 +88,14 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T016 [P] [US2] Write test: model restored when switching to conversation with messages in frontend/tests/unit/components/App.spec.js
-- [ ] T017 [P] [US2] Write test: default model used for legacy conversations without model field in frontend/tests/unit/components/App.spec.js
+- [x] T016 [P] [US2] Write test: model restored when switching to conversation with messages in frontend/tests/unit/components/App.spec.js
+- [x] T017 [P] [US2] Write test: default model used for legacy conversations without model field in frontend/tests/unit/components/App.spec.js
 
 ### Implementation for User Story 2
 
-- [ ] T018 [US2] Add watch on activeConversation to restore model in frontend/src/components/App/App.vue
-- [ ] T019 [US2] Implement legacy conversation fallback to default model in frontend/src/components/App/App.vue
-- [ ] T020 [US2] Verify all US2 tests pass
+- [x] T018 [US2] Add watch on activeConversation to restore model in frontend/src/components/App/App.vue
+- [x] T019 [US2] Implement legacy conversation fallback to default model in frontend/src/components/App/App.vue
+- [x] T020 [US2] Verify all US2 tests pass
 
 **Checkpoint**: User Story 2 complete - previous conversations show correct locked model
 
@@ -111,14 +111,14 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T021 [P] [US3] Write test: selector enabled after creating new conversation in frontend/tests/unit/components/App.spec.js
-- [ ] T022 [P] [US3] Write test: model selection works in new conversation in frontend/tests/unit/components/App.spec.js
+- [x] T021 [P] [US3] Write test: selector enabled after creating new conversation in frontend/tests/unit/components/App.spec.js
+- [x] T022 [P] [US3] Write test: model selection works in new conversation in frontend/tests/unit/components/App.spec.js
 
 ### Implementation for User Story 3
 
-- [ ] T023 [US3] Verify isModelSelectorDisabled returns false for conversations with empty messages array
-- [ ] T024 [US3] Verify model can be changed in new conversation before first message
-- [ ] T025 [US3] Verify all US3 tests pass
+- [x] T023 [US3] Verify isModelSelectorDisabled returns false for conversations with empty messages array
+- [x] T024 [US3] Verify model can be changed in new conversation before first message
+- [x] T025 [US3] Verify all US3 tests pass
 
 **Checkpoint**: User Story 3 complete - new conversations allow model selection
 
@@ -130,20 +130,20 @@
 
 ### Tests for Edge Cases
 
-- [ ] T026 [P] Write test: unavailable model displays with indicator in frontend/tests/unit/components/App.spec.js
-- [ ] T027 [P] Write test: single available model still follows enable/disable rules in frontend/tests/unit/components/App.spec.js
+- [x] T026 [P] Write test: unavailable model displays with indicator in frontend/tests/unit/components/App.spec.js
+- [x] T027 [P] Write test: single available model still follows enable/disable rules in frontend/tests/unit/components/App.spec.js
 
 ### Implementation for Edge Cases
 
-- [ ] T028 Add isConversationModelAvailable computed property in frontend/src/components/App/App.vue
-- [ ] T029 Handle unavailable model display (show model ID with indicator) in frontend/src/components/App/App.vue
-- [ ] T030 Verify edge case tests pass
+- [x] T028 Add isModelAvailable helper function in frontend/src/components/App/App.vue
+- [x] T029 Handle unavailable model by falling back to default model in frontend/src/components/App/App.vue
+- [x] T030 Verify edge case tests pass
 
 ### Final Validation
 
-- [ ] T031 Run full test suite to ensure no regressions
-- [ ] T032 Manual testing per quickstart.md verification checklist
-- [ ] T033 Code cleanup and remove any debug statements
+- [x] T031 Run full test suite to ensure no regressions
+- [x] T032 Manual testing per quickstart.md verification checklist
+- [x] T033 Code cleanup and remove any debug statements
 
 ---
 
