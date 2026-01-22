@@ -86,9 +86,11 @@
 - [x] T019 [US2] Capture focus state in handleSend function (document.activeElement === inputRef.value) in frontend/src/components/InputArea/InputArea.vue
 - [x] T020 [US2] Add blur event handler to detect when user clicks elsewhere in frontend/src/components/InputArea/InputArea.vue
 - [x] T021 [US2] Restore focus after response complete using nextTick if hadFocusBeforeSend was true in frontend/src/components/InputArea/InputArea.vue
+- [x] T021b [US2] **BUGFIX**: Update sendUserMessage to return Promise that resolves when streaming completes (not when it starts) in frontend/src/state/useMessages.js
 - [x] T022 [US2] Manual verification: send 5 consecutive messages using keyboard only without clicking input
 
 **Checkpoint**: User Story 2 complete - focus retention enables keyboard-only workflow
+**Bugfix**: sendUserMessage now properly awaits streaming completion before resolving
 
 ---
 

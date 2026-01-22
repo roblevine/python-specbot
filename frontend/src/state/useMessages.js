@@ -65,8 +65,9 @@ export function useMessages() {
 
   /**
    * Feature 009: Sends a user message and receives streaming response
+   * Feature 022: Returns Promise that resolves when streaming completes (for focus restoration)
    * @param {string} text - Message text to send
-   * @returns {Promise<void>}
+   * @returns {Promise<void>} Resolves when streaming is complete
    */
   async function sendUserMessage(text) {
     // Validate message text
@@ -86,128 +87,140 @@ export function useMessages() {
     // Create user message reference for error handling
     let userMessage = null
 
-    try {
-      setProcessing(true)
-      setStatus('Sending message...', 'processing')
+    // Feature 022: Wrap streaming in a Promise so callers can await completion
+    return new Promise((resolve, reject) => {
+      try {
+        setProcessing(true)
+        setStatus('Sending message...', 'processing')
 
-      const now = new Date().toISOString()
+        const now = new Date().toISOString()
 
-      // Create user message
-      userMessage = {
-        id: generateId('msg'),
-        text: text.trim(),
-        sender: 'user',
-        timestamp: now,
-        status: 'pending',
-      }
+        // Create user message
+        userMessage = {
+          id: generateId('msg'),
+          text: text.trim(),
+          sender: 'user',
+          timestamp: now,
+          status: 'pending',
+        }
 
-      // Add user message to conversation
-      addMessage(activeConversation.value.id, userMessage)
+        // Add user message to conversation
+        addMessage(activeConversation.value.id, userMessage)
 
-      // Gather conversation history
-      const conversationHistory = activeConversation.value.messages
-        .filter(msg => msg.status === 'sent')
-        .map(msg => ({
-          sender: msg.sender,
-          text: msg.text
-        }))
+        // Gather conversation history
+        const conversationHistory = activeConversation.value.messages
+          .filter(msg => msg.status === 'sent')
+          .map(msg => ({
+            sender: msg.sender,
+            text: msg.text
+          }))
 
-      logger.debug('Sending message with conversation history', {
-        messageLength: text.trim().length,
-        historyLength: conversationHistory.length,
-        selectedModel: selectedModelId.value
-      })
-
-      // Feature 009: Use streaming API
-      const streamMessageId = generateId('msg')
-      startStreaming(streamMessageId, selectedModelId.value)
-
-      // Mark user message as sent
-      userMessage.status = 'sent'
-      saveToStorage()
-
-      // Set up streaming callbacks
-      cleanupFunction = apiStreamMessage(
-        text.trim(),
-        // onToken callback
-        (content) => {
-          appendToken(content)
-        },
-        // onComplete callback
-        (metadata) => {
-          completeStreaming()
-
-          // T021: Trigger title generation after streaming completes
-          // Run asynchronously - don't block the completion
-          const conversationId = activeConversation.value?.id
-          if (conversationId && activeConversation.value?.title === 'New Conversation') {
-            generateAndSetTitle(conversationId, availableModels.value, selectedModelId.value)
-              .catch(err => logger.warn('Title generation failed', { error: err.message }))
-          }
-
-          setProcessing(false)
-          setStatus('Message sent', 'ready')
-          logger.info('Streaming completed', {
-            messageId: streamMessageId,
-            model: metadata.model
-          })
-        },
-        // onError callback
-        (errorEvent) => {
-          errorStreaming(errorEvent.error, errorEvent.code, errorEvent.debug_info)
-          setProcessing(false)
-          setError(`Streaming error: ${errorEvent.error}`)
-          logger.error('Streaming error', { error: errorEvent.error, code: errorEvent.code, debug_info: errorEvent.debug_info })
-        },
-        // history
-        conversationHistory,
-        // model
-        selectedModelId.value
-      )
-    } catch (error) {
-      // Handle errors
-      const errorMessage = {
-        id: generateId('msg'),
-        text: text.trim(),
-        sender: 'user',
-        timestamp: new Date().toISOString(),
-        status: 'error',
-        errorMessage: error.message,
-        errorType: categorizeError(error),
-        errorTimestamp: new Date().toISOString(),
-      }
-
-      if (error.statusCode) {
-        errorMessage.errorCode = error.statusCode
-      }
-
-      if (error.details && Object.keys(error.details).length > 0) {
-        errorMessage.errorDetails = JSON.stringify(error.details)
-      }
-
-      // Replace pending user message with error message
-      const conversationMessages = activeConversation.value.messages
-      const lastMessageIndex = conversationMessages.length - 1
-      if (lastMessageIndex >= 0 && conversationMessages[lastMessageIndex].id === userMessage.id) {
-        conversationMessages[lastMessageIndex] = errorMessage
-      }
-
-      saveToStorage()
-
-      if (error instanceof ApiError) {
-        setError(`Error: ${error.message}`)
-        logger.error('API error sending message', {
-          message: error.message,
-          statusCode: error.statusCode,
-          details: error.details,
+        logger.debug('Sending message with conversation history', {
+          messageLength: text.trim().length,
+          historyLength: conversationHistory.length,
+          selectedModel: selectedModelId.value
         })
-      } else {
-        setError('Failed to send message')
-        logger.error('Failed to send message', error)
-      }
 
-      setProcessing(false)
-    }
+        // Feature 009: Use streaming API
+        const streamMessageId = generateId('msg')
+        startStreaming(streamMessageId, selectedModelId.value)
+
+        // Mark user message as sent
+        userMessage.status = 'sent'
+        saveToStorage()
+
+        // Set up streaming callbacks
+        cleanupFunction = apiStreamMessage(
+          text.trim(),
+          // onToken callback
+          (content) => {
+            appendToken(content)
+          },
+          // onComplete callback
+          (metadata) => {
+            completeStreaming()
+
+            // T021: Trigger title generation after streaming completes
+            // Run asynchronously - don't block the completion
+            const conversationId = activeConversation.value?.id
+            if (conversationId && activeConversation.value?.title === 'New Conversation') {
+              generateAndSetTitle(conversationId, availableModels.value, selectedModelId.value)
+                .catch(err => logger.warn('Title generation failed', { error: err.message }))
+            }
+
+            setProcessing(false)
+            setStatus('Message sent', 'ready')
+            logger.info('Streaming completed', {
+              messageId: streamMessageId,
+              model: metadata.model
+            })
+
+            // Feature 022: Resolve Promise when streaming completes
+            resolve()
+          },
+          // onError callback
+          (errorEvent) => {
+            errorStreaming(errorEvent.error, errorEvent.code, errorEvent.debug_info)
+            setProcessing(false)
+            setError(`Streaming error: ${errorEvent.error}`)
+            logger.error('Streaming error', { error: errorEvent.error, code: errorEvent.code, debug_info: errorEvent.debug_info })
+
+            // Feature 022: Resolve (not reject) on error so focus can still be restored
+            resolve()
+          },
+          // history
+          conversationHistory,
+          // model
+          selectedModelId.value
+        )
+      } catch (error) {
+        // Handle errors
+        const errorMessage = {
+          id: generateId('msg'),
+          text: text.trim(),
+          sender: 'user',
+          timestamp: new Date().toISOString(),
+          status: 'error',
+          errorMessage: error.message,
+          errorType: categorizeError(error),
+          errorTimestamp: new Date().toISOString(),
+        }
+
+        if (error.statusCode) {
+          errorMessage.errorCode = error.statusCode
+        }
+
+        if (error.details && Object.keys(error.details).length > 0) {
+          errorMessage.errorDetails = JSON.stringify(error.details)
+        }
+
+        // Replace pending user message with error message
+        const conversationMessages = activeConversation.value.messages
+        const lastMessageIndex = conversationMessages.length - 1
+        if (lastMessageIndex >= 0 && conversationMessages[lastMessageIndex].id === userMessage?.id) {
+          conversationMessages[lastMessageIndex] = errorMessage
+        }
+
+        saveToStorage()
+
+        if (error instanceof ApiError) {
+          setError(`Error: ${error.message}`)
+          logger.error('API error sending message', {
+            message: error.message,
+            statusCode: error.statusCode,
+            details: error.details,
+          })
+        } else {
+          setError('Failed to send message')
+          logger.error('Failed to send message', error)
+        }
+
+        setProcessing(false)
+
+        // Feature 022: Resolve on error so focus can still be restored
+        resolve()
+      }
+    })
   }
 
   /**
