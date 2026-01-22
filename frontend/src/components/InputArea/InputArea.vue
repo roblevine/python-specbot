@@ -1,7 +1,8 @@
 <template>
   <div class="input-area">
     <!-- Feature 015: ModelSelector positioned above chat input within input pane -->
-    <ModelSelector class="model-selector-container" />
+    <!-- Feature 021: Pass disabled state to lock model selector after conversation starts -->
+    <ModelSelector class="model-selector-container" :disabled="modelSelectorDisabled" />
     <div class="input-container">
       <textarea
         v-model="inputText"
@@ -34,6 +35,15 @@ export default {
   },
   props: {
     disabled: {
+      type: Boolean,
+      default: false,
+    },
+    /**
+     * Feature: 021-disable-model-selector
+     * Controls whether the model selector is disabled (locked)
+     * Set to true when conversation has messages to prevent model changes
+     */
+    modelSelectorDisabled: {
       type: Boolean,
       default: false,
     },

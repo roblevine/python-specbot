@@ -22,9 +22,11 @@
           :is-processing="isProcessing"
         />
         <!-- Feature 015: ModelSelector moved to InputArea component -->
+        <!-- Feature 021: Pass model selector disabled state based on conversation messages -->
         <InputArea
           ref="inputAreaRef"
           :disabled="isProcessing"
+          :model-selector-disabled="isModelSelectorDisabled"
           @send-message="handleSendMessage"
         />
       </div>
@@ -45,7 +47,7 @@
 </template>
 
 <script>
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, watch } from 'vue'
 import StatusBar from '../StatusBar/StatusBar.vue'
 import HistoryBar from '../HistoryBar/HistoryBar.vue'
 import ChatArea from '../ChatArea/ChatArea.vue'
@@ -57,6 +59,8 @@ import { useConversations } from '../../state/useConversations.js'
 import { useMessages } from '../../state/useMessages.js'
 import { useAppState } from '../../state/useAppState.js'
 import { useSidebarCollapse } from '../../composables/useSidebarCollapse.js'
+// Feature 021: Import useModels for model restoration on conversation switch
+import { useModels } from '../../state/useModels.js'
 import * as logger from '../../utils/logger.js'
 
 export default {
@@ -90,6 +94,77 @@ export default {
     const activeConversationTitle = computed(() => {
       return activeConversation.value?.title || 'New Conversation'
     })
+
+    /**
+     * Feature 021: Disable model selector when conversation has messages
+     * This prevents model changes mid-conversation for consistency
+     */
+    const isModelSelectorDisabled = computed(() => {
+      return activeConversation.value?.messages?.length > 0
+    })
+
+    /**
+     * Feature 021: Get model selection composable for conversation model restoration
+     */
+    const { setSelectedModel, getDefaultModel, availableModels } = useModels()
+
+    /**
+     * Feature 021: Get the model ID from a conversation's first system message
+     * @param {Object} conversation - Conversation object with messages array
+     * @returns {string|null} - Model ID or null if not found
+     */
+    function getConversationModelId(conversation) {
+      if (!conversation?.messages?.length) return null
+
+      // Find the first system message that has a model field
+      const firstSystemMessage = conversation.messages.find(
+        msg => msg.sender === 'system' && msg.model
+      )
+
+      return firstSystemMessage?.model || null
+    }
+
+    /**
+     * Feature 021: Check if a model ID is available in the current configuration
+     * @param {string} modelId - Model ID to check
+     * @returns {boolean} - True if model is available
+     */
+    function isModelAvailable(modelId) {
+      if (!modelId) return false
+      return availableModels.value.some(m => m.id === modelId)
+    }
+
+    /**
+     * Feature 021: Watch activeConversation and restore model when switching conversations
+     * This ensures the model selector shows the correct model for each conversation
+     */
+    watch(activeConversation, (newConversation) => {
+      if (newConversation?.messages?.length > 0) {
+        const modelId = getConversationModelId(newConversation)
+        if (modelId && isModelAvailable(modelId)) {
+          // Restore conversation's model without persisting to global storage
+          setSelectedModel(modelId, false)
+          logger.debug('Restored model from conversation', { modelId })
+        } else if (modelId && !isModelAvailable(modelId)) {
+          // Model was used but is no longer available - use default
+          const defaultModel = getDefaultModel()
+          if (defaultModel) {
+            setSelectedModel(defaultModel.id, false)
+            logger.warn('Conversation model no longer available, using default', {
+              unavailableModel: modelId,
+              usingModel: defaultModel.id
+            })
+          }
+        } else {
+          // Legacy conversation without model field - use default
+          const defaultModel = getDefaultModel()
+          if (defaultModel) {
+            setSelectedModel(defaultModel.id, false)
+            logger.debug('Using default model for legacy conversation', { modelId: defaultModel.id })
+          }
+        }
+      }
+    }, { immediate: true })
 
     // Rename dialog state
     const showRenameDialog = ref(false)
@@ -240,6 +315,8 @@ export default {
       activeConversationTitle,
       currentMessages,
       isProcessing,
+      // Feature 021: Model selector disabled state
+      isModelSelectorDisabled,
       // Feature 015: status and statusType removed from return - no longer needed in template
       sidebarCollapsed,
       showRenameDialog,
