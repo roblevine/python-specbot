@@ -51,8 +51,8 @@ As a user browsing my conversation history, I want to see the date and time of e
 **Acceptance Scenarios**:
 
 1. **Given** I view the conversation sidebar, **When** I look at a conversation entry, **Then** I see the date/time of last activity as small subtext below the conversation title.
-2. **Given** a conversation was last active today, **When** viewing the timestamp, **Then** it shows time only (e.g., "3:45 PM") or relative time (e.g., "2 hours ago").
-3. **Given** a conversation was last active on a previous day, **When** viewing the timestamp, **Then** it shows the day/date (e.g., "Yesterday" or "Jan 20, 2026").
+2. **Given** any conversation entry, **When** viewing the timestamp, **Then** it shows the full date/time in format "Thu 22-Jan-26 5:11pm" (day, date, time).
+3. **Given** a conversation has messages, **When** viewing the timestamp, **Then** it matches the timestamp of the last message in that conversation.
 
 ---
 
@@ -76,7 +76,7 @@ As a user with many conversations, I want the conversation list entries to be mo
 ### Edge Cases
 
 - What happens when conversation list is empty? (Show empty state, no timestamp issues)
-- How does system handle very old timestamps? (Display full date for conversations older than 7 days)
+- How does system handle very old timestamps? (Same format applies to all timestamps regardless of age)
 - What happens when user rapidly sends multiple messages? (Focus should remain stable)
 - How does focus behave if an error occurs during message send? (Focus remains in input for retry)
 - What happens when timestamps cross midnight during a session? (Timestamps update to "Yesterday" appropriately)
@@ -91,7 +91,7 @@ As a user with many conversations, I want the conversation list entries to be mo
 - **FR-004**: System MUST maintain focus in the message input field after a message is sent and response is received, provided user has not clicked elsewhere.
 - **FR-005**: System MUST NOT forcibly return focus to input if user intentionally clicked elsewhere during response.
 - **FR-006**: System MUST display last activity timestamp as subtext below each conversation title in the sidebar.
-- **FR-007**: System MUST format timestamps appropriately: relative/time-only for recent conversations, date for older ones.
+- **FR-007**: System MUST format timestamps in consistent "Day DD-Mon-YY H:MMam/pm" format (e.g., "Thu 22-Jan-26 5:11pm").
 - **FR-008**: System MUST use smaller font size for conversation titles in the sidebar compared to current implementation.
 - **FR-009**: System MUST reduce vertical spacing between conversation list entries.
 - **FR-010**: System MUST continue to truncate long conversation titles with ellipsis.
@@ -115,7 +115,6 @@ As a user with many conversations, I want the conversation list entries to be mo
 ## Assumptions
 
 - The conversation data model already includes an `updatedAt` or equivalent timestamp field for sorting and display.
-- Timestamp formatting follows standard locale conventions (12/24 hour based on user's system settings).
-- "Recently active" for timestamp display purposes means within the last 24 hours.
+- Timestamp formatting uses consistent "Day DD-Mon-YY H:MMam/pm" format for all entries.
 - The font size reduction targets approximately 80-90% of current size (specific value to be determined during implementation based on visual testing).
 - Vertical spacing reduction targets approximately 60-70% of current spacing (specific value to be determined during implementation).

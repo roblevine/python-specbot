@@ -44,9 +44,9 @@
             <div class="conversation-title">
               {{ conversation.title }}
             </div>
-            <!-- Feature 022: Display last activity timestamp -->
+            <!-- Feature 022: Display last activity timestamp in full format -->
             <div class="conversation-timestamp">
-              {{ formatConversationTimestamp(conversation.updatedAt) }}
+              {{ formatMessageDatetime(conversation.updatedAt) }}
             </div>
           </div>
           <TitleMenu
@@ -70,7 +70,7 @@
 import { ref } from 'vue'
 import TitleMenu from '../TitleMenu/TitleMenu.vue'
 // Feature 022: Import timestamp formatter for conversation list
-import { formatConversationTimestamp } from '../../utils/dateFormatter.js'
+import { formatMessageDatetime } from '../../utils/dateFormatter.js'
 
 export default {
   name: 'HistoryBar',
@@ -112,7 +112,7 @@ export default {
     return {
       handleNewConversation,
       // Feature 022: Expose timestamp formatter to template
-      formatConversationTimestamp,
+      formatMessageDatetime,
     }
   },
 }
