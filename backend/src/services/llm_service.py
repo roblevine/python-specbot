@@ -428,9 +428,10 @@ async def stream_ai_response(
 
             # Execute each tool
             for tool_call in tool_calls:
-                tool_name = tool_call.get("name", tool_call.get("id", "unknown"))
+                tool_name = tool_call.get("name") or tool_call.get("id") or "unknown"
                 tool_args = tool_call.get("args", {})
-                tool_call_id = tool_call.get("id", "")
+                # Ensure tool_call_id is always a string (LangChain may return None)
+                tool_call_id = tool_call.get("id") or f"tool-{tool_name}-{len(langchain_messages)}"
 
                 # Emit tool call event
                 yield ToolCallEvent(tool=tool_name, args=tool_args)
