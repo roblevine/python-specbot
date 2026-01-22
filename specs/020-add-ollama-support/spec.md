@@ -1,6 +1,6 @@
 # Feature Specification: Add Ollama Model Support
 
-**Feature Branch**: `019-add-ollama-support`
+**Feature Branch**: `020-add-ollama-support`
 **Created**: 2026-01-22
 **Status**: Draft
 **Input**: User description: "Add local Ollama model support through the same LangChain infrastructure"
