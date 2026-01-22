@@ -16,6 +16,8 @@ import {
   createConversation as apiCreateConversation,
   updateConversation as apiUpdateConversation,
   deleteConversation as apiDeleteConversation,
+  generateTitle as apiGenerateTitle,
+  getTitleModel,
 } from '../services/apiClient.js'
 
 // Shared state (singleton pattern for composable)
@@ -117,10 +119,8 @@ export function useConversations() {
     conversation.messages.push(message)
     conversation.updatedAt = new Date().toISOString()
 
-    // Update title from first message if it's still default (store full text, truncate only for display)
-    if (conversation.title === 'New Conversation' && conversation.messages.length === 1) {
-      conversation.title = message.text
-    }
+    // T020: Title generation is now handled by generateAndSetTitle() after streaming completes
+    // Title remains "New Conversation" until LLM generates it
 
     logger.debug('Added message to conversation', { conversationId, messageId: message.id })
   }
@@ -306,6 +306,96 @@ export function useConversations() {
   }
 
   /**
+   * T021: Generate and set a title for a conversation using LLM
+   * T022: Falls back to first user message text on error
+   * T023: Does not regenerate for conversations with existing non-default titles
+   *
+   * Feature: 019-llm-conversation-titles User Story 1
+   *
+   * @param {string} conversationId - ID of conversation to generate title for
+   * @param {Array} models - Available models from /api/v1/models
+   * @param {string} currentModelId - Currently selected model ID
+   */
+  async function generateAndSetTitle(conversationId, models, currentModelId) {
+    const conversation = conversations.value.find(c => c.id === conversationId)
+    if (!conversation) {
+      logger.warn('Cannot generate title: conversation not found', { conversationId })
+      return
+    }
+
+    // T023: Don't regenerate if title is not default
+    if (conversation.title !== 'New Conversation') {
+      logger.debug('Skipping title generation: conversation already has custom title', {
+        conversationId,
+        currentTitle: conversation.title,
+      })
+      return
+    }
+
+    // Need at least 2 messages (user + assistant) for title generation
+    const sentMessages = conversation.messages.filter(m => m.status === 'sent')
+    if (sentMessages.length < 2) {
+      logger.debug('Skipping title generation: not enough messages', {
+        conversationId,
+        messageCount: sentMessages.length,
+      })
+      return
+    }
+
+    try {
+      // T019: Get title model using provider-based selection
+      const titleModelId = getTitleModel(currentModelId, models)
+
+      logger.info('Generating title for conversation', {
+        conversationId,
+        titleModel: titleModelId,
+        messageCount: sentMessages.length,
+      })
+
+      // Generate title using first user and assistant messages
+      const messagesToSend = sentMessages.slice(0, 2).map(m => ({
+        sender: m.sender,
+        text: m.text,
+      }))
+
+      const generatedTitle = await apiGenerateTitle(messagesToSend, titleModelId)
+
+      // Update conversation title
+      conversation.title = generatedTitle
+      conversation.updatedAt = new Date().toISOString()
+
+      // Persist to server
+      await saveToStorage(conversationId)
+
+      logger.info('Title generated successfully', { conversationId, title: generatedTitle })
+    } catch (error) {
+      // T022: Fallback to first user message text on error
+      logger.warn('Title generation failed, using fallback', {
+        conversationId,
+        error: error.message,
+      })
+
+      const firstUserMessage = sentMessages.find(m => m.sender === 'user')
+      if (firstUserMessage) {
+        conversation.title = firstUserMessage.text
+        conversation.updatedAt = new Date().toISOString()
+
+        // Persist fallback title to server
+        try {
+          await saveToStorage(conversationId)
+        } catch (saveError) {
+          logger.error('Failed to save fallback title', { conversationId, error: saveError.message })
+        }
+
+        logger.info('Using fallback title from first message', {
+          conversationId,
+          title: firstUserMessage.text,
+        })
+      }
+    }
+  }
+
+  /**
    * Clears the current error state
    */
   function clearError() {
@@ -349,6 +439,7 @@ export function useConversations() {
     saveToStorage,
     deleteConversation,
     renameConversation,
+    generateAndSetTitle, // T021: Title generation for 019-llm-conversation-titles
     clearError,
     retryLoad,
     __resetState,

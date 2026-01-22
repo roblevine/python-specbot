@@ -93,6 +93,52 @@ Health check endpoint for monitoring.
 }
 ```
 
+### POST /api/v1/titles/generate
+
+Generate a conversation title using LLM based on the first message exchange.
+
+**Feature**: 019-llm-conversation-titles
+
+**Request:**
+```json
+{
+  "messages": [
+    {"sender": "user", "text": "How do I implement binary search?"},
+    {"sender": "system", "text": "Binary search is an algorithm..."}
+  ],
+  "model": "gpt-3.5-turbo"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "title": "Binary Search Implementation Guide"
+}
+```
+
+**Configuration:**
+
+Configure provider-specific title models via environment variables:
+
+```bash
+# Use cheaper/faster models for title generation
+OPENAI_TITLE_MODEL=gpt-3.5-turbo
+ANTHROPIC_TITLE_MODEL=claude-haiku-4-5-20251001
+```
+
+When configured, the `/api/v1/models` endpoint includes a `titleModel` field indicating which model to use for title generation:
+
+```json
+{
+  "models": [
+    {"id": "gpt-4", "name": "GPT-4", "provider": "openai", "titleModel": false},
+    {"id": "gpt-3.5-turbo", "name": "GPT-3.5", "provider": "openai", "titleModel": true}
+  ]
+}
+```
+
 ## Project Structure
 
 ```

@@ -16,6 +16,9 @@ import { useAppState } from './useAppState.js'
 import { sendMessage as apiSendMessage, ApiError, streamMessage as apiStreamMessage } from '../services/apiClient.js'
 import { useModels } from './useModels.js'
 
+// T021: Placeholder for deferred title generation after streaming
+let pendingTitleGeneration = null
+
 /**
  * T038: Categorize errors based on statusCode
  * @param {ApiError} error - The API error
@@ -48,9 +51,9 @@ const isStreaming = ref(false)
 let cleanupFunction = null
 
 export function useMessages() {
-  const { activeConversation, addMessage, saveToStorage } = useConversations()
+  const { activeConversation, addMessage, saveToStorage, generateAndSetTitle } = useConversations()
   const { setProcessing, setStatus, setError } = useAppState()
-  const { selectedModelId } = useModels() // Feature 008: Get selected model
+  const { selectedModelId, availableModels } = useModels() // Feature 008: Get selected model; T021: Get models for title generation
 
   /**
    * Gets messages for the current active conversation
@@ -133,6 +136,15 @@ export function useMessages() {
         // onComplete callback
         (metadata) => {
           completeStreaming()
+
+          // T021: Trigger title generation after streaming completes
+          // Run asynchronously - don't block the completion
+          const conversationId = activeConversation.value?.id
+          if (conversationId && activeConversation.value?.title === 'New Conversation') {
+            generateAndSetTitle(conversationId, availableModels.value, selectedModelId.value)
+              .catch(err => logger.warn('Title generation failed', { error: err.message }))
+          }
+
           setProcessing(false)
           setStatus('Message sent', 'ready')
           logger.info('Streaming completed', {

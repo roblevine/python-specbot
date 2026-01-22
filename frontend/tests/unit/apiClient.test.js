@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { ApiError, streamMessage } from '../../src/services/apiClient.js'
+import { ApiError, streamMessage, generateTitle, getTitleModel } from '../../src/services/apiClient.js'
 
 describe('ApiError', () => {
   // T033: ApiError includes statusCode and details properties
@@ -391,5 +391,164 @@ describe('streamMessage', () => {
     expect(onToken).toHaveBeenNthCalledWith(3, '@#$%')
 
     cleanup()
+  })
+})
+
+/**
+ * T014: Tests for generateTitle() function
+ * Feature: 019-llm-conversation-titles User Story 1
+ */
+describe('generateTitle', () => {
+  let mockAbortController
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+
+    mockAbortController = {
+      signal: {},
+      abort: vi.fn(),
+    }
+    global.AbortController = vi.fn(() => mockAbortController)
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('should call API with correct URL and request body', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ status: 'success', title: 'Generated Title' }),
+    })
+
+    const messages = [
+      { sender: 'user', text: 'Hello' },
+      { sender: 'system', text: 'Hi there!' },
+    ]
+
+    await generateTitle(messages, 'gpt-3.5-turbo')
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringMatching(/\/api\/v1\/titles\/generate$/),
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          'Content-Type': 'application/json',
+        }),
+        body: expect.stringContaining('"model":"gpt-3.5-turbo"'),
+      })
+    )
+  })
+
+  it('should return the generated title', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ status: 'success', title: 'Python Binary Search Guide' }),
+    })
+
+    const messages = [
+      { sender: 'user', text: 'How do I implement binary search?' },
+      { sender: 'system', text: 'Binary search works by...' },
+    ]
+
+    const title = await generateTitle(messages, 'gpt-4')
+
+    expect(title).toBe('Python Binary Search Guide')
+  })
+
+  it('should throw ApiError for less than 2 messages', async () => {
+    const messages = [{ sender: 'user', text: 'Hello' }]
+
+    await expect(generateTitle(messages, 'gpt-4')).rejects.toThrow('At least 2 messages required')
+  })
+
+  it('should throw ApiError when model is not provided', async () => {
+    const messages = [
+      { sender: 'user', text: 'Hello' },
+      { sender: 'system', text: 'Hi!' },
+    ]
+
+    await expect(generateTitle(messages, null)).rejects.toThrow('Model ID is required')
+  })
+
+  it('should throw ApiError on HTTP error response', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      json: () => Promise.resolve({ error: 'Invalid request' }),
+    })
+
+    const messages = [
+      { sender: 'user', text: 'Hello' },
+      { sender: 'system', text: 'Hi!' },
+    ]
+
+    await expect(generateTitle(messages, 'gpt-4')).rejects.toThrow()
+  })
+
+  it('should throw ApiError on network error', async () => {
+    global.fetch = vi.fn().mockRejectedValue(new TypeError('fetch failed'))
+
+    const messages = [
+      { sender: 'user', text: 'Hello' },
+      { sender: 'system', text: 'Hi!' },
+    ]
+
+    await expect(generateTitle(messages, 'gpt-4')).rejects.toThrow('Cannot connect to server')
+  })
+})
+
+/**
+ * T015: Tests for getTitleModel() function
+ * Feature: 019-llm-conversation-titles User Story 2
+ */
+describe('getTitleModel', () => {
+  it('should return current model when models list is empty', () => {
+    const result = getTitleModel('gpt-4', [])
+    expect(result).toBe('gpt-4')
+  })
+
+  it('should return current model when it is not found in models list', () => {
+    const models = [
+      { id: 'gpt-3.5-turbo', provider: 'openai', titleModel: false },
+    ]
+
+    const result = getTitleModel('unknown-model', models)
+    expect(result).toBe('unknown-model')
+  })
+
+  it('should return configured title model for the same provider', () => {
+    const models = [
+      { id: 'gpt-4', provider: 'openai', titleModel: false },
+      { id: 'gpt-3.5-turbo', provider: 'openai', titleModel: true },
+    ]
+
+    const result = getTitleModel('gpt-4', models)
+    expect(result).toBe('gpt-3.5-turbo')
+  })
+
+  it('should return current model when no title model configured for provider', () => {
+    const models = [
+      { id: 'gpt-4', provider: 'openai', titleModel: false },
+      { id: 'gpt-3.5-turbo', provider: 'openai', titleModel: false },
+    ]
+
+    const result = getTitleModel('gpt-4', models)
+    expect(result).toBe('gpt-4')
+  })
+
+  it('should use title model from correct provider', () => {
+    const models = [
+      { id: 'gpt-4', provider: 'openai', titleModel: false },
+      { id: 'gpt-3.5-turbo', provider: 'openai', titleModel: true },
+      { id: 'claude-3', provider: 'anthropic', titleModel: false },
+      { id: 'claude-haiku', provider: 'anthropic', titleModel: true },
+    ]
+
+    // When using OpenAI model, should get OpenAI title model
+    expect(getTitleModel('gpt-4', models)).toBe('gpt-3.5-turbo')
+
+    // When using Anthropic model, should get Anthropic title model
+    expect(getTitleModel('claude-3', models)).toBe('claude-haiku')
   })
 })

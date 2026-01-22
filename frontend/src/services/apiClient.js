@@ -803,3 +803,139 @@ export async function isServerReachable() {
  * Allows wrapping any async function with retry logic
  */
 export { withRetry }
+
+// ============================================================================
+// Title Generation API (Feature: 019-llm-conversation-titles)
+// ============================================================================
+
+/**
+ * T018: Generate a conversation title using LLM
+ *
+ * Feature: 019-llm-conversation-titles User Story 1
+ *
+ * @param {Array<{sender: string, text: string}>} messages - Conversation messages (at least 2)
+ * @param {string} model - Model ID to use for title generation
+ * @returns {Promise<string>} - Generated title (max 60 characters)
+ * @throws {ApiError} - On network or HTTP errors
+ */
+export async function generateTitle(messages, model) {
+  logger.debug('Generating title for conversation', { messagesCount: messages.length, model })
+
+  if (!messages || messages.length < 2) {
+    throw new ApiError('At least 2 messages required for title generation', null, { validation: true })
+  }
+
+  if (!model) {
+    throw new ApiError('Model ID is required for title generation', null, { validation: true })
+  }
+
+  const requestBody = {
+    messages: messages.map(msg => ({
+      sender: msg.sender,
+      text: msg.text,
+    })),
+    model,
+  }
+
+  // Create abort controller for timeout
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout for title generation
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/titles/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+      signal: controller.signal,
+    })
+
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+
+      logger.warn('Title generation failed', {
+        status: response.status,
+        error: errorData,
+      })
+
+      let errorMessage = 'Failed to generate title'
+
+      if (response.status === 400) {
+        errorMessage = errorData.error || 'Invalid request'
+      } else if (response.status === 503) {
+        errorMessage = 'Title generation service unavailable'
+      }
+
+      throw new ApiError(errorMessage, response.status, errorData)
+    }
+
+    const data = await response.json()
+
+    logger.info('Title generated successfully', { title: data.title })
+
+    return data.title
+
+  } catch (error) {
+    clearTimeout(timeoutId)
+
+    if (error.name === 'AbortError') {
+      logger.error('Title generation timed out')
+      throw new ApiError('Title generation timed out', null, { timeout: true })
+    }
+
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      logger.error('Cannot connect to backend for title generation', error)
+      throw new ApiError('Cannot connect to server', null, { network: true })
+    }
+
+    if (error instanceof ApiError) {
+      throw error
+    }
+
+    logger.error('Unexpected error generating title', error)
+    throw new ApiError('Failed to generate title', null, { originalError: error })
+  }
+}
+
+/**
+ * T019: Get the title model for a provider based on models list
+ *
+ * Returns the model ID to use for title generation based on the current
+ * conversation model's provider. Uses titleModel field from /api/v1/models.
+ *
+ * Feature: 019-llm-conversation-titles User Story 2
+ *
+ * @param {string} currentModelId - The model currently being used for conversation
+ * @param {Array} models - List of available models from /api/v1/models
+ * @returns {string} - Model ID to use for title generation
+ */
+export function getTitleModel(currentModelId, models) {
+  if (!models || models.length === 0) {
+    logger.debug('No models available, using current model for title')
+    return currentModelId
+  }
+
+  // Find the current model to get its provider
+  const currentModel = models.find(m => m.id === currentModelId)
+  if (!currentModel) {
+    logger.debug('Current model not found in list, using current model for title')
+    return currentModelId
+  }
+
+  const provider = currentModel.provider
+
+  // Find the title model for this provider
+  const titleModel = models.find(m => m.provider === provider && m.titleModel === true)
+
+  if (titleModel) {
+    logger.debug('Using configured title model', { titleModel: titleModel.id, provider })
+    return titleModel.id
+  }
+
+  // No title model configured, use current model
+  logger.debug('No title model configured for provider, using current model', { provider })
+  return currentModelId
+}

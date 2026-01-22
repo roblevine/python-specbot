@@ -12,7 +12,12 @@ from pydantic import BaseModel, Field
 from typing import List, Dict, Any
 import logging
 
-from src.config.models import load_model_configuration, ModelsConfiguration, ModelConfigurationError
+from src.config.models import (
+    load_model_configuration,
+    ModelsConfiguration,
+    ModelConfigurationError,
+    get_title_model_for_provider
+)
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -34,6 +39,10 @@ class ModelInfo(BaseModel):
     description: str = Field(..., description="Brief model description")
     provider: str = Field(..., description="Provider identifier: 'openai' or 'anthropic'")
     default: bool = Field(..., description="Whether this is the default model")
+    titleModel: bool = Field(
+        ...,
+        description="Whether this is the title generation model for its provider (Feature: 019-llm-conversation-titles)"
+    )
 
 
 class ModelsResponse(BaseModel):
@@ -61,16 +70,21 @@ async def list_models() -> ModelsResponse:
         logger.info(f"Loaded {len(config.models)} models from configuration")
 
         # T019: Include provider field in response
-        model_infos = [
-            ModelInfo(
+        # T012: Include titleModel field (Feature: 019-llm-conversation-titles)
+        model_infos = []
+        for model in config.models:
+            # Check if this model is the title model for its provider
+            title_model_id = get_title_model_for_provider(model.provider)
+            is_title_model = title_model_id == model.id if title_model_id else False
+
+            model_infos.append(ModelInfo(
                 id=model.id,
                 name=model.name,
                 description=model.description,
                 provider=model.provider,
-                default=model.default
-            )
-            for model in config.models
-        ]
+                default=model.default,
+                titleModel=is_title_model
+            ))
 
         return ModelsResponse(models=model_infos)
 
