@@ -1,41 +1,57 @@
 # Research: Add Search Tools to Chatbot
 
-**Feature**: 023-add-search-tools | **Date**: 2026-01-22
+**Feature**: 023-add-search-tools | **Date**: 2026-01-22 | **Updated**: 2026-01-22
 
 ## Executive Summary
 
-This document captures technology decisions for implementing search tools in SpecBot. Key decisions: use **Tavily** for web search (AI-native, LLM-optimized), **BBC RSS feeds** for news search (free, reliable), and **LangChain's native tool system** for integration.
+This document captures technology decisions for implementing search tools in SpecBot. Key decisions: use **DuckDuckGo Search** via LangChain (free, no API key), **BBC RSS feeds** for news search (free, reliable), and **LangChain's native tool system** for integration.
 
 ---
 
 ## 1. Web Search API Selection
 
-### Decision: Tavily API
+### Decision: DuckDuckGo Search (via LangChain)
 
-**Rationale**: Tavily is an AI-native search API designed specifically for LLM applications.
+**Rationale**: DuckDuckGo Search is built into `langchain-community`, requires no API key, and is completely free - removing external dependencies for the initial implementation.
 
 ### Alternatives Considered
 
 | API | Pros | Cons | Decision |
 |-----|------|------|----------|
-| **Tavily** | AI-native, LLM-ready output, 1000 free/month, LangChain integration, single-call workflow | Newer service | ✅ SELECTED |
-| **SerpAPI** | Reliable, fast (0.072s), 20+ engines | Requires extra scraping step, $10/1000 searches | Rejected - extra complexity |
-| **Google Custom Search** | Direct Google results, official | Limited free tier, requires CSE setup, no LLM optimization | Rejected - not LLM-optimized |
-| **Serper** | Fast, affordable | Less LLM-focused than Tavily | Rejected - less suitable |
+| **DuckDuckGo** | Free, no API key, built into LangChain, privacy-focused | Less comprehensive than Google | ✅ SELECTED |
+| **Tavily** | AI-native, LLM-ready output, 1000 free/month | Requires API key, external dependency | Rejected - unnecessary cost/complexity |
+| **SerpAPI** | Reliable, fast, 20+ engines | Requires API key, $50/mo | Rejected - cost |
+| **Google Custom Search** | Direct Google results, official | Limited free tier, requires CSE setup | Rejected - setup complexity |
 
-### Why Tavily
+### Why DuckDuckGo
 
-1. **AI-Native Design**: Aggregates up to 20 sites per call, uses AI to score and rank relevance
-2. **LLM-Ready Output**: Returns clean, summarized content ready for LLM consumption
-3. **Single-Call Workflow**: No separate scraping step needed - search + extract in one call
-4. **Free Tier**: 1,000 free searches monthly, then $0.008/request
-5. **LangChain Integration**: First-class support via `langchain-community` package
+1. **Zero Cost**: Completely free with no usage limits
+2. **No API Key**: Works immediately without signup or configuration
+3. **LangChain Native**: Built into `langchain-community` package we'll already need
+4. **Privacy-Focused**: No tracking, good for user trust
+5. **Sufficient Quality**: Good enough for most search queries
+
+### Usage
+
+```python
+from langchain_community.tools import DuckDuckGoSearchRun
+
+# No API key needed - works immediately
+search = DuckDuckGoSearchRun()
+result = search.invoke("current weather in London")
+```
 
 ### Configuration
 
 ```bash
-TAVILY_API_KEY=tvly-...
-TOOLS_GOOGLE_SEARCH_ENABLED=true  # Enable/disable tool
+TOOLS_WEB_SEARCH_ENABLED=true  # Enable/disable tool (no API key needed)
+```
+
+### Future Enhancement Path
+
+If richer search results are needed later, can add Tavily as a "premium" option:
+```bash
+TAVILY_API_KEY=tvly-...  # Optional: enables Tavily instead of DuckDuckGo
 ```
 
 ---
@@ -83,34 +99,43 @@ TOOLS_BBC_NEWS_ENABLED=true  # Enable/disable tool (no API key needed)
 
 ## 3. LangChain Tool Integration
 
-### Decision: Native LangChain Tool System with @tool Decorator
+### Decision: Use LangChain Community Tools + Custom Wrapper
 
-**Rationale**: LangChain provides robust tool support that integrates with all providers (OpenAI, Anthropic, Ollama).
+**Rationale**: LangChain provides DuckDuckGo search out of the box. We wrap it in our tool protocol for consistency.
 
 ### Tool Definition Pattern
 
 ```python
-from langchain_core.tools import tool
+from langchain_community.tools import DuckDuckGoSearchRun
 
-@tool
-async def google_search(query: str) -> str:
-    """Search the web for current information about a topic.
+class WebSearchTool:
+    """Web search tool using DuckDuckGo."""
 
-    Args:
-        query: The search query string
+    id = "web_search"
+    name = "Web Search"
+    description = "Search the web for current information about any topic"
 
-    Returns:
-        Search results with titles, snippets, and source URLs
-    """
-    # Tavily API call
-    ...
+    def __init__(self):
+        self._search = DuckDuckGoSearchRun()
+        self._enabled = os.getenv("TOOLS_WEB_SEARCH_ENABLED", "true").lower() == "true"
+
+    def is_enabled(self) -> bool:
+        return self._enabled
+
+    async def execute(self, query: str) -> ToolResult:
+        """Execute web search."""
+        try:
+            result = self._search.invoke(query)
+            return ToolResult(success=True, content=result)
+        except Exception as e:
+            return ToolResult(success=False, content=str(e), error_code="SEARCH_ERROR")
 ```
 
 ### Model Integration
 
 ```python
 # Bind tools to model
-model_with_tools = llm.bind_tools([google_search, bbc_news_search])
+model_with_tools = llm.bind_tools([web_search, bbc_news_search])
 
 # Use in streaming
 async for chunk in model_with_tools.astream(messages):
@@ -160,7 +185,7 @@ backend/src/services/tools/
 ├── __init__.py          # Export registry
 ├── base.py              # BaseTool Protocol, ToolResult, ToolError
 ├── registry.py          # ToolRegistry class
-├── google_search.py     # GoogleSearchTool
+├── web_search.py        # WebSearchTool (DuckDuckGo)
 └── bbc_news.py          # BBCNewsTool
 ```
 
@@ -207,8 +232,8 @@ class BaseTool(Protocol):
 - `ErrorEvent`: `{"type": "error", "error": "...", "code": "..."}`
 
 **New Events**:
-- `ToolCallEvent`: `{"type": "tool_call", "tool": "google_search", "args": {...}}`
-- `ToolResultEvent`: `{"type": "tool_result", "tool": "google_search", "success": true}`
+- `ToolCallEvent`: `{"type": "tool_call", "tool": "web_search", "args": {...}}`
+- `ToolResultEvent`: `{"type": "tool_result", "tool": "web_search", "success": true}`
 
 ### Frontend Handling
 
@@ -229,15 +254,20 @@ if (event.type === 'tool_call') {
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `TAVILY_API_KEY` | For Google Search | - | Tavily API key |
-| `TOOLS_GOOGLE_SEARCH_ENABLED` | No | `true` if key present | Enable/disable |
-| `TOOLS_BBC_NEWS_ENABLED` | No | `true` | Enable/disable (no key needed) |
+| `TOOLS_WEB_SEARCH_ENABLED` | No | `true` | Enable/disable web search |
+| `TOOLS_BBC_NEWS_ENABLED` | No | `true` | Enable/disable BBC news |
+
+### No API Keys Required
+
+Both tools work without API keys:
+- **Web Search**: DuckDuckGo is free and keyless
+- **BBC News**: RSS feeds are publicly accessible
 
 ### Auto-Disable Logic
 
 Tools automatically disabled when:
-- Required API key not configured (e.g., Tavily key missing → Google Search disabled)
 - Explicitly disabled via `TOOLS_*_ENABLED=false`
+- (Future) If premium provider configured but key missing
 
 ---
 
@@ -247,10 +277,10 @@ Tools automatically disabled when:
 
 | Error Type | Handling |
 |------------|----------|
-| API Rate Limit | Return partial results or inform user, don't crash |
 | Network Timeout | Return error result to LLM, let it respond without tool |
 | Invalid Response | Log error, return empty result |
 | Tool Disabled | LLM never sees tool, responds with base knowledge |
+| Rate Limiting | DuckDuckGo has no rate limits; BBC RSS is public |
 
 ### Error Result Format
 
@@ -271,7 +301,8 @@ class ToolResult:
 
 | Package | Version | Purpose |
 |---------|---------|---------|
-| `tavily-python` | ^0.4.0 | Tavily API client |
+| `langchain-community` | ^0.3.0 | DuckDuckGo search tool |
+| `duckduckgo-search` | ^6.0.0 | DuckDuckGo API (peer dep) |
 | `feedparser` | ^6.0.0 | RSS feed parsing |
 
 ### Existing Dependencies (reused)
@@ -304,10 +335,10 @@ If a model doesn't support tools:
 
 ## References
 
-### Web Search APIs
-- [Beyond Tavily - Complete Guide to AI Search APIs](https://websearchapi.ai/blog/tavily-alternatives)
-- [Best SERP API Comparison 2025](https://dev.to/ritza/best-serp-api-comparison-2025-serpapi-vs-exa-vs-tavily-vs-scrapingdog-vs-scrapingbee-2jci)
-- [Tavily Documentation](https://docs.tavily.com/documentation/about)
+### DuckDuckGo Search
+- [DuckDuckGoSearch - LangChain Docs](https://docs.langchain.com/oss/javascript/integrations/tools/duckduckgo_search)
+- [Free LangChain Tools Guide](https://medium.com/@nwatch117/stop-paying-for-apis-3-free-langchain-tools-to-power-your-ai-projects-89da85e7c48f)
+- [LangChain Local Deep Researcher](https://github.com/langchain-ai/local-deep-researcher)
 
 ### BBC RSS Feeds
 - [Top BBC RSS Feeds](https://rss.feedspot.com/bbc_rss_feeds/)

@@ -1,10 +1,10 @@
 # Developer Quickstart: Add Search Tools
 
-**Feature**: 023-add-search-tools | **Date**: 2026-01-22
+**Feature**: 023-add-search-tools | **Date**: 2026-01-22 | **Updated**: 2026-01-22
 
 ## Overview
 
-This guide helps developers implement the search tools feature for SpecBot. You'll add a modular tool system with Google Search and BBC News tools.
+This guide helps developers implement the search tools feature for SpecBot. You'll add a modular tool system with Web Search (DuckDuckGo) and BBC News tools - both completely free with no API keys required.
 
 ---
 
@@ -12,39 +12,32 @@ This guide helps developers implement the search tools feature for SpecBot. You'
 
 - Python 3.13+ with existing backend running
 - Node.js 18+ for frontend development
-- Tavily API key (for Google Search tool)
 - Understanding of existing provider pattern in `backend/src/services/providers/`
+
+**No API keys required!** Both tools work out of the box.
 
 ---
 
 ## Quick Setup
 
-### 1. Get API Keys
-
-```bash
-# Sign up at https://tavily.com to get an API key
-# BBC News uses RSS feeds - no key needed
-```
-
-### 2. Configure Environment
-
-Add to `backend/.env`:
-
-```bash
-# Tools Configuration
-TAVILY_API_KEY=tvly-your-api-key-here
-
-# Optional: Explicitly enable/disable tools
-TOOLS_GOOGLE_SEARCH_ENABLED=true
-TOOLS_BBC_NEWS_ENABLED=true
-```
-
-### 3. Install Dependencies
+### 1. Install Dependencies
 
 ```bash
 cd backend
-pip install tavily-python feedparser
+pip install langchain-community duckduckgo-search feedparser
 ```
+
+### 2. Configure Environment (Optional)
+
+Add to `backend/.env` only if you want to disable tools:
+
+```bash
+# Tools are enabled by default - only add these to disable
+# TOOLS_WEB_SEARCH_ENABLED=false
+# TOOLS_BBC_NEWS_ENABLED=false
+```
+
+That's it! No API keys needed.
 
 ---
 
@@ -128,32 +121,32 @@ class ToolRegistry:
 registry = ToolRegistry()
 ```
 
-### Step 3: Implement Google Search Tool
+### Step 3: Implement Web Search Tool (DuckDuckGo)
 
-Create `backend/src/services/tools/google_search.py`:
+Create `backend/src/services/tools/web_search.py`:
 
 ```python
 import os
 import logging
+from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_core.tools import tool
-from tavily import TavilyClient
 from .base import ToolResult
 
 logger = logging.getLogger(__name__)
 
-class GoogleSearchTool:
-    """Google web search tool using Tavily API."""
+class WebSearchTool:
+    """Web search tool using DuckDuckGo (free, no API key)."""
 
-    id = "google_search"
-    name = "Google Search"
+    id = "web_search"
+    name = "Web Search"
     description = "Search the web for current information about any topic"
 
     def __init__(self):
-        self._api_key = os.getenv("TAVILY_API_KEY")
-        self._enabled = os.getenv("TOOLS_GOOGLE_SEARCH_ENABLED", "true").lower() == "true"
+        self._search = DuckDuckGoSearchRun()
+        self._enabled = os.getenv("TOOLS_WEB_SEARCH_ENABLED", "true").lower() == "true"
 
     def is_enabled(self) -> bool:
-        return bool(self._api_key) and self._enabled
+        return self._enabled
 
     async def execute(self, query: str) -> ToolResult:
         """Execute web search."""
@@ -165,44 +158,39 @@ class GoogleSearchTool:
             )
 
         try:
-            client = TavilyClient(api_key=self._api_key)
-            response = client.search(query, max_results=5)
+            # DuckDuckGo search - no API key needed
+            result = self._search.invoke(query)
 
-            sources = [
-                {"title": r["title"], "url": r["url"], "snippet": r.get("content", "")}
-                for r in response.get("results", [])
-            ]
-
-            content = "\n".join(
-                f"- {s['title']}: {s['snippet']}" for s in sources
+            return ToolResult(
+                success=True,
+                content=result,
+                sources=[{"title": "DuckDuckGo Search", "url": f"https://duckduckgo.com/?q={query}"}]
             )
 
-            return ToolResult(success=True, content=content, sources=sources)
-
         except Exception as e:
-            logger.error(f"Google search failed: {e}")
+            logger.error(f"Web search failed: {e}")
             return ToolResult(
                 success=False,
                 content="Web search temporarily unavailable",
-                error_code="TOOL_ERROR"
+                error_code="SEARCH_ERROR"
             )
 
     def as_langchain_tool(self):
         """Convert to LangChain tool."""
         @tool
-        async def google_search(query: str) -> str:
+        async def web_search(query: str) -> str:
             """Search the web for current information about any topic.
 
             Args:
                 query: The search query
 
             Returns:
-                Search results with titles and snippets
+                Search results with relevant information
             """
             result = await self.execute(query=query)
             return result.content
 
-        return google_search
+        return web_search
 ```
 
 ### Step 4: Implement BBC News Tool
@@ -213,6 +201,7 @@ Create `backend/src/services/tools/bbc_news.py`:
 import os
 import logging
 import feedparser
+from langchain_core.tools import tool
 from .base import ToolResult
 
 logger = logging.getLogger(__name__)
@@ -226,7 +215,7 @@ BBC_FEEDS = {
 }
 
 class BBCNewsTool:
-    """BBC News search tool using RSS feeds."""
+    """BBC News search tool using RSS feeds (free, no API key)."""
 
     id = "bbc_news"
     name = "BBC News Search"
@@ -276,7 +265,7 @@ class BBCNewsTool:
 
             sources = matches[:5]
             content = "\n".join(
-                f"- {s['title']}" for s in sources
+                f"- {s['title']}: {s['snippet']}" for s in sources
             )
 
             return ToolResult(success=True, content=content, sources=sources)
@@ -288,6 +277,23 @@ class BBCNewsTool:
                 content="BBC News search temporarily unavailable",
                 error_code="TOOL_ERROR"
             )
+
+    def as_langchain_tool(self):
+        """Convert to LangChain tool."""
+        @tool
+        async def bbc_news_search(query: str) -> str:
+            """Search BBC News for recent news articles on a topic.
+
+            Args:
+                query: The news topic to search for
+
+            Returns:
+                Recent BBC News articles matching the query
+            """
+            result = await self.execute(query=query)
+            return result.content
+
+        return bbc_news_search
 ```
 
 ### Step 5: Register Tools
@@ -297,12 +303,12 @@ Create `backend/src/services/tools/__init__.py`:
 ```python
 from .registry import registry, ToolRegistry
 from .base import BaseTool, ToolResult
-from .google_search import GoogleSearchTool
+from .web_search import WebSearchTool
 from .bbc_news import BBCNewsTool
 
 def _register_tools():
     """Register all available tools."""
-    registry.register(GoogleSearchTool())
+    registry.register(WebSearchTool())
     registry.register(BBCNewsTool())
 
 _register_tools()
@@ -429,7 +435,11 @@ cd backend && uvicorn src.api.routes.main:app --reload
 # Test tools endpoint
 curl http://localhost:8000/api/v1/tools
 
-# Test with streaming (use frontend or curl)
+# Expected response:
+# {"tools":[
+#   {"id":"web_search","name":"Web Search","description":"...","enabled":true},
+#   {"id":"bbc_news","name":"BBC News Search","description":"...","enabled":true}
+# ]}
 ```
 
 ---
@@ -438,14 +448,14 @@ curl http://localhost:8000/api/v1/tools
 
 ### Tool Not Appearing
 
-1. Check `TAVILY_API_KEY` is set correctly
-2. Verify `TOOLS_*_ENABLED` is not set to `false`
-3. Check logs for registration errors
+1. Verify `TOOLS_*_ENABLED` is not set to `false`
+2. Check logs for registration errors
+3. Ensure `langchain-community` and `duckduckgo-search` are installed
 
 ### Search Returns Empty
 
-1. Verify API key is valid (test at tavily.com)
-2. Check network connectivity
+1. Check network connectivity
+2. DuckDuckGo may rate-limit aggressive usage
 3. Review query formatting
 
 ### SSE Events Missing
@@ -460,5 +470,5 @@ curl http://localhost:8000/api/v1/tools
 
 1. Run `/speckit.tasks` to generate implementation tasks
 2. Follow TDD approach: tests first, then implementation
-3. Implement P1 (Google Search) fully before P2 (BBC News)
+3. Implement P1 (Web Search) fully before P2 (BBC News)
 4. Update architecture.md with tool subsystem diagram
