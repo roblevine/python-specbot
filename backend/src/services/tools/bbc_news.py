@@ -59,16 +59,29 @@ class BBCNewsTool:
         """Check if tool is enabled via environment variable."""
         return self._enabled
 
-    async def execute(self, query: str, category: str = "top") -> ToolResult:
+    async def execute(self, query: str = None, category: str = "top", **kwargs) -> ToolResult:
         """Search BBC News.
 
         Args:
             query: Search query string
             category: News category (top, world, uk, business, technology, science, health)
+            **kwargs: Additional arguments (handles LLM variations like 'input', 'search_query')
 
         Returns:
             ToolResult with matching articles or error
         """
+        # Handle different argument names that LLMs might use
+        if query is None:
+            query = kwargs.get('input') or kwargs.get('search_query') or kwargs.get('topic') or ''
+
+        if not query:
+            logger.warning(f"BBC News search called with empty query. kwargs={kwargs}")
+            return ToolResult(
+                success=False,
+                content="No search query provided",
+                error_code="EMPTY_QUERY"
+            )
+
         if not self.is_enabled():
             logger.warning("BBC News tool invoked but is disabled")
             return ToolResult(

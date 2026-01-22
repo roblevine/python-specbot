@@ -428,10 +428,23 @@ async def stream_ai_response(
 
             # Execute each tool
             for tool_call in tool_calls:
-                tool_name = tool_call.get("name") or tool_call.get("id") or "unknown"
-                tool_args = tool_call.get("args", {})
-                # Ensure tool_call_id is always a string (LangChain may return None)
-                tool_call_id = tool_call.get("id") or f"tool-{tool_name}-{len(langchain_messages)}"
+                # Handle both dict and object formats from different LangChain providers
+                if hasattr(tool_call, 'name') and not isinstance(tool_call, dict):
+                    # Object format (some providers return ToolCall objects)
+                    tool_name = tool_call.name or "unknown"
+                    tool_args = tool_call.args if hasattr(tool_call, 'args') else {}
+                    tool_call_id = (tool_call.id if hasattr(tool_call, 'id') else None) or f"tool-{tool_name}-{len(langchain_messages)}"
+                else:
+                    # Dict format (standard LangChain format)
+                    tool_name = tool_call.get("name") or tool_call.get("id") or "unknown"
+                    tool_args = tool_call.get("args", {})
+                    tool_call_id = tool_call.get("id") or f"tool-{tool_name}-{len(langchain_messages)}"
+
+                # Ensure tool_args is a dict
+                if tool_args is None:
+                    tool_args = {}
+
+                logger.debug(f"Tool call parsed: name={tool_name}, args={tool_args}, id={tool_call_id}")
 
                 # Emit tool call event
                 yield ToolCallEvent(tool=tool_name, args=tool_args)

@@ -50,15 +50,28 @@ class WebSearchTool:
         """Check if tool is enabled via environment variable."""
         return self._enabled
 
-    async def execute(self, query: str) -> ToolResult:
+    async def execute(self, query: str = None, **kwargs) -> ToolResult:
         """Execute web search.
 
         Args:
             query: Search query string
+            **kwargs: Additional arguments (handles LLM variations like 'input', 'search_query')
 
         Returns:
             ToolResult with search results or error
         """
+        # Handle different argument names that LLMs might use
+        if query is None:
+            query = kwargs.get('input') or kwargs.get('search_query') or kwargs.get('q') or ''
+
+        if not query:
+            logger.warning(f"Web search called with empty query. kwargs={kwargs}")
+            return ToolResult(
+                success=False,
+                content="No search query provided",
+                error_code="EMPTY_QUERY"
+            )
+
         if not self.is_enabled():
             logger.warning("Web search tool invoked but is disabled")
             return ToolResult(
