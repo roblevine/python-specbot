@@ -1,0 +1,99 @@
+openapi: 3.1.0
+info:
+  title: SpecBot Tools API
+  description: API for listing and managing chatbot tools
+  version: 1.0.0
+
+servers:
+  - url: /api/v1
+    description: API v1
+
+paths:
+  /tools:
+    get:
+      summary: List available tools
+      description: Returns all configured tools and their enablement status
+      operationId: listTools
+      tags:
+        - Tools
+      responses:
+        '200':
+          description: List of tools
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToolsResponse'
+              example:
+                tools:
+                  - id: google_search
+                    name: Google Search
+                    description: Search the web for current information about any topic
+                    enabled: true
+                  - id: bbc_news
+                    name: BBC News Search
+                    description: Search BBC News for recent news articles
+                    enabled: true
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    ToolsResponse:
+      type: object
+      required:
+        - tools
+      properties:
+        tools:
+          type: array
+          items:
+            $ref: '#/components/schemas/ToolInfo'
+
+    ToolInfo:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - enabled
+      properties:
+        id:
+          type: string
+          description: Unique tool identifier
+          pattern: '^[a-z][a-z0-9_]*$'
+          minLength: 2
+          maxLength: 50
+          example: google_search
+        name:
+          type: string
+          description: Human-readable tool name
+          maxLength: 100
+          example: Google Search
+        description:
+          type: string
+          description: Description of what the tool does
+          maxLength: 500
+          example: Search the web for current information about any topic
+        enabled:
+          type: boolean
+          description: Whether the tool is currently available
+          example: true
+
+    ErrorResponse:
+      type: object
+      required:
+        - status
+        - message
+      properties:
+        status:
+          type: string
+          enum: [error]
+        message:
+          type: string
+          description: Human-readable error message
+        code:
+          type: string
+          description: Machine-readable error code

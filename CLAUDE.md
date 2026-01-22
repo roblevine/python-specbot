@@ -37,6 +37,8 @@ Auto-generated from all feature plans. Last updated: 2026-01-12
 - File-based JSON (backend conversations), Browser localStorage (settings only) (021-disable-model-selector)
 - JavaScript ES6+ (Frontend only) + Vue 3.4.0, Vite 5.0.0 (022-conversation-ux-fixes)
 - N/A (no storage changes - uses existing `updatedAt` field from server) (022-conversation-ux-fixes)
+- Python 3.13 (backend), JavaScript ES6+ (frontend) + FastAPI 0.115.0, LangChain 0.3+, langchain-openai, langchain-anthropic, langchain-ollama, Vue 3.4.0, Vite 5.0.0 (023-add-search-tools)
+- File-based JSON (backend conversations), Browser localStorage (frontend settings) - No changes required (023-add-search-tools)
 
 ### 009-message-streaming (2026-01-14) ✅ MVP COMPLETE
 **Real-time LLM response streaming with Server-Sent Events (SSE)**
