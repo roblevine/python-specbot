@@ -30,9 +30,17 @@
         {{ message.model }}
       </div>
     </div>
+    <!-- Feature 023: Tool execution indicator -->
+    <div
+      v-if="message.status === 'streaming' && activeToolCall"
+      class="tool-indicator"
+    >
+      <span class="tool-icon">&#128269;</span>
+      <span class="tool-text">{{ toolDisplayText }}</span>
+    </div>
     <!-- T020: Streaming indicator for status='streaming' -->
     <div
-      v-if="message.status === 'streaming'"
+      v-if="message.status === 'streaming' && !activeToolCall"
       class="streaming-indicator"
     >
       <span class="streaming-cursor">▊</span>
@@ -87,6 +95,8 @@ import { redactSensitiveData } from '../../utils/sensitiveDataRedactor.js'
 import { formatMessageDatetime } from '../../utils/dateFormatter.js'
 // Feature 017: Import markdown renderer
 import { renderMarkdown } from '../../utils/markdownRenderer.js'
+// Feature 023: Import useMessages for tool state
+import { useMessages } from '../../state/useMessages.js'
 
 export default {
   name: 'MessageBubble',
@@ -106,6 +116,9 @@ export default {
     },
   },
   setup(props) {
+    // Feature 023: Get active tool call from useMessages
+    const { activeToolCall } = useMessages()
+
     const messageClass = computed(() => ({
       'message-user': props.message.sender === 'user',
       'message-system': props.message.sender === 'system',
@@ -113,6 +126,16 @@ export default {
       'message-error': props.message.status === 'error',
       'message-streaming': props.message.status === 'streaming', // T020: Add streaming class
     }))
+
+    // Feature 023: Human-readable tool display text
+    const toolDisplayText = computed(() => {
+      if (!activeToolCall.value) return ''
+      const toolNames = {
+        'web_search': 'Searching the web...',
+        'bbc_news': 'Searching BBC News...',
+      }
+      return toolNames[activeToolCall.value.tool] || `Using ${activeToolCall.value.tool}...`
+    })
 
     // Feature 015: Full datetime format "Sun 18-Jan-26 09:58am"
     const formattedDatetime = computed(() => {
@@ -168,6 +191,9 @@ export default {
       hasErrorDetails,
       redactedErrorDetails,
       handleKeyDown,
+      // Feature 023: Tool state
+      activeToolCall,
+      toolDisplayText,
     }
   },
 }
@@ -403,6 +429,38 @@ export default {
   max-height: 500px;
   opacity: 1;
   transform: translateY(0);
+}
+
+/* Feature 023: Tool execution indicator */
+.tool-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background-color: var(--color-primary);
+  background: linear-gradient(135deg, var(--color-primary), #0066cc);
+  color: white;
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-sm);
+  animation: toolPulse 1.5s ease-in-out infinite;
+}
+
+.tool-icon {
+  font-size: var(--font-size-md);
+}
+
+.tool-text {
+  font-weight: 500;
+}
+
+@keyframes toolPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 /* T020: Streaming indicator styles */

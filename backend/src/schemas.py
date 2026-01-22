@@ -585,3 +585,111 @@ class TitleGenerationResponse(BaseModel):
         max_length=60,
         description="Generated conversation title (max 60 characters)"
     )
+
+
+# ============================================================================
+# Tool Schemas (Feature: 023-add-search-tools)
+# ============================================================================
+
+class ToolInfo(BaseModel):
+    """
+    Information about a registered tool.
+
+    Feature: 023-add-search-tools Task T003
+    """
+
+    id: str = Field(
+        ...,
+        min_length=2,
+        max_length=50,
+        pattern=r'^[a-z][a-z0-9_]*$',
+        description="Unique tool identifier",
+        examples=["web_search", "bbc_news"]
+    )
+    name: str = Field(
+        ...,
+        max_length=100,
+        description="Human-readable tool name",
+        examples=["Web Search", "BBC News Search"]
+    )
+    description: str = Field(
+        ...,
+        max_length=500,
+        description="Description of what the tool does",
+        examples=["Search the web for current information about any topic"]
+    )
+    enabled: bool = Field(
+        ...,
+        description="Whether the tool is currently available"
+    )
+
+
+class ToolsResponse(BaseModel):
+    """
+    Response payload for listing tools.
+
+    Feature: 023-add-search-tools Task T003
+    """
+
+    tools: List[ToolInfo] = Field(
+        default_factory=list,
+        description="List of available tools"
+    )
+
+
+class ToolCallEvent(BaseModel):
+    """
+    SSE event for tool invocation start.
+
+    Feature: 023-add-search-tools Task T003
+    """
+
+    type: Literal["tool_call"] = Field(
+        default="tool_call",
+        description="Event type identifier"
+    )
+    tool: str = Field(
+        ...,
+        description="Tool ID being invoked",
+        examples=["web_search", "bbc_news"]
+    )
+    args: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Arguments passed to the tool"
+    )
+
+    def to_sse_format(self) -> str:
+        """Convert to SSE format."""
+        json_str = self.model_dump_json()
+        return f"data: {json_str}\n\n"
+
+
+class ToolResultEvent(BaseModel):
+    """
+    SSE event for tool execution result.
+
+    Feature: 023-add-search-tools Task T003
+    """
+
+    type: Literal["tool_result"] = Field(
+        default="tool_result",
+        description="Event type identifier"
+    )
+    tool: str = Field(
+        ...,
+        description="Tool ID that was executed",
+        examples=["web_search", "bbc_news"]
+    )
+    success: bool = Field(
+        ...,
+        description="Whether the tool executed successfully"
+    )
+    sources: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="Source references from tool execution"
+    )
+
+    def to_sse_format(self) -> str:
+        """Convert to SSE format."""
+        json_str = self.model_dump_json()
+        return f"data: {json_str}\n\n"

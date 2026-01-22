@@ -11,7 +11,7 @@ import os
 import asyncio
 import traceback
 from typing import Any, Dict, Optional, List, Union
-from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
+from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, ToolMessage
 from langchain_core.language_models.chat_models import BaseChatModel
 
 from src.utils.logger import get_logger
@@ -38,7 +38,7 @@ from src.config.models import (
     ModelConfigurationError,
     PROVIDERS
 )
-from src.schemas import TokenEvent, CompleteEvent, ErrorEvent
+from src.schemas import TokenEvent, CompleteEvent, ErrorEvent, ToolCallEvent, ToolResultEvent
 
 logger = get_logger(__name__)
 
@@ -317,6 +317,8 @@ async def stream_ai_response(
     Streams the AI response as a sequence of events using Server-Sent Events protocol.
     Uses LangChain's astream() for token-by-token streaming from the LLM.
 
+    Extended in Feature 023 to support tool calling with an agentic loop.
+
     Args:
         message: User message text
         history: Optional list of previous messages with sender/text fields
@@ -324,6 +326,8 @@ async def stream_ai_response(
 
     Yields:
         TokenEvent: For each token/chunk from the LLM
+        ToolCallEvent: When the LLM invokes a tool
+        ToolResultEvent: After tool execution completes
         CompleteEvent: Final event indicating stream completion with model info
         ErrorEvent: If an error occurs during streaming
     """
@@ -369,6 +373,18 @@ async def stream_ai_response(
         # T016: Get LLM instance using factory function
         llm = get_llm_for_model(model_to_use, config)
 
+        # Feature 023: Bind tools to the LLM if any are enabled
+        from src.services.tools import registry as tool_registry
+        enabled_tools = tool_registry.get_enabled()
+
+        if enabled_tools:
+            langchain_tools = [t.as_langchain_tool() for t in enabled_tools]
+            llm_with_tools = llm.bind_tools(langchain_tools)
+            logger.info(f"Bound {len(langchain_tools)} tools to LLM: {[t.id for t in enabled_tools]}")
+        else:
+            llm_with_tools = llm
+            logger.debug("No tools enabled, using LLM without tool binding")
+
         # Build conversation history
         conversation = history.copy() if history else []
         conversation.append({"sender": "user", "text": message})
@@ -376,16 +392,80 @@ async def stream_ai_response(
         # Convert to LangChain format
         langchain_messages = convert_to_langchain_messages(conversation)
 
-        # Stream LLM response
-        logger.debug(f"Streaming from LLM with {len(langchain_messages)} message(s)")
+        # Feature 023: Agentic loop for tool usage
+        max_iterations = 5  # Prevent infinite loops
+        for iteration in range(max_iterations):
+            logger.debug(f"Agentic loop iteration {iteration + 1}/{max_iterations}")
 
-        async for chunk in llm.astream(langchain_messages):
-            # Extract content from chunk
-            content = chunk.content
+            # Collect chunks and stream tokens
+            collected_content = ""
+            tool_calls = []
 
-            # Skip empty chunks
-            if content:
-                yield TokenEvent(content=content)
+            async for chunk in llm_with_tools.astream(langchain_messages):
+                # Extract content from chunk
+                content = chunk.content
+
+                # Skip empty chunks
+                if content:
+                    collected_content += content
+                    yield TokenEvent(content=content)
+
+                # Collect tool calls (they come as complete objects, not streamed)
+                if hasattr(chunk, 'tool_calls') and chunk.tool_calls:
+                    tool_calls.extend(chunk.tool_calls)
+
+            # If no tool calls, we're done
+            if not tool_calls:
+                logger.debug("No tool calls, ending agentic loop")
+                break
+
+            # Process tool calls
+            logger.info(f"Processing {len(tool_calls)} tool call(s)")
+
+            # Add assistant message with tool calls to conversation
+            assistant_msg = AIMessage(content=collected_content, tool_calls=tool_calls)
+            langchain_messages.append(assistant_msg)
+
+            # Execute each tool
+            for tool_call in tool_calls:
+                tool_name = tool_call.get("name", tool_call.get("id", "unknown"))
+                tool_args = tool_call.get("args", {})
+                tool_call_id = tool_call.get("id", "")
+
+                # Emit tool call event
+                yield ToolCallEvent(tool=tool_name, args=tool_args)
+                logger.info(f"Executing tool: {tool_name} with args: {tool_args}")
+
+                # Find and execute the tool
+                tool = tool_registry.get(tool_name)
+                if tool:
+                    result = await tool.execute(**tool_args)
+
+                    # Emit tool result event
+                    yield ToolResultEvent(
+                        tool=tool_name,
+                        success=result.success,
+                        sources=result.sources
+                    )
+
+                    # Add tool result to conversation
+                    langchain_messages.append(ToolMessage(
+                        tool_call_id=tool_call_id,
+                        content=result.content
+                    ))
+                    logger.info(f"Tool {tool_name} completed: success={result.success}")
+                else:
+                    logger.warning(f"Tool not found: {tool_name}")
+                    # Add error message for unknown tool
+                    langchain_messages.append(ToolMessage(
+                        tool_call_id=tool_call_id,
+                        content=f"Tool '{tool_name}' not found"
+                    ))
+                    yield ToolResultEvent(
+                        tool=tool_name,
+                        success=False,
+                        sources=[]
+                    )
 
         # Yield completion event
         logger.info(f"Stream completed successfully using model: {model_to_use}")

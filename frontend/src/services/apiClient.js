@@ -264,6 +264,7 @@ export async function fetchModels() {
  * EventSource doesn't support POST, so we use fetch with manual SSE parsing.
  *
  * Feature: 009-message-streaming User Story 1
+ * Extended: 023-add-search-tools - Added onToolCall and onToolResult callbacks
  *
  * @param {string} messageText - The message to send
  * @param {Function} onToken - Callback for each token: (content: string) => void
@@ -271,9 +272,11 @@ export async function fetchModels() {
  * @param {Function} onError - Optional callback for errors: (error: object) => void
  * @param {Array<{sender: string, text: string}>} history - Optional conversation history
  * @param {string} model - Optional model ID to use for this request
+ * @param {Function} onToolCall - Optional callback for tool invocation: (toolInfo: {tool: string, args: object}) => void
+ * @param {Function} onToolResult - Optional callback for tool result: (result: {tool: string, success: boolean, sources: array}) => void
  * @returns {Function} cleanup - Call to abort the stream
  */
-export function streamMessage(messageText, onToken, onComplete, onError = null, history = null, model = null) {
+export function streamMessage(messageText, onToken, onComplete, onError = null, history = null, model = null, onToolCall = null, onToolResult = null) {
   logger.debug('Starting streaming message', { messageText, historyLength: history?.length, model })
 
   // Validate callbacks are functions to prevent silent failures
@@ -425,6 +428,30 @@ export function streamMessage(messageText, onToken, onComplete, onError = null, 
                     code: 'CALLBACK_ERROR',
                     originalError: callbackError.message,
                   })
+                }
+              }
+            } else if (event.type === 'tool_call') {
+              // Feature 023: Handle tool invocation event
+              logger.debug('Tool invocation started', { tool: event.tool, args: event.args })
+              if (onToolCall && typeof onToolCall === 'function') {
+                try {
+                  onToolCall({ tool: event.tool, args: event.args })
+                } catch (callbackError) {
+                  logger.error('Error in onToolCall callback', callbackError)
+                }
+              }
+            } else if (event.type === 'tool_result') {
+              // Feature 023: Handle tool result event
+              logger.debug('Tool execution completed', { tool: event.tool, success: event.success })
+              if (onToolResult && typeof onToolResult === 'function') {
+                try {
+                  onToolResult({
+                    tool: event.tool,
+                    success: event.success,
+                    sources: event.sources || [],
+                  })
+                } catch (callbackError) {
+                  logger.error('Error in onToolResult callback', callbackError)
                 }
               }
             } else if (event.type === 'error') {

@@ -50,6 +50,12 @@ const streamingMessage = ref(null)
 const isStreaming = ref(false)
 let cleanupFunction = null
 
+/**
+ * Feature 023: Tool execution state
+ * Tracks active tool calls during streaming
+ */
+const activeToolCall = ref(null)
+
 export function useMessages() {
   const { activeConversation, addMessage, saveToStorage, generateAndSetTitle } = useConversations()
   const { setProcessing, setStatus, setError } = useAppState()
@@ -171,7 +177,15 @@ export function useMessages() {
           // history
           conversationHistory,
           // model
-          selectedModelId.value
+          selectedModelId.value,
+          // Feature 023: onToolCall callback
+          (toolInfo) => {
+            handleToolCall(toolInfo)
+          },
+          // Feature 023: onToolResult callback
+          (result) => {
+            handleToolResult(result)
+          }
         )
       } catch (error) {
         // Handle errors
@@ -358,12 +372,67 @@ export function useMessages() {
   }
 
   /**
+   * Feature 023: Handle tool invocation event
+   * @param {Object} toolInfo - Tool call info with tool name and args
+   */
+  function handleToolCall(toolInfo) {
+    activeToolCall.value = {
+      tool: toolInfo.tool,
+      args: toolInfo.args,
+      startTime: Date.now(),
+    }
+
+    // Update status to show tool is being used
+    const toolDisplayName = getToolDisplayName(toolInfo.tool)
+    setStatus(`Using ${toolDisplayName}...`, 'processing')
+    logger.info('Tool invocation started', { tool: toolInfo.tool, args: toolInfo.args })
+  }
+
+  /**
+   * Feature 023: Handle tool result event
+   * @param {Object} result - Tool result with success and sources
+   */
+  function handleToolResult(result) {
+    if (activeToolCall.value) {
+      const duration = Date.now() - activeToolCall.value.startTime
+      const toolDisplayName = getToolDisplayName(result.tool)
+
+      if (result.success) {
+        setStatus(`${toolDisplayName} completed`, 'processing')
+        logger.info('Tool execution completed', {
+          tool: result.tool,
+          duration,
+          sourcesCount: result.sources?.length || 0
+        })
+      } else {
+        logger.warn('Tool execution failed', { tool: result.tool, duration })
+      }
+    }
+
+    activeToolCall.value = null
+  }
+
+  /**
+   * Feature 023: Get display name for a tool
+   * @param {string} toolId - Tool identifier
+   * @returns {string} Human-readable tool name
+   */
+  function getToolDisplayName(toolId) {
+    const toolNames = {
+      'web_search': 'Web Search',
+      'bbc_news': 'BBC News Search',
+    }
+    return toolNames[toolId] || toolId
+  }
+
+  /**
    * T018: Reset streaming state for testing
    * @private
    */
   function __resetStreamingState() {
     streamingMessage.value = null
     isStreaming.value = false
+    activeToolCall.value = null
     if (cleanupFunction) {
       cleanupFunction()
       cleanupFunction = null
@@ -382,5 +451,7 @@ export function useMessages() {
     abortStreaming,
     errorStreaming,
     __resetStreamingState, // For testing
+    // Feature 023: Tool state
+    activeToolCall,
   }
 }
