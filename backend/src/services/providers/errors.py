@@ -31,6 +31,9 @@ from anthropic import (
     InternalServerError as AnthropicInternalServerError
 )
 
+# Ollama uses httpx for HTTP connections (via langchain-ollama)
+import httpx
+
 # Import LLM service errors from base module (avoids circular imports)
 from src.services.providers.base import (
     LLMServiceError,
@@ -121,6 +124,60 @@ def map_anthropic_error(error: Exception) -> LLMServiceError:
     return LLMServiceError("AI service error occurred", original_error=error)
 
 
+def map_ollama_error(error: Exception) -> LLMServiceError:
+    """
+    Map an Ollama-specific exception to an LLMServiceError.
+
+    Ollama uses httpx for HTTP connections, so we map httpx exceptions.
+
+    Feature: 020-add-ollama-support
+    User Story: US2 - Handle Ollama Server Unavailable
+    Tasks: T020, T021, T022, T023
+
+    Args:
+        error: The Ollama/httpx exception
+
+    Returns:
+        Appropriate LLMServiceError subclass
+    """
+    # T022: Timeout errors (check before ConnectError as TimeoutException is more specific)
+    if isinstance(error, httpx.TimeoutException):
+        return LLMTimeoutError(
+            message="Ollama server request timed out",
+            original_error=error
+        )
+
+    # T021: Connection errors - server unreachable
+    if isinstance(error, httpx.ConnectError):
+        return LLMConnectionError(
+            message="Unable to reach local Ollama server. Is Ollama running? (ollama serve)",
+            original_error=error
+        )
+
+    # T023: HTTP status errors (404 = model not found)
+    if isinstance(error, httpx.HTTPStatusError):
+        if error.response.status_code == 404:
+            return LLMBadRequestError(
+                message="Model not found in Ollama. Have you pulled it? (ollama pull <model>)",
+                original_error=error
+            )
+        # Other HTTP errors
+        return LLMServiceError(
+            message=f"Ollama server error (HTTP {error.response.status_code})",
+            original_error=error
+        )
+
+    # Generic httpx errors
+    if isinstance(error, httpx.HTTPError):
+        return LLMConnectionError(
+            message="Ollama connection error",
+            original_error=error
+        )
+
+    # Default: generic LLM error
+    return LLMServiceError("Ollama service error occurred", original_error=error)
+
+
 def map_provider_error(error: Exception, provider_id: str) -> LLMServiceError:
     """
     Map a provider-specific exception to an LLMServiceError.
@@ -140,6 +197,9 @@ def map_provider_error(error: Exception, provider_id: str) -> LLMServiceError:
     if provider_id == "anthropic":
         return map_anthropic_error(error)
 
+    if provider_id == "ollama":
+        return map_ollama_error(error)
+
     # Unknown provider: return generic error
     return LLMServiceError("AI service error occurred", original_error=error)
 
@@ -148,5 +208,6 @@ def map_provider_error(error: Exception, provider_id: str) -> LLMServiceError:
 __all__ = [
     'map_openai_error',
     'map_anthropic_error',
+    'map_ollama_error',
     'map_provider_error',
 ]

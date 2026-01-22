@@ -24,7 +24,7 @@
 
 **Purpose**: Add new dependency and prepare configuration
 
-- [ ] T001 Add `langchain-ollama>=0.2.0` to backend/requirements.txt
+- [x] T001 Add `langchain-ollama>=0.2.0` to backend/requirements.txt
 
 ---
 
@@ -34,11 +34,11 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T002 [P] Extend `provider` Literal type to include `"ollama"` in backend/src/config/models.py
-- [ ] T003 [P] Add `"ollama"` entry to `PROVIDERS` dict in backend/src/config/models.py
-- [ ] T004 [P] Add `"ollama": "OLLAMA_MODELS"` to `PROVIDER_ENV_VARS` dict in backend/src/config/models.py
-- [ ] T005 Make `api_key_env` optional in `ProviderConfig` (allow `None`) in backend/src/services/providers/base.py
-- [ ] T006 Update `check_provider_enabled()` to handle providers with no API key in backend/src/config/models.py
+- [x] T002 [P] Extend `provider` Literal type to include `"ollama"` in backend/src/config/models.py
+- [x] T003 [P] Add `"ollama"` entry to `PROVIDERS` dict in backend/src/config/models.py
+- [x] T004 [P] Add `"ollama": "OLLAMA_MODELS"` to `PROVIDER_ENV_VARS` dict in backend/src/config/models.py
+- [x] T005 Make `api_key_env` optional in `ProviderConfig` (allow `None`) in backend/src/services/providers/base.py
+- [x] T006 Update `check_provider_enabled()` to handle providers with no API key in backend/src/config/models.py
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -54,19 +54,19 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T007 [P] [US1] Unit test for OllamaProvider initialization in backend/tests/unit/test_ollama_provider.py
-- [ ] T008 [P] [US1] Unit test for OllamaProvider.create_llm() in backend/tests/unit/test_ollama_provider.py
-- [ ] T009 [P] [US1] Unit test for Ollama model configuration loading in backend/tests/unit/test_model_config.py
+- [x] T007 [P] [US1] Unit test for OllamaProvider initialization in backend/tests/unit/test_ollama_provider.py
+- [x] T008 [P] [US1] Unit test for OllamaProvider.create_llm() in backend/tests/unit/test_ollama_provider.py
+- [x] T009 [P] [US1] Unit test for Ollama model configuration loading in backend/tests/unit/test_model_config.py
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Create OllamaProvider class extending AbstractProvider in backend/src/services/providers/ollama.py
-- [ ] T011 [US1] Implement `provider_id` property returning `"ollama"` in backend/src/services/providers/ollama.py
-- [ ] T012 [US1] Implement `get_config()` method returning Ollama ProviderConfig in backend/src/services/providers/ollama.py
-- [ ] T013 [US1] Implement `create_llm()` method returning ChatOllama instance in backend/src/services/providers/ollama.py
-- [ ] T014 [US1] Register OllamaProvider in provider registry in backend/src/services/providers/__init__.py
-- [ ] T015 [US1] Add Ollama configuration example to backend/.env.example
-- [ ] T016 [US1] Add structured logging for Ollama provider initialization in backend/src/services/providers/ollama.py
+- [x] T010 [US1] Create OllamaProvider class extending AbstractProvider in backend/src/services/providers/ollama.py
+- [x] T011 [US1] Implement `provider_id` property returning `"ollama"` in backend/src/services/providers/ollama.py
+- [x] T012 [US1] Implement `get_config()` method returning Ollama ProviderConfig in backend/src/services/providers/ollama.py
+- [x] T013 [US1] Implement `create_llm()` method returning ChatOllama instance in backend/src/services/providers/ollama.py
+- [x] T014 [US1] Register OllamaProvider in provider registry in backend/src/services/providers/__init__.py
+- [x] T015 [US1] Add Ollama configuration example to backend/.env.example
+- [x] T016 [US1] Add structured logging for Ollama provider initialization in backend/src/services/providers/ollama.py
 
 **Checkpoint**: User Story 1 complete - can select and use Ollama models for chat
 
@@ -80,18 +80,18 @@
 
 ### Tests for User Story 2
 
-- [ ] T017 [P] [US2] Unit test for `map_ollama_error()` connection error mapping in backend/tests/unit/test_ollama_provider.py
-- [ ] T018 [P] [US2] Unit test for `map_ollama_error()` timeout error mapping in backend/tests/unit/test_ollama_provider.py
-- [ ] T019 [P] [US2] Unit test for `map_ollama_error()` model not found error mapping in backend/tests/unit/test_ollama_provider.py
+- [x] T017 [P] [US2] Unit test for `map_ollama_error()` connection error mapping in backend/tests/unit/test_ollama_provider.py
+- [x] T018 [P] [US2] Unit test for `map_ollama_error()` timeout error mapping in backend/tests/unit/test_ollama_provider.py
+- [x] T019 [P] [US2] Unit test for `map_ollama_error()` model not found error mapping in backend/tests/unit/test_ollama_provider.py
 
 ### Implementation for User Story 2
 
-- [ ] T020 [US2] Create `map_ollama_error()` function in backend/src/services/providers/errors.py
-- [ ] T021 [US2] Map `httpx.ConnectError` to `LLMConnectionError` with Ollama-specific message in backend/src/services/providers/errors.py
-- [ ] T022 [US2] Map `httpx.TimeoutException` to `LLMTimeoutError` in backend/src/services/providers/errors.py
-- [ ] T023 [US2] Map `httpx.HTTPStatusError` (404) to `LLMBadRequestError` for model not found in backend/src/services/providers/errors.py
-- [ ] T024 [US2] Update `map_provider_error()` to route `"ollama"` to `map_ollama_error()` in backend/src/services/providers/errors.py
-- [ ] T025 [US2] Implement `map_error()` method in OllamaProvider using `map_ollama_error()` in backend/src/services/providers/ollama.py
+- [x] T020 [US2] Create `map_ollama_error()` function in backend/src/services/providers/errors.py
+- [x] T021 [US2] Map `httpx.ConnectError` to `LLMConnectionError` with Ollama-specific message in backend/src/services/providers/errors.py
+- [x] T022 [US2] Map `httpx.TimeoutException` to `LLMTimeoutError` in backend/src/services/providers/errors.py
+- [x] T023 [US2] Map `httpx.HTTPStatusError` (404) to `LLMBadRequestError` for model not found in backend/src/services/providers/errors.py
+- [x] T024 [US2] Update `map_provider_error()` to route `"ollama"` to `map_ollama_error()` in backend/src/services/providers/errors.py
+- [x] T025 [US2] Implement `map_error()` method in OllamaProvider using `map_ollama_error()` in backend/src/services/providers/ollama.py
 
 **Checkpoint**: User Story 2 complete - Ollama connection errors show clear messages
 
@@ -105,15 +105,15 @@
 
 ### Tests for User Story 3
 
-- [ ] T026 [P] [US3] Unit test for default base URL (`http://localhost:11434`) in backend/tests/unit/test_ollama_provider.py
-- [ ] T027 [P] [US3] Unit test for custom base URL from `OLLAMA_BASE_URL` env var in backend/tests/unit/test_ollama_provider.py
+- [x] T026 [P] [US3] Unit test for default base URL (`http://localhost:11434`) in backend/tests/unit/test_ollama_provider.py
+- [x] T027 [P] [US3] Unit test for custom base URL from `OLLAMA_BASE_URL` env var in backend/tests/unit/test_ollama_provider.py
 
 ### Implementation for User Story 3
 
-- [ ] T028 [US3] Read `OLLAMA_BASE_URL` from environment in OllamaProvider.__init__() in backend/src/services/providers/ollama.py
-- [ ] T029 [US3] Default to `http://localhost:11434` when `OLLAMA_BASE_URL` not set in backend/src/services/providers/ollama.py
-- [ ] T030 [US3] Pass base_url to ChatOllama in create_llm() in backend/src/services/providers/ollama.py
-- [ ] T031 [US3] Add `OLLAMA_BASE_URL` example to backend/.env.example
+- [x] T028 [US3] Read `OLLAMA_BASE_URL` from environment in OllamaProvider.__init__() in backend/src/services/providers/ollama.py
+- [x] T029 [US3] Default to `http://localhost:11434` when `OLLAMA_BASE_URL` not set in backend/src/services/providers/ollama.py
+- [x] T030 [US3] Pass base_url to ChatOllama in create_llm() in backend/src/services/providers/ollama.py
+- [x] T031 [US3] Add `OLLAMA_BASE_URL` example to backend/.env.example
 
 **Checkpoint**: User Story 3 complete - can connect to custom Ollama server URLs
 
@@ -123,9 +123,9 @@
 
 **Purpose**: Documentation and validation
 
-- [ ] T032 [P] Update CLAUDE.md with Ollama provider information
-- [ ] T033 [P] Run all unit tests and verify passing: `pytest backend/tests/unit/ -v`
-- [ ] T034 Validate quickstart.md instructions work end-to-end
+- [x] T032 [P] Update CLAUDE.md with Ollama provider information
+- [x] T033 [P] Run all unit tests and verify passing: `pytest backend/tests/unit/ -v`
+- [x] T034 Validate quickstart.md instructions work end-to-end
 
 ---
 

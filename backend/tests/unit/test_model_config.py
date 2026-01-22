@@ -1194,6 +1194,122 @@ class TestTitleModelConfiguration:
         assert config.get('openai') == 'gpt-3.5-turbo'
 
 
+# =============================================================================
+# Ollama Provider Configuration Tests
+# Feature: 020-add-ollama-support
+# =============================================================================
+
+
+class TestOllamaProviderConfiguration:
+    """Tests for Ollama provider configuration (no API key required)."""
+
+    def test_ollama_model_config_valid(self):
+        """Test creating a valid Ollama model configuration."""
+        model = ModelConfig(
+            id="llama2",
+            name="Llama 2",
+            description="Meta's Llama 2 model",
+            provider="ollama",
+            default=True
+        )
+
+        assert model.id == "llama2"
+        assert model.name == "Llama 2"
+        assert model.provider == "ollama"
+
+    def test_ollama_provider_enabled_when_models_configured(self, monkeypatch):
+        """Test Ollama provider is enabled when OLLAMA_MODELS is configured (no API key needed)."""
+        from src.config.models import check_provider_enabled
+
+        ollama_models = json.dumps([
+            {"id": "llama2", "name": "Llama 2", "description": "Local model"}
+        ])
+
+        monkeypatch.setenv('OLLAMA_MODELS', ollama_models)
+        monkeypatch.delenv('OPENAI_API_KEY', raising=False)
+        monkeypatch.delenv('ANTHROPIC_API_KEY', raising=False)
+
+        assert check_provider_enabled("ollama") is True
+
+    def test_ollama_provider_disabled_when_no_models(self, monkeypatch):
+        """Test Ollama provider is disabled when OLLAMA_MODELS not set."""
+        from src.config.models import check_provider_enabled
+
+        monkeypatch.delenv('OLLAMA_MODELS', raising=False)
+
+        assert check_provider_enabled("ollama") is False
+
+    def test_ollama_only_configuration(self, monkeypatch):
+        """Test configuration with only Ollama models (no cloud providers)."""
+        ollama_models = json.dumps([
+            {"id": "llama2", "name": "Llama 2", "description": "Local Llama 2 model"},
+            {"id": "codellama", "name": "Code Llama", "description": "Specialized for code"}
+        ])
+
+        monkeypatch.setenv('OLLAMA_MODELS', ollama_models)
+        monkeypatch.setenv('DEFAULT_MODEL', 'llama2')
+        monkeypatch.delenv('OPENAI_MODELS', raising=False)
+        monkeypatch.delenv('OPENAI_API_KEY', raising=False)
+        monkeypatch.delenv('ANTHROPIC_MODELS', raising=False)
+        monkeypatch.delenv('ANTHROPIC_API_KEY', raising=False)
+        monkeypatch.delenv('MODELS', raising=False)
+
+        config = load_model_configuration()
+
+        assert len(config.models) == 2
+        assert all(m.provider == "ollama" for m in config.models)
+        assert config.models[0].id == "llama2"
+
+    def test_ollama_with_cloud_providers(self, monkeypatch):
+        """Test Ollama models alongside cloud provider models."""
+        openai_models = json.dumps([
+            {"id": "gpt-4", "name": "GPT-4", "description": "OpenAI model"}
+        ])
+        ollama_models = json.dumps([
+            {"id": "llama2", "name": "Llama 2", "description": "Local model"}
+        ])
+
+        monkeypatch.setenv('OPENAI_MODELS', openai_models)
+        monkeypatch.setenv('OLLAMA_MODELS', ollama_models)
+        monkeypatch.setenv('OPENAI_API_KEY', 'sk-test')
+        monkeypatch.setenv('DEFAULT_MODEL', 'llama2')
+        monkeypatch.delenv('ANTHROPIC_MODELS', raising=False)
+        monkeypatch.delenv('ANTHROPIC_API_KEY', raising=False)
+        monkeypatch.delenv('MODELS', raising=False)
+
+        config = load_model_configuration()
+
+        assert len(config.models) == 2
+        providers = {m.provider for m in config.models}
+        assert providers == {"openai", "ollama"}
+
+    def test_ollama_as_default_model(self, monkeypatch):
+        """Test setting Ollama model as default."""
+        openai_models = json.dumps([
+            {"id": "gpt-4", "name": "GPT-4", "description": "OpenAI model"}
+        ])
+        ollama_models = json.dumps([
+            {"id": "llama2", "name": "Llama 2", "description": "Local model"}
+        ])
+
+        monkeypatch.setenv('OPENAI_MODELS', openai_models)
+        monkeypatch.setenv('OLLAMA_MODELS', ollama_models)
+        monkeypatch.setenv('OPENAI_API_KEY', 'sk-test')
+        monkeypatch.setenv('DEFAULT_MODEL', 'llama2')  # Ollama model as default
+        monkeypatch.delenv('ANTHROPIC_MODELS', raising=False)
+        monkeypatch.delenv('ANTHROPIC_API_KEY', raising=False)
+        monkeypatch.delenv('MODELS', raising=False)
+
+        config = load_model_configuration()
+
+        llama = next(m for m in config.models if m.id == "llama2")
+        gpt4 = next(m for m in config.models if m.id == "gpt-4")
+
+        assert llama.default is True
+        assert gpt4.default is False
+        assert get_default_model(config) == "llama2"
+
+
 @pytest.mark.skipif(not TITLE_CONFIG_AVAILABLE, reason="Title model config not yet implemented")
 class TestGetTitleModelForProvider:
     """Tests for get_title_model_for_provider function."""

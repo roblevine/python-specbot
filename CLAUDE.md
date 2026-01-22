@@ -106,9 +106,45 @@ ANTHROPIC_API_KEY=sk-ant-...
 
 **API Contract**: Unchanged - `/api/v1/models` response format preserved for frontend compatibility
 
+### 020-add-ollama-support (2026-01-22) ✅ COMPLETE
+**Local Ollama model support via LangChain**
+
+**What Changed**:
+- Added Ollama as a third provider alongside OpenAI and Anthropic
+- Ollama doesn't require an API key (local server)
+- Models configured via `OLLAMA_MODELS` env var (same format as other providers)
+- Optional `OLLAMA_BASE_URL` for custom server locations (default: `http://localhost:11434`)
+- Clear error messages when Ollama server is unavailable
+
+**Configuration Example**:
+```bash
+# Ollama Models (no API key required)
+OLLAMA_MODELS='[{"id": "llama2", "name": "Llama 2", "description": "Meta's Llama 2 7B model"}]'
+
+# Optional: Custom Ollama server URL
+OLLAMA_BASE_URL=http://192.168.1.100:11434
+
+# Can coexist with cloud providers
+DEFAULT_MODEL=llama2
+```
+
+**Key Files**:
+- `backend/src/services/providers/ollama.py` - OllamaProvider class
+- `backend/src/services/providers/errors.py` - `map_ollama_error()` for connection/timeout handling
+- `backend/src/config/models.py` - Extended PROVIDERS, Literal type, check_provider_enabled()
+- `backend/tests/unit/test_ollama_provider.py` - Comprehensive tests
+
+**Prerequisites**:
+1. Install Ollama: https://ollama.com
+2. Pull a model: `ollama pull llama2`
+3. Start server: `ollama serve` (usually auto-starts)
+
+**API Contract**: Unchanged - Ollama models appear with `provider: "ollama"` in `/api/v1/models`
+
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
 
 ## Recent Changes
+- 020-add-ollama-support: Added Ollama provider for local LLM support (langchain-ollama, OLLAMA_MODELS, OLLAMA_BASE_URL)
 - 018-separate-provider-configs: Refactored model configuration to use provider-specific env vars (OPENAI_MODELS, ANTHROPIC_MODELS, DEFAULT_MODEL)
 - 017-markdown-support: Added JavaScript ES6+ (Frontend) + Vue 3.4.0, Vite 5.0.0, marked (markdown parser - to be added), DOMPurify (XSS sanitization - to be added), highlight.js (syntax highlighting - to be added)

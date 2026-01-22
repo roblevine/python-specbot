@@ -25,8 +25,9 @@ from src.utils.logger import get_logger
 logger = get_logger(__name__)
 
 
-# Provider registry constant - maps provider IDs to their API key env var names
-PROVIDERS: Dict[str, Dict[str, str]] = {
+# Provider registry constant - maps provider IDs to their configuration
+# Note: api_key_env can be None for local providers like Ollama that don't require API keys
+PROVIDERS: Dict[str, Dict[str, Optional[str]]] = {
     "openai": {
         "name": "OpenAI",
         "api_key_env": "OPENAI_API_KEY",
@@ -34,6 +35,10 @@ PROVIDERS: Dict[str, Dict[str, str]] = {
     "anthropic": {
         "name": "Anthropic",
         "api_key_env": "ANTHROPIC_API_KEY",
+    },
+    "ollama": {
+        "name": "Ollama",
+        "api_key_env": None,  # Ollama doesn't require an API key (local server)
     }
 }
 
@@ -41,6 +46,7 @@ PROVIDERS: Dict[str, Dict[str, str]] = {
 PROVIDER_ENV_VARS: Dict[str, str] = {
     "openai": "OPENAI_MODELS",
     "anthropic": "ANTHROPIC_MODELS",
+    "ollama": "OLLAMA_MODELS",
 }
 
 
@@ -99,9 +105,9 @@ class ModelConfig(BaseModel):
     id: str = Field(..., description="Model identifier (e.g., 'gpt-4', 'claude-3-5-sonnet-20241022')")
     name: str = Field(..., max_length=50, description="Human-readable display name")
     description: str = Field(..., max_length=200, description="Brief model description")
-    provider: Literal["openai", "anthropic"] = Field(
+    provider: Literal["openai", "anthropic", "ollama"] = Field(
         ...,  # Required - no default
-        description="Provider identifier: 'openai' or 'anthropic'"
+        description="Provider identifier: 'openai', 'anthropic', or 'ollama'"
     )
     default: bool = Field(default=False, description="Whether this is the default model")
 
@@ -159,18 +165,30 @@ class ModelsConfiguration(BaseModel):
 
 def check_provider_enabled(provider_id: str) -> bool:
     """
-    Check if a provider is enabled (has API key configured).
+    Check if a provider is enabled.
+
+    For providers with API keys: True if the API key environment variable is set.
+    For providers without API keys (like Ollama): True if models are configured.
 
     Args:
-        provider_id: Provider identifier ('openai' or 'anthropic')
+        provider_id: Provider identifier ('openai', 'anthropic', or 'ollama')
 
     Returns:
-        bool: True if the provider's API key is set, False otherwise
+        bool: True if the provider is enabled, False otherwise
     """
     if provider_id not in PROVIDERS:
         return False
 
-    api_key_env = PROVIDERS[provider_id]["api_key_env"]
+    api_key_env = PROVIDERS[provider_id].get("api_key_env")
+
+    # Providers without API key requirement (like Ollama) are enabled if models are configured
+    if api_key_env is None:
+        if provider_id in PROVIDER_ENV_VARS:
+            models_json = os.getenv(PROVIDER_ENV_VARS[provider_id])
+            return bool(models_json and models_json.strip())
+        return False
+
+    # Providers with API key requirement
     api_key = os.getenv(api_key_env)
     return bool(api_key and api_key.strip())
 
@@ -243,19 +261,22 @@ def load_model_configuration() -> ModelsConfiguration:
     # Check provider enablement status
     openai_enabled = check_provider_enabled("openai")
     anthropic_enabled = check_provider_enabled("anthropic")
+    ollama_enabled = check_provider_enabled("ollama")
 
     # Log provider enablement status
     logger.info(f"Provider status: OpenAI={'enabled' if openai_enabled else 'disabled'}, "
-                f"Anthropic={'enabled' if anthropic_enabled else 'disabled'}")
+                f"Anthropic={'enabled' if anthropic_enabled else 'disabled'}, "
+                f"Ollama={'enabled' if ollama_enabled else 'disabled'}")
 
     # Validate at least one provider is configured
-    if not openai_enabled and not anthropic_enabled:
+    if not openai_enabled and not anthropic_enabled and not ollama_enabled:
         raise ModelConfigurationError(
             "No AI providers configured",
             "At least one provider must be configured. Set either:\n"
             "- OPENAI_API_KEY for OpenAI, or\n"
-            "- ANTHROPIC_API_KEY for Anthropic\n"
-            "And configure models in OPENAI_MODELS or ANTHROPIC_MODELS."
+            "- ANTHROPIC_API_KEY for Anthropic, or\n"
+            "- OLLAMA_MODELS for Ollama (local server, no API key required)\n"
+            "And configure models in the corresponding *_MODELS environment variable."
         )
 
     # Load models from provider-specific env vars (018-separate-provider-configs)
@@ -297,7 +318,7 @@ def load_model_configuration() -> ModelsConfiguration:
     if not all_models:
         raise ModelConfigurationError(
             "No models available for enabled providers",
-            "Configure models in OPENAI_MODELS or ANTHROPIC_MODELS for providers with API keys set."
+            "Configure models in OPENAI_MODELS, ANTHROPIC_MODELS, or OLLAMA_MODELS for enabled providers."
         )
 
     # Resolve default model from DEFAULT_MODEL env var
@@ -330,7 +351,7 @@ def load_model_configuration() -> ModelsConfiguration:
             if not model_exists_but_filtered:
                 raise ModelConfigurationError(
                     f"Invalid DEFAULT_MODEL: '{default_model_id}' not found in any provider configuration",
-                    f"Set DEFAULT_MODEL to a valid model ID from OPENAI_MODELS or ANTHROPIC_MODELS."
+                    f"Set DEFAULT_MODEL to a valid model ID from OPENAI_MODELS, ANTHROPIC_MODELS, or OLLAMA_MODELS."
                 )
 
     # Set the default model (either from DEFAULT_MODEL or fallback to first available)
@@ -365,7 +386,7 @@ def load_model_configuration() -> ModelsConfiguration:
     except ValueError as e:
         raise ModelConfigurationError(
             f"Invalid model configuration: {str(e)}",
-            "Check your OPENAI_MODELS and ANTHROPIC_MODELS configuration."
+            "Check your OPENAI_MODELS, ANTHROPIC_MODELS, and OLLAMA_MODELS configuration."
         ) from e
 
 
@@ -427,7 +448,7 @@ def get_provider_for_model(model_id: str, config: ModelsConfiguration) -> Option
         config: Model configuration
 
     Returns:
-        Optional[str]: Provider ID ('openai' or 'anthropic') if found, None otherwise
+        Optional[str]: Provider ID ('openai', 'anthropic', or 'ollama') if found, None otherwise
     """
     model = get_model_by_id(model_id, config)
     return model.provider if model else None

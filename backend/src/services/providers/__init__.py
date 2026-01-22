@@ -68,7 +68,10 @@ class ProviderRegistry:
 
     def get_enabled(self) -> List[BaseProvider]:
         """
-        Get only providers that are enabled (have API key configured).
+        Get only providers that are enabled.
+
+        For providers with API keys: enabled if API key is configured.
+        For providers without API keys (like Ollama): always enabled.
 
         Returns:
             List of enabled providers
@@ -76,8 +79,7 @@ class ProviderRegistry:
         enabled = []
         for provider in self._providers.values():
             config = provider.get_config()
-            api_key = os.getenv(config.api_key_env)
-            if api_key and api_key.strip():
+            if config.is_enabled():
                 enabled.append(provider)
         return enabled
 
@@ -89,14 +91,13 @@ class ProviderRegistry:
             provider_id: The provider identifier
 
         Returns:
-            True if provider exists and has API key configured
+            True if provider exists and is enabled
         """
         provider = self.get(provider_id)
         if not provider:
             return False
         config = provider.get_config()
-        api_key = os.getenv(config.api_key_env)
-        return bool(api_key and api_key.strip())
+        return config.is_enabled()
 
     def __contains__(self, provider_id: str) -> bool:
         """Check if a provider is registered."""
@@ -121,9 +122,11 @@ def _register_providers():
     """
     from .openai import OpenAIProvider
     from .anthropic import AnthropicProvider
+    from .ollama import OllamaProvider
 
     registry.register(OpenAIProvider())
     registry.register(AnthropicProvider())
+    registry.register(OllamaProvider())
 
 
 # Register providers when module is imported
