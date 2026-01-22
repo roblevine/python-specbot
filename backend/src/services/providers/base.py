@@ -18,14 +18,14 @@ class ProviderConfig(BaseModel):
     Configuration metadata for an LLM provider.
 
     Attributes:
-        id: Unique identifier (e.g., "openai", "anthropic")
+        id: Unique identifier (e.g., "openai", "anthropic", "ollama")
         name: Human-readable display name
-        api_key_env: Environment variable name for API key
+        api_key_env: Environment variable name for API key (None for local providers like Ollama)
         models_env: Environment variable name for models list
     """
     id: str = Field(..., description="Unique provider identifier")
     name: str = Field(..., description="Human-readable display name")
-    api_key_env: str = Field(..., description="Environment variable name for API key")
+    api_key_env: Optional[str] = Field(None, description="Environment variable name for API key (None for local providers)")
     models_env: str = Field(..., description="Environment variable name for models list")
 
     @field_validator('id')
@@ -39,22 +39,38 @@ class ProviderConfig(BaseModel):
             raise ValueError("Provider ID must be lowercase alphanumeric with optional hyphens")
         return v
 
-    @field_validator('api_key_env', 'models_env')
+    @field_validator('models_env')
     @classmethod
-    def validate_env_var(cls, v: str) -> str:
-        """Validate environment variable name is non-empty."""
+    def validate_models_env(cls, v: str) -> str:
+        """Validate models environment variable name is non-empty."""
         if not v or not v.strip():
-            raise ValueError("Environment variable name cannot be empty")
+            raise ValueError("Models environment variable name cannot be empty")
+        return v.strip()
+
+    @field_validator('api_key_env')
+    @classmethod
+    def validate_api_key_env(cls, v: Optional[str]) -> Optional[str]:
+        """Validate API key environment variable name if provided."""
+        if v is None:
+            return None
+        if not v.strip():
+            raise ValueError("API key environment variable name cannot be empty if provided")
         return v.strip()
 
     def is_enabled(self) -> bool:
         """
-        Check if this provider is enabled (has API key configured).
+        Check if this provider is enabled.
+
+        For providers with API keys: True if the API key environment variable is set and non-empty.
+        For providers without API keys (like Ollama): Always True (check models config instead).
 
         Returns:
-            True if the API key environment variable is set and non-empty
+            True if the provider is enabled
         """
         import os
+        # Providers without API key requirement (like Ollama) are always enabled
+        if self.api_key_env is None:
+            return True
         api_key = os.getenv(self.api_key_env)
         return bool(api_key and api_key.strip())
 
