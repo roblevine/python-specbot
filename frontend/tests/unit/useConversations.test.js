@@ -266,6 +266,96 @@ describe('useConversations', () => {
   })
 
   /**
+   * Feature: 022-conversation-ux-fixes User Story 1
+   * T007, T008, T009: Tests for conversation ordering (most recent first)
+   */
+  describe('conversation ordering', () => {
+    it('T007: should sort conversations by updatedAt descending (most recent first)', async () => {
+      const { createConversation, conversations, addMessage } = useConversations()
+
+      // Create multiple conversations with different timestamps
+      const conv1 = await createConversation()
+      await new Promise(resolve => setTimeout(resolve, 10))
+      const conv2 = await createConversation()
+      await new Promise(resolve => setTimeout(resolve, 10))
+      const conv3 = await createConversation()
+
+      // conv3 should be first (most recent), conv1 should be last (oldest)
+      expect(conversations.value[0].id).toBe(conv3.id)
+      expect(conversations.value[2].id).toBe(conv1.id)
+    })
+
+    it('T008: should place newly created conversation at top of list', async () => {
+      const { createConversation, conversations, addMessage } = useConversations()
+
+      // Create first conversation
+      const conv1 = await createConversation()
+      await new Promise(resolve => setTimeout(resolve, 10))
+
+      // Add a message to make it older but with content
+      addMessage(conv1.id, {
+        id: 'msg-1',
+        text: 'First message',
+        sender: 'user',
+        timestamp: new Date().toISOString(),
+        status: 'sent',
+      })
+
+      await new Promise(resolve => setTimeout(resolve, 10))
+
+      // Create second conversation - should appear at top
+      const conv2 = await createConversation()
+
+      expect(conversations.value[0].id).toBe(conv2.id)
+    })
+
+    it('T009: should move conversation to top when message is added', async () => {
+      const { createConversation, conversations, addMessage } = useConversations()
+
+      // Create two conversations
+      const conv1 = await createConversation()
+      await new Promise(resolve => setTimeout(resolve, 10))
+      const conv2 = await createConversation()
+
+      // conv2 should be at top initially
+      expect(conversations.value[0].id).toBe(conv2.id)
+
+      await new Promise(resolve => setTimeout(resolve, 10))
+
+      // Add message to conv1 - should move it to top
+      addMessage(conv1.id, {
+        id: 'msg-1',
+        text: 'New message',
+        sender: 'user',
+        timestamp: new Date().toISOString(),
+        status: 'sent',
+      })
+
+      // Now conv1 should be at top
+      expect(conversations.value[0].id).toBe(conv1.id)
+    })
+
+    it('should maintain order after rename', async () => {
+      const { createConversation, conversations, renameConversation } = useConversations()
+
+      // Create two conversations
+      const conv1 = await createConversation()
+      await new Promise(resolve => setTimeout(resolve, 10))
+      const conv2 = await createConversation()
+
+      // conv2 should be at top
+      expect(conversations.value[0].id).toBe(conv2.id)
+
+      await new Promise(resolve => setTimeout(resolve, 10))
+
+      // Rename conv1 - should move it to top (updatedAt changes)
+      await renameConversation(conv1.id, 'Renamed Title')
+
+      expect(conversations.value[0].id).toBe(conv1.id)
+    })
+  })
+
+  /**
    * T015, T016, T017: Tests for generateAndSetTitle
    * Feature: 019-llm-conversation-titles User Story 1
    */

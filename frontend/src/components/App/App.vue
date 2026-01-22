@@ -214,9 +214,13 @@ export default {
     async function handleSendMessage(text) {
       try {
         await sendUserMessage(text)
+        // Feature 022: Restore focus to input after response completes
+        inputAreaRef.value?.restoreFocus()
       } catch (error) {
         logger.error('Error sending message', error)
         setError('Failed to send message')
+        // Feature 022: Also restore focus on error so user can retry
+        inputAreaRef.value?.restoreFocus()
       }
     }
 

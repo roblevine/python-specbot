@@ -35,6 +35,8 @@ Auto-generated from all feature plans. Last updated: 2026-01-12
 - N/A (stateless provider, uses existing model configuration infrastructure) (020-add-ollama-support)
 - JavaScript ES6+ (Frontend), Python 3.13 (Backend - minimal changes) + Vue 3.4.0, Vite 5.0.0, FastAPI 0.115.0, Pydantic 2.10.0 (021-disable-model-selector)
 - File-based JSON (backend conversations), Browser localStorage (settings only) (021-disable-model-selector)
+- JavaScript ES6+ (Frontend only) + Vue 3.4.0, Vite 5.0.0 (022-conversation-ux-fixes)
+- N/A (no storage changes - uses existing `updatedAt` field from server) (022-conversation-ux-fixes)
 
 ### 009-message-streaming (2026-01-14) ✅ MVP COMPLETE
 **Real-time LLM response streaming with Server-Sent Events (SSE)**

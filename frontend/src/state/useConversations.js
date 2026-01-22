@@ -81,6 +81,8 @@ export function useConversations() {
       const savedConversation = response.conversation
 
       conversations.value.push(savedConversation)
+      // Feature 022: Sort after adding to maintain most-recent-first order
+      sortConversationsByRecent(conversations.value)
       activeConversationId.value = savedConversation.id
 
       logger.info('Created new conversation on server', { id: savedConversation.id })
@@ -92,6 +94,8 @@ export function useConversations() {
 
       // Add locally anyway so user doesn't lose the conversation
       conversations.value.push(conversationData)
+      // Feature 022: Sort after adding to maintain most-recent-first order
+      sortConversationsByRecent(conversations.value)
       activeConversationId.value = conversationData.id
 
       return conversationData
@@ -118,6 +122,8 @@ export function useConversations() {
 
     conversation.messages.push(message)
     conversation.updatedAt = new Date().toISOString()
+    // Feature 022: Sort after message added to move conversation to top
+    sortConversationsByRecent(conversations.value)
 
     // T020: Title generation is now handled by generateAndSetTitle() after streaming completes
     // Title remains "New Conversation" until LLM generates it
@@ -298,6 +304,8 @@ export function useConversations() {
 
     conversation.title = trimmedTitle
     conversation.updatedAt = new Date().toISOString()
+    // Feature 022: Sort after rename to move conversation to top
+    sortConversationsByRecent(conversations.value)
 
     logger.info('Renamed conversation', { conversationId, newTitle: trimmedTitle })
 
@@ -363,6 +371,8 @@ export function useConversations() {
       // Update conversation title
       conversation.title = generatedTitle
       conversation.updatedAt = new Date().toISOString()
+      // Feature 022: Sort after title generation to maintain order
+      sortConversationsByRecent(conversations.value)
 
       // Persist to server
       await saveToStorage(conversationId)
@@ -379,6 +389,8 @@ export function useConversations() {
       if (firstUserMessage) {
         conversation.title = firstUserMessage.text
         conversation.updatedAt = new Date().toISOString()
+        // Feature 022: Sort after fallback title to maintain order
+        sortConversationsByRecent(conversations.value)
 
         // Persist fallback title to server
         try {

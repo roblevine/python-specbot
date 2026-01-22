@@ -5,12 +5,14 @@
     <ModelSelector class="model-selector-container" :disabled="modelSelectorDisabled" />
     <div class="input-container">
       <textarea
+        ref="inputRef"
         v-model="inputText"
         class="input-textarea"
         placeholder="Type your message..."
         :disabled="disabled"
         @keydown.enter.exact="handleEnter"
         @keydown.enter.shift.exact="handleShiftEnter"
+        @blur="handleBlur"
       />
       <button
         class="send-button"
@@ -24,7 +26,7 @@
 </template>
 
 <script>
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 // Feature 015: Import ModelSelector for positioning within input area
 import ModelSelector from '../ModelSelector/ModelSelector.vue'
 
@@ -51,6 +53,10 @@ export default {
   emits: ['send-message'],
   setup(props, { emit }) {
     const inputText = ref('')
+    // Feature 022: Template ref for textarea element
+    const inputRef = ref(null)
+    // Feature 022: Track if user had focus before sending
+    const hadFocusBeforeSend = ref(false)
 
     const canSend = computed(() => {
       return inputText.value.trim().length > 0
@@ -58,6 +64,9 @@ export default {
 
     function handleSend() {
       if (!canSend.value || props.disabled) return
+
+      // Feature 022: Capture focus state before sending
+      hadFocusBeforeSend.value = document.activeElement === inputRef.value
 
       const text = inputText.value.trim()
       if (text) {
@@ -77,16 +86,47 @@ export default {
       // Textarea default behavior will insert newline
     }
 
+    /**
+     * Feature 022: Handle blur to detect when user intentionally clicks elsewhere
+     * This resets the focus tracking so we don't forcibly restore focus
+     */
+    function handleBlur() {
+      // Small delay to allow click events to register first
+      // This handles the case where clicking the send button triggers blur
+      setTimeout(() => {
+        // If the textarea is no longer focused and we're not in a send operation,
+        // the user intentionally moved focus elsewhere
+        if (document.activeElement !== inputRef.value && !props.disabled) {
+          hadFocusBeforeSend.value = false
+        }
+      }, 100)
+    }
+
+    /**
+     * Feature 022: Restore focus to input after response completes
+     * Called by parent component when AI response is finished
+     */
+    function restoreFocus() {
+      if (hadFocusBeforeSend.value) {
+        nextTick(() => {
+          inputRef.value?.focus()
+        })
+      }
+    }
+
     function clearInput() {
       inputText.value = ''
     }
 
     return {
       inputText,
+      inputRef,
       canSend,
       handleSend,
       handleEnter,
       handleShiftEnter,
+      handleBlur,
+      restoreFocus,
       clearInput,
     }
   },

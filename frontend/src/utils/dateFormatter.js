@@ -37,3 +37,42 @@ export function formatMessageDatetime(timestamp) {
 
   return `${dayName} ${day}-${month}-${year} ${hour12}:${minutes}${ampm}`
 }
+
+/**
+ * Formats a conversation timestamp for sidebar display with smart relative formatting
+ * Feature: 022-conversation-ux-fixes
+ * Task: T005
+ *
+ * @param {string|number|Date} timestamp - ISO timestamp string, Unix timestamp, or Date object
+ * @returns {string} Formatted timestamp:
+ *   - Today: time only (e.g., "3:45 PM")
+ *   - Yesterday: "Yesterday"
+ *   - This week: day name (e.g., "Monday")
+ *   - Older: date (e.g., "Jan 20, 2026")
+ */
+export function formatConversationTimestamp(timestamp) {
+  const date = new Date(timestamp)
+  const now = new Date()
+
+  // Reset to start of day for comparison
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+
+  // Calculate difference in days
+  const diffMs = startOfToday - startOfDate
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+  if (diffDays === 0) {
+    // Today: show time only
+    return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+  } else if (diffDays === 1) {
+    // Yesterday
+    return 'Yesterday'
+  } else if (diffDays < 7) {
+    // This week: show day name
+    return date.toLocaleDateString(undefined, { weekday: 'long' })
+  } else {
+    // Older: show date
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+  }
+}
