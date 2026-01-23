@@ -1,38 +1,56 @@
 <template>
   <div class="code-block">
     <!-- Language label -->
-    <div v-if="language" class="code-block-header">
+    <div
+      v-if="language"
+      class="code-block-header"
+    >
       <span class="language-label">{{ language }}</span>
       <button
         type="button"
         class="copy-button"
         @click="copyToClipboard"
       >
-        <span v-if="copied" class="copy-feedback">
+        <span
+          v-if="copied"
+          class="copy-feedback"
+        >
           <span class="copy-icon">&#10003;</span> Copied!
         </span>
-        <span v-else class="copy-text">
+        <span
+          v-else
+          class="copy-text"
+        >
           <span class="copy-icon">&#128203;</span> Copy
         </span>
       </button>
     </div>
     <!-- Copy button only (no language) -->
-    <div v-else class="code-block-header code-block-header-minimal">
+    <div
+      v-else
+      class="code-block-header code-block-header-minimal"
+    >
       <button
         type="button"
         class="copy-button"
         @click="copyToClipboard"
       >
-        <span v-if="copied" class="copy-feedback">
+        <span
+          v-if="copied"
+          class="copy-feedback"
+        >
           <span class="copy-icon">&#10003;</span> Copied!
         </span>
-        <span v-else class="copy-text">
+        <span
+          v-else
+          class="copy-text"
+        >
           <span class="copy-icon">&#128203;</span> Copy
         </span>
       </button>
     </div>
     <!-- Code content -->
-    <pre class="code-content"><code v-html="highlightedCode"></code></pre>
+    <pre class="code-content"><code v-html="highlightedCode" /></pre>
   </div>
 </template>
 
