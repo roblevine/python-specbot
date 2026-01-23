@@ -33,8 +33,17 @@
 		"--env-file", "${localWorkspaceFolder}/.devcontainer/.env_devcontainer"
 	],
 
+	"forwardPorts": [8000, 5173],
 	"appPort": ["2203:22"],
 	"portsAttributes": {
+		"8000": {
+			"label": "Backend API",
+			"onAutoForward": "notify"
+		},
+		"5173": {
+			"label": "Frontend Dev Server",
+			"onAutoForward": "notify"
+		},
 		"22": {
 			"label": "SSH",
 			"onAutoForward": "silent"
