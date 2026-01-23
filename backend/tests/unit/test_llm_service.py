@@ -478,23 +478,28 @@ async def test_stream_ai_response_yields_tokens():
         'DEFAULT_MODEL': 'gpt-3.5-turbo'
     }, clear=True):
         with patch('src.services.providers.openai.ChatOpenAI') as mock_chat:
-            # Setup mock LLM
+            # Setup mock LLM with tool binding support (Feature 023: agentic loop)
             mock_llm = Mock()
             mock_chat.return_value = mock_llm
 
-            # Mock astream to yield chunks
+            # Mock astream to yield chunks (with tool_calls=None to exit agentic loop)
             async def mock_astream(messages):
                 # Simulate LangChain AIMessageChunk objects
                 chunks = [
-                    Mock(content="Hello"),
-                    Mock(content=" "),
-                    Mock(content="world"),
-                    Mock(content="!")
+                    Mock(content="Hello", tool_calls=None),
+                    Mock(content=" ", tool_calls=None),
+                    Mock(content="world", tool_calls=None),
+                    Mock(content="!", tool_calls=None)
                 ]
                 for chunk in chunks:
                     yield chunk
 
+            # Setup astream on mock_llm for case when no tools enabled (Feature 023)
             mock_llm.astream = mock_astream
+            # bind_tools returns an object with astream for case when tools are enabled
+            mock_llm_with_tools = Mock()
+            mock_llm_with_tools.astream = mock_astream
+            mock_llm.bind_tools = Mock(return_value=mock_llm_with_tools)
 
             # Call stream_ai_response
             events = []
@@ -542,11 +547,16 @@ async def test_stream_ai_response_yields_complete_event():
             mock_chat.return_value = mock_llm
 
             async def mock_astream(messages):
-                chunks = [Mock(content="Test")]
+                chunks = [Mock(content="Test", tool_calls=None)]
                 for chunk in chunks:
                     yield chunk
 
+            # Setup astream on mock_llm for case when no tools enabled (Feature 023)
             mock_llm.astream = mock_astream
+            # bind_tools returns an object with astream for case when tools are enabled
+            mock_llm_with_tools = Mock()
+            mock_llm_with_tools.astream = mock_astream
+            mock_llm.bind_tools = Mock(return_value=mock_llm_with_tools)
 
             events = []
             async for event in stream_ai_response("Test"):
@@ -589,9 +599,14 @@ async def test_stream_ai_response_with_conversation_history():
 
             async def mock_astream(messages):
                 captured_messages.extend(messages)
-                yield Mock(content="Response")
+                yield Mock(content="Response", tool_calls=None)
 
+            # Setup astream on mock_llm for case when no tools enabled (Feature 023)
             mock_llm.astream = mock_astream
+            # bind_tools returns an object with astream for case when tools are enabled
+            mock_llm_with_tools = Mock()
+            mock_llm_with_tools.astream = mock_astream
+            mock_llm.bind_tools = Mock(return_value=mock_llm_with_tools)
 
             # Call with history
             history = [
@@ -650,7 +665,12 @@ async def test_stream_ai_response_handles_authentication_error():
                 )
                 yield  # Make it a generator (unreachable)
 
+            # Setup astream on mock_llm for case when no tools enabled (Feature 023)
             mock_llm.astream = mock_astream
+            # bind_tools returns an object with astream for case when tools are enabled
+            mock_llm_with_tools = Mock()
+            mock_llm_with_tools.astream = mock_astream
+            mock_llm.bind_tools = Mock(return_value=mock_llm_with_tools)
 
             # Collect events
             events = []
@@ -699,7 +719,12 @@ async def test_stream_ai_response_handles_rate_limit_error():
                 )
                 yield
 
+            # Setup astream on mock_llm for case when no tools enabled (Feature 023)
             mock_llm.astream = mock_astream
+            # bind_tools returns an object with astream for case when tools are enabled
+            mock_llm_with_tools = Mock()
+            mock_llm_with_tools.astream = mock_astream
+            mock_llm.bind_tools = Mock(return_value=mock_llm_with_tools)
 
             events = []
             async for event in stream_ai_response("Test"):
@@ -738,7 +763,12 @@ async def test_stream_ai_response_handles_timeout():
                 raise asyncio.TimeoutError("Request timed out")
                 yield
 
+            # Setup astream on mock_llm for case when no tools enabled (Feature 023)
             mock_llm.astream = mock_astream
+            # bind_tools returns an object with astream for case when tools are enabled
+            mock_llm_with_tools = Mock()
+            mock_llm_with_tools.astream = mock_astream
+            mock_llm.bind_tools = Mock(return_value=mock_llm_with_tools)
 
             events = []
             async for event in stream_ai_response("Test"):
@@ -773,17 +803,22 @@ async def test_stream_ai_response_handles_special_characters():
             mock_chat.return_value = mock_llm
 
             async def mock_astream(messages):
-                # Chunks with special characters
+                # Chunks with special characters (tool_calls=None to exit agentic loop)
                 chunks = [
-                    Mock(content="🚀"),
-                    Mock(content=" Hello "),
-                    Mock(content="世界"),
-                    Mock(content=" @#$%")
+                    Mock(content="🚀", tool_calls=None),
+                    Mock(content=" Hello ", tool_calls=None),
+                    Mock(content="世界", tool_calls=None),
+                    Mock(content=" @#$%", tool_calls=None)
                 ]
                 for chunk in chunks:
                     yield chunk
 
+            # Setup astream on mock_llm for case when no tools enabled (Feature 023)
             mock_llm.astream = mock_astream
+            # bind_tools returns an object with astream for case when tools are enabled
+            mock_llm_with_tools = Mock()
+            mock_llm_with_tools.astream = mock_astream
+            mock_llm.bind_tools = Mock(return_value=mock_llm_with_tools)
 
             events = []
             async for event in stream_ai_response("Test"):
@@ -833,7 +868,12 @@ async def test_stream_ai_response_includes_debug_info_in_debug_mode():
                 raise APIConnectionError(request=Mock())
                 yield
 
+            # Setup astream on mock_llm for case when no tools enabled (Feature 023)
             mock_llm.astream = mock_astream
+            # bind_tools returns an object with astream for case when tools are enabled
+            mock_llm_with_tools = Mock()
+            mock_llm_with_tools.astream = mock_astream
+            mock_llm.bind_tools = Mock(return_value=mock_llm_with_tools)
 
             events = []
             async for event in stream_ai_response("Test"):
@@ -883,7 +923,12 @@ async def test_stream_ai_response_no_debug_info_when_debug_disabled():
                 raise APIConnectionError(request=Mock())
                 yield
 
+            # Setup astream on mock_llm for case when no tools enabled (Feature 023)
             mock_llm.astream = mock_astream
+            # bind_tools returns an object with astream for case when tools are enabled
+            mock_llm_with_tools = Mock()
+            mock_llm_with_tools.astream = mock_astream
+            mock_llm.bind_tools = Mock(return_value=mock_llm_with_tools)
 
             events = []
             async for event in stream_ai_response("Test"):
@@ -949,7 +994,12 @@ async def test_stream_ai_response_handles_anthropic_not_found_error():
                 )
                 yield
 
+            # Setup astream on mock_llm for case when no tools enabled (Feature 023)
             mock_llm.astream = mock_astream
+            # bind_tools returns an object with astream for case when tools are enabled
+            mock_llm_with_tools = Mock()
+            mock_llm_with_tools.astream = mock_astream
+            mock_llm.bind_tools = Mock(return_value=mock_llm_with_tools)
 
             events = []
             async for event in stream_ai_response("Test", model="claude-invalid-model"):
@@ -1000,7 +1050,12 @@ async def test_stream_ai_response_handles_anthropic_permission_denied_error():
                 )
                 yield
 
+            # Setup astream on mock_llm for case when no tools enabled (Feature 023)
             mock_llm.astream = mock_astream
+            # bind_tools returns an object with astream for case when tools are enabled
+            mock_llm_with_tools = Mock()
+            mock_llm_with_tools.astream = mock_astream
+            mock_llm.bind_tools = Mock(return_value=mock_llm_with_tools)
 
             events = []
             async for event in stream_ai_response("Test", model="claude-3-5-sonnet-20241022"):
@@ -1047,7 +1102,12 @@ async def test_stream_ai_response_handles_anthropic_internal_server_error():
                 )
                 yield
 
+            # Setup astream on mock_llm for case when no tools enabled (Feature 023)
             mock_llm.astream = mock_astream
+            # bind_tools returns an object with astream for case when tools are enabled
+            mock_llm_with_tools = Mock()
+            mock_llm_with_tools.astream = mock_astream
+            mock_llm.bind_tools = Mock(return_value=mock_llm_with_tools)
 
             events = []
             async for event in stream_ai_response("Test", model="claude-3-5-sonnet-20241022"):
