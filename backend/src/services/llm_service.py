@@ -405,6 +405,17 @@ async def stream_ai_response(
                 # Extract content from chunk
                 content = chunk.content
 
+                # Normalize content - Anthropic returns list of content blocks
+                if isinstance(content, list):
+                    # Extract text from content blocks
+                    text_parts = []
+                    for block in content:
+                        if isinstance(block, dict) and block.get("type") == "text":
+                            text_parts.append(block.get("text", ""))
+                        elif isinstance(block, str):
+                            text_parts.append(block)
+                    content = "".join(text_parts)
+
                 # Skip empty chunks
                 if content:
                     collected_content += content
