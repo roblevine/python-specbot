@@ -1059,3 +1059,246 @@ async def test_stream_ai_response_handles_anthropic_internal_server_error():
             # InternalServerError should map to LLM_ERROR (service problem)
             assert events[0].code == "LLM_ERROR", \
                 f"InternalServerError should map to LLM_ERROR, got {events[0].code}"
+
+
+# =============================================================================
+# Feature 023: Content Normalization Tests (Anthropic list content fix)
+# =============================================================================
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_stream_handles_string_content():
+    """
+    Regression test: Verify streaming handles string content (OpenAI style).
+
+    OpenAI returns chunk.content as a simple string. This should pass through
+    unchanged after the content normalization fix.
+
+    Feature: 023-add-search-tools (bug fix)
+    """
+    from src.services.llm_service import stream_ai_response
+    from src.schemas import TokenEvent, CompleteEvent
+
+    with patch.dict('os.environ', {
+        'OPENAI_API_KEY': 'test-key',
+        'OPENAI_MODELS': '[{"id": "gpt-4", "name": "GPT-4", "description": "Test"}]',
+        'DEFAULT_MODEL': 'gpt-4'
+    }, clear=True):
+        with patch('src.services.providers.openai.ChatOpenAI') as mock_chat:
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+
+            # Mock bind_tools to return the same mock (no tools)
+            mock_llm.bind_tools = Mock(return_value=mock_llm)
+
+            # String content (OpenAI style)
+            async def mock_astream(messages):
+                chunks = [
+                    Mock(content="Hello", tool_calls=None),
+                    Mock(content=" world", tool_calls=None),
+                ]
+                for chunk in chunks:
+                    yield chunk
+
+            mock_llm.astream = mock_astream
+
+            # Disable tools for this test
+            with patch('src.services.tools.registry.registry.get_enabled', return_value=[]):
+                events = []
+                async for event in stream_ai_response("Test"):
+                    events.append(event)
+
+            # Should get 2 tokens + 1 complete
+            token_events = [e for e in events if isinstance(e, TokenEvent)]
+            assert len(token_events) == 2
+            assert token_events[0].content == "Hello"
+            assert token_events[1].content == " world"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_stream_handles_anthropic_list_content_blocks():
+    """
+    Regression test: Verify streaming handles Anthropic list content blocks.
+
+    Anthropic returns chunk.content as a list of content blocks like:
+    [{"type": "text", "text": "Hello"}]
+
+    This caused TypeError before the fix: "can only concatenate str (not 'list') to str"
+
+    Feature: 023-add-search-tools (bug fix)
+    """
+    from src.services.llm_service import stream_ai_response
+    from src.schemas import TokenEvent, CompleteEvent
+
+    with patch.dict('os.environ', {
+        'ANTHROPIC_API_KEY': 'test-key',
+        'ANTHROPIC_MODELS': '[{"id": "claude-3-sonnet", "name": "Claude", "description": "Test"}]',
+        'DEFAULT_MODEL': 'claude-3-sonnet'
+    }, clear=True):
+        with patch('src.services.providers.anthropic.ChatAnthropic') as mock_chat:
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+
+            # Mock bind_tools to return the same mock
+            mock_llm.bind_tools = Mock(return_value=mock_llm)
+
+            # List content blocks (Anthropic style)
+            async def mock_astream(messages):
+                chunks = [
+                    Mock(content=[{"type": "text", "text": "Hello"}], tool_calls=None),
+                    Mock(content=[{"type": "text", "text": " from Claude"}], tool_calls=None),
+                ]
+                for chunk in chunks:
+                    yield chunk
+
+            mock_llm.astream = mock_astream
+
+            # Disable tools for this test
+            with patch('src.services.tools.registry.registry.get_enabled', return_value=[]):
+                events = []
+                async for event in stream_ai_response("Test"):
+                    events.append(event)
+
+            # Should get 2 tokens + 1 complete
+            token_events = [e for e in events if isinstance(e, TokenEvent)]
+            assert len(token_events) == 2
+            assert token_events[0].content == "Hello"
+            assert token_events[1].content == " from Claude"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_stream_handles_empty_list_content():
+    """
+    Regression test: Verify streaming handles empty list content gracefully.
+
+    Empty content lists should be skipped (no token emitted).
+
+    Feature: 023-add-search-tools (bug fix)
+    """
+    from src.services.llm_service import stream_ai_response
+    from src.schemas import TokenEvent, CompleteEvent
+
+    with patch.dict('os.environ', {
+        'ANTHROPIC_API_KEY': 'test-key',
+        'ANTHROPIC_MODELS': '[{"id": "claude-3-sonnet", "name": "Claude", "description": "Test"}]',
+        'DEFAULT_MODEL': 'claude-3-sonnet'
+    }, clear=True):
+        with patch('src.services.providers.anthropic.ChatAnthropic') as mock_chat:
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+            mock_llm.bind_tools = Mock(return_value=mock_llm)
+
+            # Mix of empty and non-empty content
+            async def mock_astream(messages):
+                chunks = [
+                    Mock(content=[], tool_calls=None),  # Empty list - should skip
+                    Mock(content=[{"type": "text", "text": "Content"}], tool_calls=None),
+                    Mock(content="", tool_calls=None),  # Empty string - should skip
+                ]
+                for chunk in chunks:
+                    yield chunk
+
+            mock_llm.astream = mock_astream
+
+            with patch('src.services.tools.registry.registry.get_enabled', return_value=[]):
+                events = []
+                async for event in stream_ai_response("Test"):
+                    events.append(event)
+
+            # Should get only 1 token (the non-empty one) + 1 complete
+            token_events = [e for e in events if isinstance(e, TokenEvent)]
+            assert len(token_events) == 1
+            assert token_events[0].content == "Content"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_stream_handles_list_with_string_items():
+    """
+    Regression test: Verify streaming handles list content with plain strings.
+
+    Some edge cases might return lists of strings instead of dict blocks.
+
+    Feature: 023-add-search-tools (bug fix)
+    """
+    from src.services.llm_service import stream_ai_response
+    from src.schemas import TokenEvent
+
+    with patch.dict('os.environ', {
+        'OPENAI_API_KEY': 'test-key',
+        'OPENAI_MODELS': '[{"id": "gpt-4", "name": "GPT-4", "description": "Test"}]',
+        'DEFAULT_MODEL': 'gpt-4'
+    }, clear=True):
+        with patch('src.services.providers.openai.ChatOpenAI') as mock_chat:
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+            mock_llm.bind_tools = Mock(return_value=mock_llm)
+
+            # List with plain strings
+            async def mock_astream(messages):
+                chunks = [
+                    Mock(content=["Hello", " ", "world"], tool_calls=None),
+                ]
+                for chunk in chunks:
+                    yield chunk
+
+            mock_llm.astream = mock_astream
+
+            with patch('src.services.tools.registry.registry.get_enabled', return_value=[]):
+                events = []
+                async for event in stream_ai_response("Test"):
+                    events.append(event)
+
+            token_events = [e for e in events if isinstance(e, TokenEvent)]
+            assert len(token_events) == 1
+            assert token_events[0].content == "Hello world"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_stream_handles_mixed_content_blocks():
+    """
+    Regression test: Verify streaming handles mixed content block types.
+
+    Content blocks may have different types (text, image, etc). Only text
+    blocks should be extracted.
+
+    Feature: 023-add-search-tools (bug fix)
+    """
+    from src.services.llm_service import stream_ai_response
+    from src.schemas import TokenEvent
+
+    with patch.dict('os.environ', {
+        'ANTHROPIC_API_KEY': 'test-key',
+        'ANTHROPIC_MODELS': '[{"id": "claude-3-sonnet", "name": "Claude", "description": "Test"}]',
+        'DEFAULT_MODEL': 'claude-3-sonnet'
+    }, clear=True):
+        with patch('src.services.providers.anthropic.ChatAnthropic') as mock_chat:
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+            mock_llm.bind_tools = Mock(return_value=mock_llm)
+
+            # Mixed content blocks - only text should be extracted
+            async def mock_astream(messages):
+                chunks = [
+                    Mock(content=[
+                        {"type": "text", "text": "Hello"},
+                        {"type": "image", "source": "..."},  # Non-text block
+                        {"type": "text", "text": " there"},
+                    ], tool_calls=None),
+                ]
+                for chunk in chunks:
+                    yield chunk
+
+            mock_llm.astream = mock_astream
+
+            with patch('src.services.tools.registry.registry.get_enabled', return_value=[]):
+                events = []
+                async for event in stream_ai_response("Test"):
+                    events.append(event)
+
+            token_events = [e for e in events if isinstance(e, TokenEvent)]
+            assert len(token_events) == 1
+            assert token_events[0].content == "Hello there"
