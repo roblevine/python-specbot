@@ -44,6 +44,22 @@ async def lifespan(app: FastAPI):
         logger.warning("⚠️  Never use DEBUG mode in production!")
     else:
         logger.info("DEBUG mode disabled - Error details will be hidden in API responses")
+
+    # T032: Load tool configuration at startup
+    try:
+        from src.config.tools import load_tool_configuration
+        from src.services.tools import load_enabled_tools
+
+        tool_configs = load_tool_configuration()
+        config_dicts = [
+            {"id": tc.id, "name": tc.name, "description": tc.description, "enabled": tc.enabled}
+            for tc in tool_configs
+        ]
+        tools = load_enabled_tools(config_dicts)
+        logger.info(f"Tool system initialized: {len(tools)} tool(s) available")
+    except Exception as e:
+        logger.warning(f"Tool system initialization failed: {e}. Continuing without tools.")
+
     yield
     logger.info("Shutting down SpecBot Backend API Server")
 

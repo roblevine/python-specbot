@@ -22,6 +22,7 @@ from src.services.message_service import validate_message
 from src.services.llm_service import (
     get_ai_response,
     stream_ai_response,
+    stream_ai_response_with_tools,  # T021: Tool-enabled streaming
     LLMServiceError,
     LLMAuthenticationError,
     LLMRateLimitError,
@@ -45,11 +46,13 @@ def is_debug_mode() -> bool:
 async def handle_streaming_request(request: MessageRequest) -> StreamingResponse:
     """
     T012: Handle streaming request with SSE (Server-Sent Events).
+    T021: Extended to support tool calling via stream_ai_response_with_tools.
 
     Creates an async generator that streams AI response token-by-token
-    using the SSE protocol.
+    using the SSE protocol. Includes tool call events when LLM uses tools.
 
     Feature: 009-message-streaming User Story 1 (P1)
+    Feature: 024-add-langchain-tools - Tool calling support
 
     Args:
         request: MessageRequest with user message
@@ -83,11 +86,12 @@ async def handle_streaming_request(request: MessageRequest) -> StreamingResponse
         """
         Async generator that yields SSE-formatted events.
 
-        Calls stream_ai_response() and converts each event to SSE format.
+        T021: Uses stream_ai_response_with_tools() for tool calling support.
+        Yields TokenEvent, ToolCallEvent, ToolResultEvent, ToolErrorEvent, and CompleteEvent.
         """
         try:
-            # Stream AI response
-            async for event in stream_ai_response(
+            # T021: Stream AI response with tool support
+            async for event in stream_ai_response_with_tools(
                 message=request.message,
                 history=history_dict,
                 model=request.model
@@ -97,9 +101,9 @@ async def handle_streaming_request(request: MessageRequest) -> StreamingResponse
                 yield sse_data
 
         except Exception as e:
-            # Log error (don't expose to client via SSE - already handled by stream_ai_response)
+            # Log error (don't expose to client via SSE - already handled by streaming function)
             logger.error(f"Error in streaming generator: {type(e).__name__}: {str(e)}")
-            # stream_ai_response already yields ErrorEvent, so we don't need to yield here
+            # stream_ai_response_with_tools already yields ErrorEvent, so we don't need to yield here
 
     # Return StreamingResponse with SSE headers
     return StreamingResponse(

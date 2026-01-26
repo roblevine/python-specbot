@@ -259,11 +259,13 @@ export async function fetchModels() {
 
 /**
  * T015: Stream message with real-time token-by-token responses
+ * T023: Extended to support tool call events
  *
  * Uses fetch + ReadableStream to parse SSE (Server-Sent Events) format.
  * EventSource doesn't support POST, so we use fetch with manual SSE parsing.
  *
  * Feature: 009-message-streaming User Story 1
+ * Feature: 024-add-langchain-tools - Tool call event support
  *
  * @param {string} messageText - The message to send
  * @param {Function} onToken - Callback for each token: (content: string) => void
@@ -271,9 +273,11 @@ export async function fetchModels() {
  * @param {Function} onError - Optional callback for errors: (error: object) => void
  * @param {Array<{sender: string, text: string}>} history - Optional conversation history
  * @param {string} model - Optional model ID to use for this request
+ * @param {Function} onToolCall - Optional callback for tool call events: (toolCall: object) => void
+ * @param {Function} onToolResult - Optional callback for tool result events: (result: object) => void
  * @returns {Function} cleanup - Call to abort the stream
  */
-export function streamMessage(messageText, onToken, onComplete, onError = null, history = null, model = null) {
+export function streamMessage(messageText, onToken, onComplete, onError = null, history = null, model = null, onToolCall = null, onToolResult = null) {
   logger.debug('Starting streaming message', { messageText, historyLength: history?.length, model })
 
   // Validate callbacks are functions to prevent silent failures
@@ -430,6 +434,34 @@ export function streamMessage(messageText, onToken, onComplete, onError = null, 
             } else if (event.type === 'error') {
               if (onError && typeof onError === 'function') {
                 onError(event)
+              }
+            } else if (event.type === 'tool_call') {
+              // T023: Handle tool call event
+              if (onToolCall && typeof onToolCall === 'function') {
+                try {
+                  onToolCall(event)
+                } catch (callbackError) {
+                  logger.error('Error in onToolCall callback', callbackError)
+                }
+              }
+            } else if (event.type === 'tool_result') {
+              // T023: Handle tool result event (success)
+              if (onToolResult && typeof onToolResult === 'function') {
+                try {
+                  onToolResult(event)
+                } catch (callbackError) {
+                  logger.error('Error in onToolResult callback', callbackError)
+                }
+              }
+            } else if (event.type === 'tool_error') {
+              // T023: Handle tool error event
+              if (onToolResult && typeof onToolResult === 'function') {
+                try {
+                  // Pass tool errors through the same callback with status='error'
+                  onToolResult(event)
+                } catch (callbackError) {
+                  logger.error('Error in onToolResult callback', callbackError)
+                }
               }
             }
           } catch (parseError) {

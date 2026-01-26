@@ -319,6 +319,7 @@ class ConversationMessage(BaseModel):
     Extends HistoryMessage with additional metadata for persistence.
 
     Feature: 010-server-side-conversations Task T004
+    Extended: 024-add-langchain-tools Task T015 - Added toolCalls field
     """
 
     id: str = Field(
@@ -362,6 +363,11 @@ class ConversationMessage(BaseModel):
     errorCode: Optional[int] = Field(
         None,
         description="Error code (only if status is error)"
+    )
+    # T015: Tool calls made while generating this message (024-add-langchain-tools)
+    toolCalls: Optional[List["ToolCallRecord"]] = Field(
+        None,
+        description="Tool calls made while generating this message"
     )
 
 
@@ -585,3 +591,269 @@ class TitleGenerationResponse(BaseModel):
         max_length=60,
         description="Generated conversation title (max 60 characters)"
     )
+
+
+# ============================================================================
+# Tool Schemas (Feature: 024-add-langchain-tools)
+# ============================================================================
+
+class ToolConfig(BaseModel):
+    """
+    T006: Configuration for an available tool.
+
+    Defines a tool that can be used by the LLM.
+
+    Feature: 024-add-langchain-tools Task T006
+    """
+
+    id: str = Field(
+        ...,
+        min_length=1,
+        max_length=50,
+        pattern=r'^[a-z0-9-]+$',
+        description="Unique tool identifier (alphanumeric with hyphens)"
+    )
+    name: str = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description="Human-readable display name"
+    )
+    description: str = Field(
+        ...,
+        min_length=1,
+        max_length=500,
+        description="Tool description shown to users"
+    )
+    enabled: bool = Field(
+        default=True,
+        description="Whether the tool is active"
+    )
+
+
+class ResultLink(BaseModel):
+    """
+    T008: Extracted link from tool result.
+
+    Used for search results to display clickable links.
+
+    Feature: 024-add-langchain-tools Task T008
+    """
+
+    title: str = Field(
+        ...,
+        min_length=1,
+        max_length=200,
+        description="Link title or page heading"
+    )
+    url: str = Field(
+        ...,
+        description="Full URL to the resource"
+    )
+    snippet: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Text excerpt from the page"
+    )
+
+
+class ToolCallRecord(BaseModel):
+    """
+    T007: Record of a single tool invocation.
+
+    Represents a tool call within a conversation, including
+    inputs, outputs, status, and timing information.
+
+    Feature: 024-add-langchain-tools Task T007
+    """
+
+    id: str = Field(
+        ...,
+        pattern=r'^tool-[a-f0-9-]{36}$',
+        description="Unique tool call identifier"
+    )
+    toolId: str = Field(
+        ...,
+        description="Reference to ToolConfig.id"
+    )
+    toolName: str = Field(
+        ...,
+        description="Tool display name at time of call"
+    )
+    args: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Input arguments passed to the tool"
+    )
+    status: Literal["pending", "success", "error"] = Field(
+        ...,
+        description="Tool execution status"
+    )
+    result: Optional[str] = Field(
+        None,
+        description="Tool output (if successful)"
+    )
+    resultLinks: Optional[List[ResultLink]] = Field(
+        None,
+        description="Extracted links from result (for search tools)"
+    )
+    error: Optional[str] = Field(
+        None,
+        description="Human-readable error message (if failed)"
+    )
+    errorCode: Optional[str] = Field(
+        None,
+        description="Error code for categorization"
+    )
+    debugInfo: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Debug details (only when DEBUG=true)"
+    )
+    startedAt: str = Field(
+        ...,
+        description="ISO-8601 timestamp when execution started"
+    )
+    completedAt: Optional[str] = Field(
+        None,
+        description="ISO-8601 timestamp when execution completed"
+    )
+    durationMs: Optional[int] = Field(
+        None,
+        ge=0,
+        description="Execution duration in milliseconds"
+    )
+
+
+# ============================================================================
+# Tool SSE Event Schemas (Feature: 024-add-langchain-tools)
+# ============================================================================
+
+class ToolCallEvent(BaseModel):
+    """
+    T009: SSE event when LLM initiates a tool call.
+
+    Emitted when the LLM decides to call a tool. Frontend should
+    display tool call UI in "pending" state.
+
+    Feature: 024-add-langchain-tools Task T009
+    """
+
+    type: Literal["tool_call"] = Field(
+        default="tool_call",
+        description="Event type identifier"
+    )
+    id: str = Field(
+        ...,
+        pattern=r'^tool-[a-f0-9-]{36}$',
+        description="Unique tool call identifier"
+    )
+    toolId: str = Field(
+        ...,
+        description="Tool configuration ID"
+    )
+    toolName: str = Field(
+        ...,
+        description="Human-readable tool name"
+    )
+    args: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Arguments passed to the tool"
+    )
+
+    def to_sse_format(self) -> str:
+        """Convert to SSE format."""
+        json_str = self.model_dump_json()
+        return f"data: {json_str}\n\n"
+
+
+class ToolResultEvent(BaseModel):
+    """
+    T010: SSE event when tool completes successfully.
+
+    Frontend should update tool call UI to "success" state.
+
+    Feature: 024-add-langchain-tools Task T010
+    """
+
+    type: Literal["tool_result"] = Field(
+        default="tool_result",
+        description="Event type identifier"
+    )
+    id: str = Field(
+        ...,
+        pattern=r'^tool-[a-f0-9-]{36}$',
+        description="Tool call ID (matches ToolCallEvent.id)"
+    )
+    status: Literal["success"] = Field(
+        default="success",
+        description="Always 'success' for this event type"
+    )
+    result: Optional[str] = Field(
+        None,
+        description="Tool output text (may be truncated)"
+    )
+    resultLinks: Optional[List[ResultLink]] = Field(
+        None,
+        description="Extracted links (for search results)"
+    )
+    durationMs: int = Field(
+        ...,
+        ge=0,
+        description="Execution time in milliseconds"
+    )
+
+    def to_sse_format(self) -> str:
+        """Convert to SSE format."""
+        json_str = self.model_dump_json(exclude_none=True)
+        return f"data: {json_str}\n\n"
+
+
+class ToolErrorEvent(BaseModel):
+    """
+    T011: SSE event when tool execution fails.
+
+    Frontend should update tool call UI to "error" state.
+
+    Feature: 024-add-langchain-tools Task T011
+    """
+
+    type: Literal["tool_error"] = Field(
+        default="tool_error",
+        description="Event type identifier"
+    )
+    id: str = Field(
+        ...,
+        pattern=r'^tool-[a-f0-9-]{36}$',
+        description="Tool call ID (matches ToolCallEvent.id)"
+    )
+    status: Literal["error"] = Field(
+        default="error",
+        description="Always 'error' for this event type"
+    )
+    error: str = Field(
+        ...,
+        description="Human-readable error message"
+    )
+    errorCode: Literal[
+        "TIMEOUT",
+        "CONNECTION_ERROR",
+        "TOOL_NOT_FOUND",
+        "EXECUTION_ERROR",
+        "INVALID_ARGS"
+    ] = Field(
+        ...,
+        description="Error category for frontend handling"
+    )
+    debugInfo: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Debug details (only when DEBUG=true)"
+    )
+    durationMs: int = Field(
+        ...,
+        ge=0,
+        description="Time until error in milliseconds"
+    )
+
+    def to_sse_format(self) -> str:
+        """Convert to SSE format."""
+        json_str = self.model_dump_json(exclude_none=True)
+        return f"data: {json_str}\n\n"

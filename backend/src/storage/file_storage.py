@@ -32,9 +32,13 @@ class FileStorage(ConversationStorage):
     - Atomic read-modify-write operations
     - Schema versioning for future migrations
     - Graceful handling of missing/corrupt files
+
+    Schema versions:
+    - 1.0.0: Initial schema
+    - 1.1.0: Added toolCalls field to ConversationMessage (024-add-langchain-tools T016)
     """
 
-    SCHEMA_VERSION = "1.0.0"
+    SCHEMA_VERSION = "1.1.0"
 
     def __init__(self, storage_path: str):
         """

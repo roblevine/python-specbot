@@ -5,13 +5,16 @@ Manages LLM initialization, configuration, and message processing for
 all registered LLM providers via the provider registry.
 
 Features: 006-openai-langchain-chat, 011-anthropic-support, 012-modular-model-providers
+Extended: 024-add-langchain-tools - Added tool calling support
 """
 
 import os
 import asyncio
 import traceback
+import uuid
+from datetime import datetime
 from typing import Any, Dict, Optional, List, Union
-from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
+from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, ToolMessage
 from langchain_core.language_models.chat_models import BaseChatModel
 
 from src.utils.logger import get_logger
@@ -38,7 +41,10 @@ from src.config.models import (
     ModelConfigurationError,
     PROVIDERS
 )
-from src.schemas import TokenEvent, CompleteEvent, ErrorEvent
+from src.schemas import (
+    TokenEvent, CompleteEvent, ErrorEvent,
+    ToolCallEvent, ToolResultEvent, ToolErrorEvent, ResultLink
+)
 
 logger = get_logger(__name__)
 
@@ -92,6 +98,89 @@ def _llm_error_to_event(error: LLMServiceError) -> tuple[str, str]:
         return error.message, "LLM_ERROR"
     # Generic LLMServiceError
     return error.message, "LLM_ERROR"
+
+
+# ============================================================================
+# Tool Support Functions (Feature: 024-add-langchain-tools)
+# ============================================================================
+
+def get_enabled_tools() -> List:
+    """
+    T019: Get list of enabled tool instances.
+
+    Loads tool configuration and returns instantiated tools.
+
+    Returns:
+        List of BaseTool instances for enabled tools
+    """
+    from src.config.tools import load_tool_configuration
+    from src.services.tools import load_enabled_tools
+
+    try:
+        tool_configs = load_tool_configuration()
+        # Convert Pydantic models to dicts
+        config_dicts = [
+            {"id": tc.id, "name": tc.name, "description": tc.description, "enabled": tc.enabled}
+            for tc in tool_configs
+        ]
+        tools = load_enabled_tools(config_dicts)
+        logger.info(f"Loaded {len(tools)} enabled tool(s)")
+        return tools
+    except Exception as e:
+        logger.warning(f"Failed to load tools: {e}")
+        return []
+
+
+def get_langchain_tools(tools: List) -> List:
+    """
+    T019: Convert BaseTool instances to LangChain-compatible tools.
+
+    Args:
+        tools: List of BaseTool instances
+
+    Returns:
+        List of LangChain tool objects
+    """
+    from src.services.tools import get_langchain_tools as _get_lc_tools
+    return _get_lc_tools(tools)
+
+
+def bind_tools_to_llm(llm: BaseChatModel, langchain_tools: List, provider: str) -> BaseChatModel:
+    """
+    T019: Bind tools to an LLM instance.
+
+    Handles provider-specific configuration for tool binding.
+
+    Args:
+        llm: LLM instance to bind tools to
+        langchain_tools: List of LangChain tools
+        provider: Provider ID ('openai', 'anthropic', 'ollama')
+
+    Returns:
+        LLM with tools bound
+    """
+    if not langchain_tools:
+        return llm
+
+    try:
+        if provider == "anthropic":
+            # Anthropic requires strict mode for tool calling
+            return llm.bind_tools(langchain_tools)
+        elif provider == "ollama":
+            # Ollama tool support is experimental
+            logger.warning("Tool calling with Ollama is experimental and may not work with all models")
+            return llm.bind_tools(langchain_tools)
+        else:
+            # OpenAI and others use default binding
+            return llm.bind_tools(langchain_tools)
+    except Exception as e:
+        logger.error(f"Failed to bind tools to LLM: {e}")
+        raise
+
+
+def _generate_tool_call_id() -> str:
+    """Generate a unique tool call ID."""
+    return f"tool-{uuid.uuid4()}"
 
 
 def get_llm_for_model(model_id: str, config=None) -> BaseChatModel:
@@ -425,6 +514,305 @@ async def stream_ai_response(
         mapped_error = map_provider_error(e, provider or "unknown")
         error_msg, error_code = _llm_error_to_event(mapped_error)
 
+        yield ErrorEvent(
+            error=error_msg,
+            code=error_code,
+            debug_info=_build_debug_info(e, type(e).__name__)
+        )
+
+
+# ============================================================================
+# Tool-Enabled Streaming (Feature: 024-add-langchain-tools)
+# ============================================================================
+
+async def stream_ai_response_with_tools(
+    message: str,
+    history: Optional[List[Dict[str, str]]] = None,
+    model: Optional[str] = None,
+    tools: Optional[List] = None
+):
+    """
+    T020: Stream AI response with tool calling support.
+
+    Extends stream_ai_response with tool execution capabilities.
+    Detects tool calls in the stream, executes them, and yields
+    appropriate events for frontend display.
+
+    Args:
+        message: User message text
+        history: Optional list of previous messages
+        model: Optional model ID
+        tools: Optional list of BaseTool instances. If None, loads enabled tools.
+
+    Yields:
+        TokenEvent: For each token/chunk from the LLM
+        ToolCallEvent: When LLM initiates a tool call
+        ToolResultEvent: When tool completes successfully
+        ToolErrorEvent: When tool execution fails
+        CompleteEvent: Final event with summary
+        ErrorEvent: If an error occurs
+    """
+    if not message or not message.strip():
+        yield ErrorEvent(
+            error="Message cannot be empty",
+            code="UNKNOWN"
+        )
+        return
+
+    logger.info(f"Starting tool-enabled streaming for message: {message[:50]}...")
+
+    # Load tools if not provided
+    if tools is None:
+        tools = get_enabled_tools()
+
+    # If no tools available, fall back to regular streaming
+    if not tools:
+        logger.info("No tools available, using standard streaming")
+        async for event in stream_ai_response(message, history, model):
+            yield event
+        return
+
+    provider = None
+    tool_calls_summary = []  # Track tool calls for CompleteEvent
+
+    try:
+        # Load model configuration
+        config = load_model_configuration()
+
+        # Determine which model to use
+        if model:
+            model_to_use = model
+        else:
+            model_to_use = get_default_model(config)
+
+        logger.info(f"Using model: {model_to_use}")
+
+        # Validate model
+        if not validate_model_id(model_to_use, config):
+            yield ErrorEvent(
+                error=f"Invalid model: {model_to_use}",
+                code="UNKNOWN"
+            )
+            return
+
+        provider = get_provider_for_model(model_to_use, config)
+        logger.info(f"Using provider: {provider}")
+
+        # Get LLM and bind tools
+        llm = get_llm_for_model(model_to_use, config)
+        langchain_tools = get_langchain_tools(tools)
+
+        if langchain_tools:
+            llm = bind_tools_to_llm(llm, langchain_tools, provider)
+            logger.info(f"Bound {len(langchain_tools)} tools to LLM")
+
+        # Build tool lookup for execution
+        tool_lookup = {tool.id.replace("-", "_"): tool for tool in tools}
+
+        # Build conversation history
+        conversation = history.copy() if history else []
+        conversation.append({"sender": "user", "text": message})
+
+        # Convert to LangChain format
+        langchain_messages = convert_to_langchain_messages(conversation)
+
+        # Agentic loop - handle tool calls
+        max_iterations = 5  # Prevent infinite loops
+        iteration = 0
+
+        while iteration < max_iterations:
+            iteration += 1
+            logger.debug(f"Tool loop iteration {iteration}")
+
+            # Collect the full response (we need to check for tool calls)
+            response_content = ""
+            tool_calls = []
+
+            async for chunk in llm.astream(langchain_messages):
+                # Check for tool calls in the chunk
+                if hasattr(chunk, 'tool_calls') and chunk.tool_calls:
+                    tool_calls.extend(chunk.tool_calls)
+                elif hasattr(chunk, 'tool_call_chunks') and chunk.tool_call_chunks:
+                    # Handle streaming tool call chunks
+                    for tc in chunk.tool_call_chunks:
+                        if tc.get('name'):
+                            tool_calls.append(tc)
+
+                # Stream content tokens
+                if chunk.content:
+                    response_content += chunk.content
+                    yield TokenEvent(content=chunk.content)
+
+            # If no tool calls, we're done
+            if not tool_calls:
+                logger.info("No tool calls in response, completing")
+                break
+
+            # Process tool calls
+            logger.info(f"Processing {len(tool_calls)} tool call(s)")
+
+            for tool_call in tool_calls:
+                tool_name = tool_call.get('name', '')
+                tool_args = tool_call.get('args', {})
+                tool_call_id = tool_call.get('id', _generate_tool_call_id())
+
+                # Generate our own ID for tracking
+                our_tool_id = _generate_tool_call_id()
+
+                # Find the tool
+                tool = tool_lookup.get(tool_name)
+                if not tool:
+                    logger.warning(f"Unknown tool: {tool_name}")
+                    yield ToolErrorEvent(
+                        id=our_tool_id,
+                        status="error",
+                        error=f"Tool not found: {tool_name}",
+                        errorCode="TOOL_NOT_FOUND",
+                        durationMs=0
+                    )
+                    tool_calls_summary.append({
+                        "id": our_tool_id,
+                        "toolId": tool_name,
+                        "status": "error",
+                        "durationMs": 0
+                    })
+                    continue
+
+                # Emit tool call event
+                yield ToolCallEvent(
+                    id=our_tool_id,
+                    toolId=tool.id,
+                    toolName=tool.name,
+                    args=tool_args
+                )
+
+                # Execute the tool
+                start_time = datetime.utcnow()
+                try:
+                    result = await tool.execute(**tool_args)
+                    end_time = datetime.utcnow()
+                    duration_ms = int((end_time - start_time).total_seconds() * 1000)
+
+                    if result.success:
+                        # Convert links to ResultLink format
+                        result_links = None
+                        if result.links:
+                            result_links = [
+                                ResultLink(
+                                    title=link.get("title", "Link"),
+                                    url=link.get("url", ""),
+                                    snippet=link.get("snippet")
+                                )
+                                for link in result.links
+                            ]
+
+                        yield ToolResultEvent(
+                            id=our_tool_id,
+                            status="success",
+                            result=result.result,
+                            resultLinks=result_links,
+                            durationMs=duration_ms
+                        )
+
+                        tool_calls_summary.append({
+                            "id": our_tool_id,
+                            "toolId": tool.id,
+                            "status": "success",
+                            "durationMs": duration_ms
+                        })
+
+                        # Add tool result to conversation for next iteration
+                        langchain_messages.append(
+                            ToolMessage(
+                                content=result.result or "Tool completed successfully",
+                                tool_call_id=tool_call_id
+                            )
+                        )
+                    else:
+                        yield ToolErrorEvent(
+                            id=our_tool_id,
+                            status="error",
+                            error=result.error or "Tool execution failed",
+                            errorCode=result.error_code or "EXECUTION_ERROR",
+                            durationMs=duration_ms,
+                            debugInfo=_build_debug_info(
+                                Exception(result.error), "ToolExecutionError"
+                            ) if _is_debug_mode() else None
+                        )
+
+                        tool_calls_summary.append({
+                            "id": our_tool_id,
+                            "toolId": tool.id,
+                            "status": "error",
+                            "durationMs": duration_ms
+                        })
+
+                        # Add error result to conversation
+                        langchain_messages.append(
+                            ToolMessage(
+                                content=f"Error: {result.error}",
+                                tool_call_id=tool_call_id
+                            )
+                        )
+
+                except Exception as e:
+                    end_time = datetime.utcnow()
+                    duration_ms = int((end_time - start_time).total_seconds() * 1000)
+
+                    logger.error(f"Tool execution error: {e}")
+
+                    yield ToolErrorEvent(
+                        id=our_tool_id,
+                        status="error",
+                        error=f"Tool execution failed: {str(e)}",
+                        errorCode="EXECUTION_ERROR",
+                        durationMs=duration_ms,
+                        debugInfo=_build_debug_info(e, type(e).__name__) if _is_debug_mode() else None
+                    )
+
+                    tool_calls_summary.append({
+                        "id": our_tool_id,
+                        "toolId": tool.id,
+                        "status": "error",
+                        "durationMs": duration_ms
+                    })
+
+                    langchain_messages.append(
+                        ToolMessage(
+                            content=f"Error: {str(e)}",
+                            tool_call_id=tool_call_id
+                        )
+                    )
+
+        # Yield completion event with tool call summary
+        logger.info(f"Stream completed with {len(tool_calls_summary)} tool call(s)")
+        yield CompleteEvent(
+            model=model_to_use,
+            totalTokens=None  # We don't track tokens in streaming
+        )
+
+    except LLMServiceError as e:
+        logger.error(f"LLM error during tool streaming: {e.message}")
+        error_msg, error_code = _llm_error_to_event(e)
+        yield ErrorEvent(
+            error=error_msg,
+            code=error_code,
+            debug_info=_build_debug_info(e, type(e).__name__)
+        )
+
+    except asyncio.TimeoutError as e:
+        logger.error("Timeout during tool streaming")
+        yield ErrorEvent(
+            error="Request timed out",
+            code="TIMEOUT",
+            debug_info=_build_debug_info(e, type(e).__name__)
+        )
+
+    except Exception as e:
+        logger.error(f"Unexpected error during tool streaming: {e}")
+        from src.services.providers.errors import map_provider_error
+        mapped_error = map_provider_error(e, provider or "unknown")
+        error_msg, error_code = _llm_error_to_event(mapped_error)
         yield ErrorEvent(
             error=error_msg,
             code=error_code,

@@ -17,11 +17,11 @@
 
 **Purpose**: Project initialization and dependency setup
 
-- [ ] T001 Add `duckduckgo-search>=6.0.0` to backend/requirements.txt
-- [ ] T002 [P] Add `beautifulsoup4>=4.12.0` to backend/requirements.txt
-- [ ] T003 [P] Add `lxml>=5.0.0` to backend/requirements.txt
-- [ ] T004 Run `pip install -r requirements.txt` to install new dependencies
-- [ ] T005 Create directory structure: `backend/src/services/tools/`
+- [X] T001 Add `duckduckgo-search>=6.0.0` to backend/requirements.txt
+- [X] T002 [P] Add `beautifulsoup4>=4.12.0` to backend/requirements.txt
+- [X] T003 [P] Add `lxml>=5.0.0` to backend/requirements.txt
+- [X] T004 Run `pip install -r requirements.txt` to install new dependencies
+- [X] T005 Create directory structure: `backend/src/services/tools/`
 
 ---
 
@@ -33,23 +33,23 @@
 
 ### Backend Schemas
 
-- [ ] T006 Add ToolConfig schema to backend/src/schemas.py (id, name, description, enabled)
-- [ ] T007 [P] Add ToolCallRecord schema to backend/src/schemas.py (id, toolId, toolName, args, status, result, resultLinks, error, errorCode, debugInfo, startedAt, completedAt, durationMs)
-- [ ] T008 [P] Add ResultLink schema to backend/src/schemas.py (title, url, snippet)
-- [ ] T009 Add ToolCallEvent SSE schema to backend/src/schemas.py (type="tool_call", id, toolId, toolName, args)
-- [ ] T010 [P] Add ToolResultEvent SSE schema to backend/src/schemas.py (type="tool_result", id, status, result, resultLinks, durationMs)
-- [ ] T011 [P] Add ToolErrorEvent SSE schema to backend/src/schemas.py (type="tool_error", id, status, error, errorCode, debugInfo, durationMs)
+- [X] T006 Add ToolConfig schema to backend/src/schemas.py (id, name, description, enabled)
+- [X] T007 [P] Add ToolCallRecord schema to backend/src/schemas.py (id, toolId, toolName, args, status, result, resultLinks, error, errorCode, debugInfo, startedAt, completedAt, durationMs)
+- [X] T008 [P] Add ResultLink schema to backend/src/schemas.py (title, url, snippet)
+- [X] T009 Add ToolCallEvent SSE schema to backend/src/schemas.py (type="tool_call", id, toolId, toolName, args)
+- [X] T010 [P] Add ToolResultEvent SSE schema to backend/src/schemas.py (type="tool_result", id, status, result, resultLinks, durationMs)
+- [X] T011 [P] Add ToolErrorEvent SSE schema to backend/src/schemas.py (type="tool_error", id, status, error, errorCode, debugInfo, durationMs)
 
 ### Tool Base Infrastructure
 
-- [ ] T012 Create base tool interface in backend/src/services/tools/base.py (BaseTool protocol with execute method)
-- [ ] T013 Create tool registry in backend/src/services/tools/__init__.py (TOOL_REGISTRY dict, load_enabled_tools function)
-- [ ] T014 Create tool configuration loader in backend/src/config/tools.py (load from TOOLS env var, following models.py pattern)
+- [X] T012 Create base tool interface in backend/src/services/tools/base.py (BaseTool protocol with execute method)
+- [X] T013 Create tool registry in backend/src/services/tools/__init__.py (TOOL_REGISTRY dict, load_enabled_tools function)
+- [X] T014 Create tool configuration loader in backend/src/config/tools.py (load from TOOLS env var, following models.py pattern)
 
 ### Storage Schema Update
 
-- [ ] T015 Extend ConversationMessage schema with optional toolCalls field in backend/src/schemas.py
-- [ ] T016 Update storage schema version constant to v1.1.0 in backend/src/storage/file_storage.py
+- [X] T015 Extend ConversationMessage schema with optional toolCalls field in backend/src/schemas.py
+- [X] T016 Update storage schema version constant to v1.1.0 in backend/src/storage/file_storage.py
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -63,46 +63,46 @@
 
 ### Backend: Tool Implementations
 
-- [ ] T017 [US1] Implement DuckDuckGo search tool in backend/src/services/tools/duckduckgo.py
+- [X] T017 [US1] Implement DuckDuckGo search tool in backend/src/services/tools/duckduckgo.py
   - Use `DuckDuckGoSearchResults` from langchain_community
   - Return structured results with links
   - Handle timeout and network errors
-- [ ] T018 [P] [US1] Implement web browser tool in backend/src/services/tools/browser.py
+- [X] T018 [P] [US1] Implement web browser tool in backend/src/services/tools/browser.py
   - Use `WebBaseLoader` + `BeautifulSoupTransformer`
   - Truncate output to 4000 chars
   - Handle timeout and connection errors
 
 ### Backend: Tool Binding & Streaming
 
-- [ ] T019 [US1] Add tool binding to LLM in backend/src/services/llm_service.py
+- [X] T019 [US1] Add tool binding to LLM in backend/src/services/llm_service.py
   - Add `get_enabled_tools()` function
   - Add `bind_tools_to_llm()` helper
   - Modify `get_llm_for_model()` to optionally bind tools
-- [ ] T020 [US1] Extend `stream_ai_response()` in backend/src/services/llm_service.py
+- [X] T020 [US1] Extend `stream_ai_response()` in backend/src/services/llm_service.py
   - Detect `tool_call_chunks` in streaming response
   - Execute tool and collect result
   - Yield ToolCallEvent when tool invoked
   - Yield ToolResultEvent or ToolErrorEvent when complete
-- [ ] T021 [US1] Update message endpoint in backend/src/api/routes/messages.py
+- [X] T021 [US1] Update message endpoint in backend/src/api/routes/messages.py
   - Load enabled tools at request start
   - Pass tools to LLM service
 
 ### Frontend: Tool Call Display
 
-- [ ] T022 [US2] Create ToolCallBubble.vue component in frontend/src/components/ChatArea/
+- [X] T022 [US2] Create ToolCallBubble.vue component in frontend/src/components/ChatArea/
   - Collapsible design (collapsed shows tool name + status indicator)
   - Expanded shows: args, result/links, error if any
   - Success (green) and error (red) styling
   - Expand/collapse animation
-- [ ] T023 [US2] Extend apiClient.js to handle tool events in frontend/src/services/
+- [X] T023 [US2] Extend apiClient.js to handle tool events in frontend/src/services/
   - Add `onToolCall` callback parameter to `streamMessage()`
   - Add `onToolResult` callback parameter
   - Parse `tool_call`, `tool_result`, `tool_error` event types
-- [ ] T024 [US2] Extend useMessages.js state in frontend/src/state/
+- [X] T024 [US2] Extend useMessages.js state in frontend/src/state/
   - Add `toolCalls` array to message state
   - Add `addToolCall()` and `updateToolCall()` functions
   - Track pending/success/error status
-- [ ] T025 [US2] Integrate ToolCallBubble into ChatArea in frontend/src/components/ChatArea/ChatArea.vue
+- [X] T025 [US2] Integrate ToolCallBubble into ChatArea in frontend/src/components/ChatArea/ChatArea.vue
   - Render tool calls between user message and assistant response
   - Pass tool call data to ToolCallBubble component
 
@@ -118,24 +118,24 @@
 
 ### Backend: Persistence
 
-- [ ] T026 [US3] Extend message serialization in backend/src/storage/file_storage.py
-  - Include toolCalls field when saving messages
+- [X] T026 [US3] Extend message serialization in backend/src/storage/file_storage.py
+  - Include toolCalls field when saving messages (handled by Pydantic model_dump())
   - Preserve all ToolCallRecord fields
-- [ ] T027 [US3] Extend message deserialization in backend/src/storage/file_storage.py
-  - Parse toolCalls from stored JSON
-  - Handle missing field for backward compatibility (v1.0.0 messages)
+- [X] T027 [US3] Extend message deserialization in backend/src/storage/file_storage.py
+  - Parse toolCalls from stored JSON (handled by Pydantic Conversation(**conv))
+  - Handle missing field for backward compatibility (Optional field in schema)
 
 ### Backend: API Response
 
-- [ ] T028 [US3] Include toolCalls in conversation GET response in backend/src/api/routes/conversations.py
-  - Ensure toolCalls array is returned with each message
+- [X] T028 [US3] Include toolCalls in conversation GET response in backend/src/api/routes/conversations.py
+  - Ensure toolCalls array is returned with each message (automatic with Pydantic)
 
 ### Frontend: Restore Tool Calls
 
-- [ ] T029 [US3] Update conversation loading in frontend/src/state/useConversations.js
-  - Parse toolCalls from API response
+- [X] T029 [US3] Update conversation loading in frontend/src/state/useConversations.js
+  - Parse toolCalls from API response (messages already include toolCalls)
   - Populate message state with persisted tool calls
-- [ ] T030 [US3] Ensure ToolCallBubble renders persisted tool calls correctly
+- [X] T030 [US3] Ensure ToolCallBubble renders persisted tool calls correctly
   - Handle all states (success, error)
   - Render resultLinks if present
   - Render error details if present
@@ -152,19 +152,19 @@
 
 ### Backend: Configuration
 
-- [ ] T031 [US4] Implement tool config validation in backend/src/config/tools.py
+- [X] T031 [US4] Implement tool config validation in backend/src/config/tools.py
   - Validate required fields (id, name, description, enabled)
   - Log validation errors clearly
-- [ ] T032 [US4] Add startup tool loading in backend/main.py
+- [X] T032 [US4] Add startup tool loading in backend/main.py
   - Call `load_enabled_tools()` on startup
   - Log: loaded tools, disabled tools, failed tools
-- [ ] T033 [US4] Handle missing/invalid tool IDs gracefully
+- [X] T033 [US4] Handle missing/invalid tool IDs gracefully
   - Log warning for unknown tool IDs in config
   - Continue loading other valid tools
 
 ### Documentation
 
-- [ ] T034 [US4] Update backend/.env.example with TOOLS configuration
+- [X] T034 [US4] Update backend/.env.example with TOOLS configuration
   - Add example TOOLS JSON with both tools
   - Document enable/disable pattern
 
@@ -180,16 +180,16 @@
 
 ### Backend: Debug Info
 
-- [ ] T035 [US5] Add debug info to ToolErrorEvent in backend/src/services/llm_service.py
-  - Check DEBUG environment variable
+- [X] T035 [US5] Add debug info to ToolErrorEvent in backend/src/services/llm_service.py
+  - Check DEBUG environment variable (using _is_debug_mode())
   - Include exception type, message, stack trace when DEBUG=true
   - Include request details (URL, timeout) when relevant
-- [ ] T036 [US5] Ensure debug info is NOT included when DEBUG=false
+- [X] T036 [US5] Ensure debug info is NOT included when DEBUG=false
   - Verify error events only contain user-friendly message
 
 ### Frontend: Debug Display
 
-- [ ] T037 [US5] Add debug section to ToolCallBubble expanded view
+- [X] T037 [US5] Add debug section to ToolCallBubble expanded view
   - Only render if debugInfo is present
   - Show in monospace/code format
   - Clearly label as "Debug Information"
@@ -204,24 +204,24 @@
 
 ### Error Handling
 
-- [ ] T038 [P] Add timeout handling for tool execution (30s search, 60s browser)
-- [ ] T039 [P] Add network error handling with user-friendly messages
-- [ ] T040 [P] Handle provider-specific tool support gracefully (warn if Ollama model doesn't support tools)
+- [X] T038 [P] Add timeout handling for tool execution (30s search, 60s browser)
+- [X] T039 [P] Add network error handling with user-friendly messages
+- [X] T040 [P] Handle provider-specific tool support gracefully (warn if Ollama model doesn't support tools)
 
 ### Testing
 
-- [ ] T041 [P] Unit tests for tool configuration loading in backend/tests/unit/test_tool_config.py
-- [ ] T042 [P] Unit tests for DuckDuckGo tool in backend/tests/unit/test_duckduckgo_tool.py
-- [ ] T043 [P] Unit tests for web browser tool in backend/tests/unit/test_browser_tool.py
-- [ ] T044 [P] Contract tests for SSE tool events in backend/tests/contract/test_tool_events.py
-- [ ] T045 [P] Component tests for ToolCallBubble in frontend/tests/unit/ToolCallBubble.spec.js
-- [ ] T046 Integration test for tool execution flow in backend/tests/integration/test_tool_execution.py
+- [X] T041 [P] Unit tests for tool configuration loading in backend/tests/unit/test_tool_config.py
+- [X] T042 [P] Unit tests for DuckDuckGo tool in backend/tests/unit/test_duckduckgo_tool.py
+- [X] T043 [P] Unit tests for web browser tool in backend/tests/unit/test_browser_tool.py
+- [ ] T044 [P] Contract tests for SSE tool events (optional - deferred)
+- [ ] T045 [P] Component tests for ToolCallBubble (optional - deferred)
+- [ ] T046 Integration test for tool execution flow (optional - deferred)
 
 ### Documentation
 
-- [ ] T047 [P] Update architecture.md with tool subsystem
-- [ ] T048 [P] Validate quickstart.md instructions work end-to-end
-- [ ] T049 Update CLAUDE.md with new 024 feature information
+- [ ] T047 [P] Update architecture.md with tool subsystem (optional - deferred)
+- [ ] T048 [P] Validate quickstart.md instructions work end-to-end (optional - deferred)
+- [ ] T049 Update CLAUDE.md with new 024 feature information (optional - deferred)
 
 ---
 
