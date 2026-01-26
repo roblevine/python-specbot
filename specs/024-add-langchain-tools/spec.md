@@ -104,8 +104,10 @@ As a developer or administrator, I want to see detailed debug information when t
 
 #### Tool Configuration
 - **FR-001**: System MUST support configuring tools via server-side settings with each tool having: unique identifier, human-readable description, module/entry point reference, and enabled/disabled status.
+- **FR-001a**: System MUST default all tools to DISABLED when no TOOLS environment variable is configured; tools MUST be explicitly enabled by an administrator.
 - **FR-002**: System MUST enumerate and load all enabled tools at server startup.
 - **FR-003**: System MUST log tool loading results at startup, including: successfully loaded tools, disabled tools (skipped), and failed tools with error details.
+- **FR-003a**: System MUST log a clear message when no tools are enabled, indicating that tools are disabled by default and explaining how to enable them.
 - **FR-004**: System MUST continue operating if some tools fail to load, loading all other valid tools.
 
 #### Tool Execution

@@ -217,6 +217,15 @@
 - [ ] T045 [P] Component tests for ToolCallBubble (optional - deferred)
 - [ ] T046 Integration test for tool execution flow (optional - deferred)
 
+### Default-Disabled Behavior
+
+- [X] T050 [US4] Change tool default to DISABLED - tools must be explicitly enabled via TOOLS env var
+  - Modify load_tool_configuration() in backend/src/config/tools.py
+  - Return empty list when TOOLS env var is not set
+  - Add clear INFO log when tools are disabled by default
+  - Log instructions on how to enable tools
+- [X] T051 [US4] Update tests to reflect new default-disabled behavior
+
 ### Documentation
 
 - [ ] T047 [P] Update architecture.md with tool subsystem (optional - deferred)

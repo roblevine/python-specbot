@@ -32,8 +32,9 @@ class ToolConfigurationError(Exception):
         super().__init__(full_message)
 
 
-# Default tool configurations (used if TOOLS env var not set)
-DEFAULT_TOOLS = [
+# Example tool configurations (for documentation/reference only)
+# Tools are DISABLED by default - must be explicitly enabled via TOOLS env var
+EXAMPLE_TOOLS = [
     {
         "id": "duckduckgo-search",
         "name": "Web Search",
@@ -53,13 +54,16 @@ def load_tool_configuration() -> List[ToolConfig]:
     """
     Load tool configuration from TOOLS environment variable.
 
-    If TOOLS is not set, uses default configuration with both tools enabled.
+    IMPORTANT: Tools are DISABLED by default for security and predictability.
+    Administrators must explicitly enable tools via the TOOLS environment variable.
+
+    If TOOLS is not set, returns empty list (no tools enabled).
 
     Environment variable format:
         TOOLS='[{"id": "duckduckgo-search", "name": "Web Search", "description": "...", "enabled": true}]'
 
     Returns:
-        List[ToolConfig]: List of validated tool configurations
+        List[ToolConfig]: List of validated tool configurations (empty if TOOLS not set)
 
     Raises:
         ToolConfigurationError: If configuration is invalid
@@ -67,21 +71,24 @@ def load_tool_configuration() -> List[ToolConfig]:
     tools_json = os.getenv("TOOLS")
 
     if not tools_json:
-        logger.info("TOOLS env var not set, using default configuration")
-        tools_data = DEFAULT_TOOLS
-    else:
-        try:
-            tools_data = json.loads(tools_json)
-            if not isinstance(tools_data, list):
-                raise ToolConfigurationError(
-                    "TOOLS must be a JSON array",
-                    'Set TOOLS to a JSON array: \'[{"id": "tool-id", "name": "...", "description": "...", "enabled": true}]\''
-                )
-        except json.JSONDecodeError as e:
+        logger.info("TOOLS env var not set - all tools DISABLED by default")
+        logger.info("To enable tools, set TOOLS environment variable with JSON array:")
+        logger.info('  Example: TOOLS=\'[{"id": "duckduckgo-search", "name": "Web Search", "description": "Search the web", "enabled": true}]\'')
+        return []
+
+    # Parse TOOLS JSON
+    try:
+        tools_data = json.loads(tools_json)
+        if not isinstance(tools_data, list):
             raise ToolConfigurationError(
-                f"Invalid JSON in TOOLS: {str(e)}",
-                "Ensure TOOLS contains valid JSON."
-            ) from e
+                "TOOLS must be a JSON array",
+                'Set TOOLS to a JSON array: \'[{"id": "tool-id", "name": "...", "description": "...", "enabled": true}]\''
+            )
+    except json.JSONDecodeError as e:
+        raise ToolConfigurationError(
+            f"Invalid JSON in TOOLS: {str(e)}",
+            "Ensure TOOLS contains valid JSON."
+        ) from e
 
     # Validate each tool config
     configs: List[ToolConfig] = []

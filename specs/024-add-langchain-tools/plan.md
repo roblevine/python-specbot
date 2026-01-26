@@ -7,10 +7,12 @@
 
 Integrate LangChain tools (DuckDuckGo search and web browser) into the chatbot with:
 - Server-side tool configuration via environment variables (following existing model config pattern)
+- **Tools disabled by default** - administrators must explicitly enable tools via TOOLS env var
 - Provider-agnostic tool binding for OpenAI, Anthropic, and Ollama
 - SSE streaming of tool call events to frontend
 - Collapsible tool call UI in conversation stream showing status and details
 - Persistent storage of tool call records in conversation history
+- Clear logging at startup indicating tool status (enabled/disabled/failed)
 
 ## Technical Context
 
