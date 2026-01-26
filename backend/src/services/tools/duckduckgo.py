@@ -154,9 +154,22 @@ class DuckDuckGoSearchTool(BaseTool):
 
         # Run sync operation in thread pool
         def _sync_search():
-            with DDGS() as ddgs:
-                results = list(ddgs.text(query, max_results=max_results))
-                return results
+            try:
+                with DDGS() as ddgs:
+                    # Use region parameter for better results
+                    # wt-wt = worldwide, us-en = US English, uk-en = UK English
+                    results = list(ddgs.text(
+                        query,
+                        max_results=max_results,
+                        region="wt-wt"  # Worldwide results
+                    ))
+                    logger.debug(f"DuckDuckGo raw results count: {len(results)}")
+                    if results:
+                        logger.debug(f"First result keys: {results[0].keys() if results else 'N/A'}")
+                    return results
+            except Exception as e:
+                logger.error(f"DuckDuckGo search error in sync: {type(e).__name__}: {e}")
+                raise
 
         loop = asyncio.get_event_loop()
         results = await loop.run_in_executor(None, _sync_search)

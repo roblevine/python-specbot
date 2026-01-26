@@ -15,7 +15,7 @@ import traceback
 import uuid
 from datetime import datetime
 from typing import Any, Dict, Optional, List, Union
-from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, ToolMessage
+from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage, ToolMessage
 from langchain_core.language_models.chat_models import BaseChatModel
 
 from src.utils.logger import get_logger
@@ -48,6 +48,10 @@ from src.schemas import (
 )
 
 logger = get_logger(__name__)
+
+# Default system prompt to ensure consistent English responses
+# This helps with multilingual models that may default to other languages
+DEFAULT_SYSTEM_PROMPT = """You are a helpful AI assistant. Always respond in English, regardless of the language used in previous context or your training data. Be concise, accurate, and helpful."""
 
 
 def _is_debug_mode() -> bool:
@@ -220,23 +224,33 @@ def get_llm_for_model(model_id: str, config=None) -> BaseChatModel:
     return provider.create_llm(model_id)
 
 
-def convert_to_langchain_messages(history: List[Dict[str, str]]) -> List[BaseMessage]:
+def convert_to_langchain_messages(
+    history: List[Dict[str, str]],
+    include_system_prompt: bool = True
+) -> List[BaseMessage]:
     """
     Convert conversation history to LangChain message format.
 
     Converts an array of message objects with sender/text fields into
     LangChain message types (HumanMessage for user, AIMessage for system).
+    Optionally prepends a system prompt to ensure consistent behavior.
 
     Args:
         history: List of message dictionaries with "sender" and "text" fields
                  sender can be "user" or "system"
+        include_system_prompt: Whether to include the default system prompt
+                               (helps multilingual models respond in English)
 
     Returns:
-        List of LangChain message objects (HumanMessage or AIMessage)
+        List of LangChain message objects (SystemMessage, HumanMessage, or AIMessage)
     """
     logger.debug(f"Converting {len(history)} message(s) to LangChain format")
 
     langchain_messages: List[BaseMessage] = []
+
+    # Add system prompt first to guide model behavior (especially for multilingual models)
+    if include_system_prompt:
+        langchain_messages.append(SystemMessage(content=DEFAULT_SYSTEM_PROMPT))
 
     for msg in history:
         sender = msg.get("sender")

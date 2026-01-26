@@ -573,7 +573,7 @@ async def test_stream_ai_response_with_conversation_history():
     Feature: 009-message-streaming User Story 1
     """
     from src.services.llm_service import stream_ai_response
-    from langchain_core.messages import HumanMessage, AIMessage
+    from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
     with patch.dict('os.environ', {
         'OPENAI_API_KEY': 'test-key',
@@ -603,14 +603,16 @@ async def test_stream_ai_response_with_conversation_history():
             async for event in stream_ai_response("Second message", history=history):
                 events.append(event)
 
-            # Verify history was converted and passed
-            assert len(captured_messages) == 3  # 2 history + 1 new
-            assert isinstance(captured_messages[0], HumanMessage)
-            assert captured_messages[0].content == "First message"
-            assert isinstance(captured_messages[1], AIMessage)
-            assert captured_messages[1].content == "First response"
-            assert isinstance(captured_messages[2], HumanMessage)
-            assert captured_messages[2].content == "Second message"
+            # Verify history was converted and passed (includes system prompt)
+            assert len(captured_messages) == 4  # 1 system + 2 history + 1 new
+            assert isinstance(captured_messages[0], SystemMessage)
+            assert "helpful AI assistant" in captured_messages[0].content
+            assert isinstance(captured_messages[1], HumanMessage)
+            assert captured_messages[1].content == "First message"
+            assert isinstance(captured_messages[2], AIMessage)
+            assert captured_messages[2].content == "First response"
+            assert isinstance(captured_messages[3], HumanMessage)
+            assert captured_messages[3].content == "Second message"
 
 
 @pytest.mark.unit
