@@ -606,8 +606,13 @@ async def stream_ai_response_with_tools(
             llm = bind_tools_to_llm(llm, langchain_tools, provider)
             logger.info(f"Bound {len(langchain_tools)} tools to LLM")
 
-        # Build tool lookup for execution
-        tool_lookup = {tool.id.replace("-", "_"): tool for tool in tools}
+        # Build tool lookup using LangChain tool names
+        # LangChain tools may have different names than our tool IDs
+        tool_lookup = {}
+        for tool, lc_tool in zip(tools, langchain_tools):
+            # Use the LangChain tool's name for lookup (this is what the LLM will call)
+            tool_lookup[lc_tool.name] = tool
+            logger.debug(f"Registered tool lookup: {lc_tool.name} -> {tool.id}")
 
         # Build conversation history
         conversation = history.copy() if history else []
