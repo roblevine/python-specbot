@@ -648,20 +648,21 @@ async def stream_ai_response_with_tools(
                         idx = tc.get('index', 0)
                         if idx not in tool_call_chunks_by_index:
                             # Initialize new tool call
+                            # Use 'or' pattern because get() returns None if key exists with None value
                             tool_call_chunks_by_index[idx] = {
-                                'id': tc.get('id', ''),
-                                'name': tc.get('name', ''),
-                                'args': tc.get('args', '') or ''
+                                'id': tc.get('id') or '',
+                                'name': tc.get('name') or '',
+                                'args': tc.get('args') or ''
                             }
                         else:
                             # Accumulate into existing tool call
                             existing = tool_call_chunks_by_index[idx]
                             if tc.get('id'):
-                                existing['id'] = existing['id'] or tc.get('id', '')
+                                existing['id'] = existing['id'] or tc.get('id') or ''
                             if tc.get('name'):
-                                existing['name'] = existing['name'] or tc.get('name', '')
+                                existing['name'] = existing['name'] or tc.get('name') or ''
                             # Concatenate args strings
-                            existing['args'] += tc.get('args', '') or ''
+                            existing['args'] += tc.get('args') or ''
 
                 # Stream content tokens
                 if chunk.content:
@@ -691,7 +692,8 @@ async def stream_ai_response_with_tools(
                 break
 
             # Filter out malformed tool calls (empty names)
-            valid_tool_calls = [tc for tc in tool_calls if tc.get('name', '').strip()]
+            # Use 'or' pattern because get() returns None if key exists with None value
+            valid_tool_calls = [tc for tc in tool_calls if (tc.get('name') or '').strip()]
             if len(valid_tool_calls) < len(tool_calls):
                 skipped = len(tool_calls) - len(valid_tool_calls)
                 logger.warning(f"Skipping {skipped} malformed tool call(s) with empty names")
@@ -710,9 +712,9 @@ async def stream_ai_response_with_tools(
             ai_message_tool_calls = []
             for tc in tool_calls:
                 ai_message_tool_calls.append({
-                    "id": tc.get('id', _generate_tool_call_id()),
-                    "name": tc.get('name', ''),
-                    "args": tc.get('args', {})
+                    "id": tc.get('id') or _generate_tool_call_id(),
+                    "name": tc.get('name') or '',
+                    "args": tc.get('args') or {}
                 })
             langchain_messages.append(AIMessage(
                 content=response_content or "",
@@ -720,9 +722,9 @@ async def stream_ai_response_with_tools(
             ))
 
             for tool_call in tool_calls:
-                tool_name = tool_call.get('name', '')
-                tool_args = tool_call.get('args', {})
-                tool_call_id = tool_call.get('id', _generate_tool_call_id())
+                tool_name = tool_call.get('name') or ''
+                tool_args = tool_call.get('args') or {}
+                tool_call_id = tool_call.get('id') or _generate_tool_call_id()
 
                 # Generate our own ID for tracking
                 our_tool_id = _generate_tool_call_id()
