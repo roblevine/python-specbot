@@ -49,9 +49,9 @@ from src.schemas import (
 
 logger = get_logger(__name__)
 
-# Default system prompt to ensure consistent English responses
-# This helps with multilingual models that may default to other languages
-DEFAULT_SYSTEM_PROMPT = """You are a helpful AI assistant. Always respond in English, regardless of the language used in previous context or your training data. Be concise, accurate, and helpful."""
+# Default system prompt to guide model behavior
+# Instructs the model to match the user's language for natural multilingual support
+DEFAULT_SYSTEM_PROMPT = """You are a helpful AI assistant. Always respond in the same language as the user's message. Be concise, accurate, and helpful."""
 
 
 def _is_debug_mode() -> bool:
