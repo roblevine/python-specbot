@@ -8,6 +8,7 @@ Features: 006-openai-langchain-chat, 011-anthropic-support, 012-modular-model-pr
 Extended: 024-add-langchain-tools - Added tool calling support
 """
 
+import json
 import os
 import asyncio
 import traceback
@@ -632,21 +633,57 @@ async def stream_ai_response_with_tools(
             # Collect the full response (we need to check for tool calls)
             response_content = ""
             tool_calls = []
+            # Track tool_call_chunks by index for proper accumulation
+            # OpenAI streams tool calls in pieces: name first, then args in chunks
+            tool_call_chunks_by_index = {}
 
             async for chunk in llm.astream(langchain_messages):
                 # Check for tool calls in the chunk
                 if hasattr(chunk, 'tool_calls') and chunk.tool_calls:
+                    # Complete tool calls (non-streaming or already accumulated)
                     tool_calls.extend(chunk.tool_calls)
                 elif hasattr(chunk, 'tool_call_chunks') and chunk.tool_call_chunks:
-                    # Handle streaming tool call chunks
+                    # Handle streaming tool call chunks - accumulate by index
                     for tc in chunk.tool_call_chunks:
-                        if tc.get('name'):
-                            tool_calls.append(tc)
+                        idx = tc.get('index', 0)
+                        if idx not in tool_call_chunks_by_index:
+                            # Initialize new tool call
+                            tool_call_chunks_by_index[idx] = {
+                                'id': tc.get('id', ''),
+                                'name': tc.get('name', ''),
+                                'args': tc.get('args', '') or ''
+                            }
+                        else:
+                            # Accumulate into existing tool call
+                            existing = tool_call_chunks_by_index[idx]
+                            if tc.get('id'):
+                                existing['id'] = existing['id'] or tc.get('id', '')
+                            if tc.get('name'):
+                                existing['name'] = existing['name'] or tc.get('name', '')
+                            # Concatenate args strings
+                            existing['args'] += tc.get('args', '') or ''
 
                 # Stream content tokens
                 if chunk.content:
                     response_content += chunk.content
                     yield TokenEvent(content=chunk.content)
+
+            # After streaming, convert accumulated chunks to tool_calls
+            if tool_call_chunks_by_index:
+                for idx in sorted(tool_call_chunks_by_index.keys()):
+                    tc = tool_call_chunks_by_index[idx]
+                    # Parse args JSON string to dict
+                    args_str = tc.get('args', '')
+                    if args_str:
+                        try:
+                            tc['args'] = json.loads(args_str)
+                        except json.JSONDecodeError:
+                            logger.warning(f"Failed to parse tool args JSON: {args_str}")
+                            tc['args'] = {}
+                    else:
+                        tc['args'] = {}
+                    tool_calls.append(tc)
+                logger.debug(f"Accumulated {len(tool_call_chunks_by_index)} tool calls from chunks")
 
             # If no tool calls, we're done
             if not tool_calls:
@@ -849,7 +886,7 @@ async def stream_ai_response_with_tools(
                 }
             yield ErrorEvent(
                 error=error_msg,
-                code="TOOL_EXECUTION_FAILED",
+                code="LLM_ERROR",
                 debug_info=debug_info
             )
             return
