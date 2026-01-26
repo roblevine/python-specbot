@@ -638,11 +638,10 @@ async def stream_ai_response_with_tools(
             tool_call_chunks_by_index = {}
 
             async for chunk in llm.astream(langchain_messages):
-                # Check for tool calls in the chunk
-                if hasattr(chunk, 'tool_calls') and chunk.tool_calls:
-                    # Complete tool calls (non-streaming or already accumulated)
-                    tool_calls.extend(chunk.tool_calls)
-                elif hasattr(chunk, 'tool_call_chunks') and chunk.tool_call_chunks:
+                # Check for streaming tool call chunks FIRST
+                # OpenAI sends tool_call_chunks during streaming - accumulate these
+                # Note: Don't use elif - some chunks may have both tool_calls and tool_call_chunks
+                if hasattr(chunk, 'tool_call_chunks') and chunk.tool_call_chunks:
                     # Handle streaming tool call chunks - accumulate by index
                     for tc in chunk.tool_call_chunks:
                         idx = tc.get('index', 0)
@@ -663,6 +662,11 @@ async def stream_ai_response_with_tools(
                                 existing['name'] = existing['name'] or tc.get('name') or ''
                             # Concatenate args strings
                             existing['args'] += tc.get('args') or ''
+                # Only use tool_calls if we're NOT accumulating chunks
+                # (some non-streaming providers may use tool_calls directly)
+                elif hasattr(chunk, 'tool_calls') and chunk.tool_calls and not tool_call_chunks_by_index:
+                    # Complete tool calls (non-streaming providers only)
+                    tool_calls.extend(chunk.tool_calls)
 
                 # Stream content tokens
                 if chunk.content:
