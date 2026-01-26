@@ -653,8 +653,34 @@ async def stream_ai_response_with_tools(
                 logger.info("No tool calls in response, completing")
                 break
 
+            # Filter out malformed tool calls (empty names)
+            valid_tool_calls = [tc for tc in tool_calls if tc.get('name', '').strip()]
+            if len(valid_tool_calls) < len(tool_calls):
+                skipped = len(tool_calls) - len(valid_tool_calls)
+                logger.warning(f"Skipping {skipped} malformed tool call(s) with empty names")
+
+            if not valid_tool_calls:
+                logger.warning("All tool calls had empty names, completing without tools")
+                break
+
+            tool_calls = valid_tool_calls
+
             # Process tool calls
             logger.info(f"Processing {len(tool_calls)} tool call(s)")
+
+            # First, add an AIMessage with the tool_calls to the conversation
+            # OpenAI requires ToolMessages to follow an AIMessage with tool_calls
+            ai_message_tool_calls = []
+            for tc in tool_calls:
+                ai_message_tool_calls.append({
+                    "id": tc.get('id', _generate_tool_call_id()),
+                    "name": tc.get('name', ''),
+                    "args": tc.get('args', {})
+                })
+            langchain_messages.append(AIMessage(
+                content=response_content or "",
+                tool_calls=ai_message_tool_calls
+            ))
 
             for tool_call in tool_calls:
                 tool_name = tool_call.get('name', '')
@@ -690,6 +716,14 @@ async def stream_ai_response_with_tools(
                         "status": "error",
                         "durationMs": 0
                     })
+                    # Still need to add ToolMessage for this failed lookup
+                    # OpenAI requires a ToolMessage for every tool_call
+                    langchain_messages.append(
+                        ToolMessage(
+                            content=f"Error: Tool not found: {tool_name}",
+                            tool_call_id=tool_call_id
+                        )
+                    )
                     continue
 
                 # Emit tool call event
