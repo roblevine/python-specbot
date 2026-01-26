@@ -667,13 +667,22 @@ async def stream_ai_response_with_tools(
                 # Find the tool
                 tool = tool_lookup.get(tool_name)
                 if not tool:
-                    logger.warning(f"Unknown tool: {tool_name}")
+                    available_tools = list(tool_lookup.keys())
+                    logger.warning(f"Unknown tool: {tool_name}. Available tools: {available_tools}")
+                    debug_info = None
+                    if _is_debug_mode():
+                        debug_info = {
+                            "requestedTool": tool_name,
+                            "availableTools": available_tools,
+                            "hint": "The LLM requested a tool that is not registered. Check tool names in to_langchain_tool()."
+                        }
                     yield ToolErrorEvent(
                         id=our_tool_id,
                         status="error",
                         error=f"Tool not found: {tool_name}",
                         errorCode="TOOL_NOT_FOUND",
-                        durationMs=0
+                        durationMs=0,
+                        debugInfo=debug_info
                     )
                     tool_calls_summary.append({
                         "id": our_tool_id,
@@ -788,6 +797,28 @@ async def stream_ai_response_with_tools(
                             tool_call_id=tool_call_id
                         )
                     )
+
+        # Check if we exited the loop without generating any response
+        # This can happen when all tool calls fail repeatedly
+        failed_tool_calls = [tc for tc in tool_calls_summary if tc.get("status") == "error"]
+        if iteration >= max_iterations and len(failed_tool_calls) == len(tool_calls_summary) and len(tool_calls_summary) > 0:
+            error_msg = f"Unable to complete request after {max_iterations} attempts. All {len(failed_tool_calls)} tool calls failed."
+            logger.error(error_msg)
+            debug_info = None
+            if _is_debug_mode():
+                debug_info = {
+                    "totalIterations": iteration,
+                    "totalToolCalls": len(tool_calls_summary),
+                    "failedToolCalls": len(failed_tool_calls),
+                    "toolCallDetails": tool_calls_summary,
+                    "hint": "Check that tool names in to_langchain_tool() match what the LLM expects."
+                }
+            yield ErrorEvent(
+                error=error_msg,
+                code="TOOL_EXECUTION_FAILED",
+                debug_info=debug_info
+            )
+            return
 
         # Yield completion event with tool call summary
         logger.info(f"Stream completed with {len(tool_calls_summary)} tool call(s)")
