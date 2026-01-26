@@ -1059,3 +1059,363 @@ async def test_stream_ai_response_handles_anthropic_internal_server_error():
             # InternalServerError should map to LLM_ERROR (service problem)
             assert events[0].code == "LLM_ERROR", \
                 f"InternalServerError should map to LLM_ERROR, got {events[0].code}"
+
+
+# ============================================================================
+# Tool Streaming Bug Fix Tests (Feature: 024-add-langchain-tools)
+# ============================================================================
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_stream_tool_response_handles_anthropic_list_content():
+    """
+    BUG FIX TEST: Verify Anthropic's list content format is handled.
+
+    This test catches the bug where Anthropic returns chunk.content as a list
+    instead of a string, causing "can only concatenate str (not 'list') to str".
+
+    Anthropic format: chunk.content = [{"type": "text", "text": "Hello"}]
+    OpenAI format: chunk.content = "Hello"
+    """
+    from src.services.llm_service import stream_ai_response_with_tools
+    from src.schemas import TokenEvent, CompleteEvent
+
+    with patch.dict('os.environ', {
+        'ANTHROPIC_API_KEY': 'test-key',
+        'ANTHROPIC_MODELS': '[{"id": "claude-3-5-sonnet", "name": "Claude", "description": "Test"}]',
+        'DEFAULT_MODEL': 'claude-3-5-sonnet'
+    }, clear=True):
+        with patch('src.services.providers.anthropic.ChatAnthropic') as mock_chat:
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+
+            # Mock bind_tools to return the same LLM
+            mock_llm.bind_tools = Mock(return_value=mock_llm)
+
+            # Mock astream with Anthropic-style list content
+            async def mock_astream(messages):
+                # Anthropic returns content as a list of content blocks
+                chunks = [
+                    Mock(content=[{"type": "text", "text": "Hello"}], tool_calls=None, tool_call_chunks=None),
+                    Mock(content=[{"type": "text", "text": " world"}], tool_calls=None, tool_call_chunks=None),
+                ]
+                for chunk in chunks:
+                    # Ensure hasattr checks pass
+                    chunk.tool_call_chunks = None
+                    chunk.tool_calls = None
+                    yield chunk
+
+            mock_llm.astream = mock_astream
+
+            events = []
+            async for event in stream_ai_response_with_tools("Test", tools=[]):
+                events.append(event)
+
+            # Should get TokenEvents with extracted text
+            token_events = [e for e in events if isinstance(e, TokenEvent)]
+            assert len(token_events) == 2
+            assert token_events[0].content == "Hello"
+            assert token_events[1].content == " world"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_stream_tool_response_handles_anthropic_content_block_objects():
+    """
+    BUG FIX TEST: Verify Anthropic content block objects with .text attribute.
+
+    Some Anthropic responses return content blocks as objects with .text attribute
+    rather than dicts with 'text' key.
+    """
+    from src.services.llm_service import stream_ai_response_with_tools
+    from src.schemas import TokenEvent
+
+    with patch.dict('os.environ', {
+        'ANTHROPIC_API_KEY': 'test-key',
+        'ANTHROPIC_MODELS': '[{"id": "claude-3-5-sonnet", "name": "Claude", "description": "Test"}]',
+        'DEFAULT_MODEL': 'claude-3-5-sonnet'
+    }, clear=True):
+        with patch('src.services.providers.anthropic.ChatAnthropic') as mock_chat:
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+            mock_llm.bind_tools = Mock(return_value=mock_llm)
+
+            # Create mock content block with .text attribute
+            content_block = Mock()
+            content_block.text = "Response text"
+            content_block.type = "text"
+
+            async def mock_astream(messages):
+                chunk = Mock(content=[content_block], tool_calls=None, tool_call_chunks=None)
+                chunk.tool_call_chunks = None
+                chunk.tool_calls = None
+                yield chunk
+
+            mock_llm.astream = mock_astream
+
+            events = []
+            async for event in stream_ai_response_with_tools("Test", tools=[]):
+                events.append(event)
+
+            token_events = [e for e in events if isinstance(e, TokenEvent)]
+            assert len(token_events) == 1
+            assert token_events[0].content == "Response text"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_stream_tool_response_handles_string_content():
+    """
+    REGRESSION TEST: Verify OpenAI's string content format still works.
+
+    Ensures the Anthropic list content fix doesn't break OpenAI string content.
+    """
+    from src.services.llm_service import stream_ai_response_with_tools
+    from src.schemas import TokenEvent
+
+    with patch.dict('os.environ', {
+        'OPENAI_API_KEY': 'test-key',
+        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5", "description": "Test"}]',
+        'DEFAULT_MODEL': 'gpt-3.5-turbo'
+    }, clear=True):
+        with patch('src.services.providers.openai.ChatOpenAI') as mock_chat:
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+            mock_llm.bind_tools = Mock(return_value=mock_llm)
+
+            async def mock_astream(messages):
+                # OpenAI returns content as string
+                chunks = [
+                    Mock(content="Hello", tool_calls=None, tool_call_chunks=None),
+                    Mock(content=" world", tool_calls=None, tool_call_chunks=None),
+                ]
+                for chunk in chunks:
+                    chunk.tool_call_chunks = None
+                    chunk.tool_calls = None
+                    yield chunk
+
+            mock_llm.astream = mock_astream
+
+            events = []
+            async for event in stream_ai_response_with_tools("Test", tools=[]):
+                events.append(event)
+
+            token_events = [e for e in events if isinstance(e, TokenEvent)]
+            assert len(token_events) == 2
+            assert token_events[0].content == "Hello"
+            assert token_events[1].content == " world"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_tool_call_chunks_accumulation():
+    """
+    BUG FIX TEST: Verify tool_call_chunks are properly accumulated.
+
+    This test catches the bug where OpenAI streams tool calls in pieces:
+    - First chunk has name and opening '{' of args
+    - Subsequent chunks have rest of args JSON
+
+    The bug caused args to miss the opening '{' because we were only
+    capturing chunks with 'name' set.
+    """
+    from src.services.llm_service import stream_ai_response_with_tools
+    from src.schemas import ToolCallEvent
+
+    with patch.dict('os.environ', {
+        'OPENAI_API_KEY': 'test-key',
+        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5", "description": "Test"}]',
+        'DEFAULT_MODEL': 'gpt-3.5-turbo'
+    }, clear=True):
+        with patch('src.services.providers.openai.ChatOpenAI') as mock_chat:
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+            mock_llm.bind_tools = Mock(return_value=mock_llm)
+
+            # Simulate OpenAI streaming tool call chunks
+            async def mock_astream(messages):
+                # First chunk: has name and start of args
+                chunk1 = Mock(content="", tool_calls=None)
+                chunk1.tool_call_chunks = [
+                    {'index': 0, 'id': 'call_123', 'name': 'web_search', 'args': '{"'}
+                ]
+                yield chunk1
+
+                # Second chunk: middle of args
+                chunk2 = Mock(content="", tool_calls=None)
+                chunk2.tool_call_chunks = [
+                    {'index': 0, 'id': None, 'name': None, 'args': 'query": "test'}
+                ]
+                yield chunk2
+
+                # Third chunk: end of args
+                chunk3 = Mock(content="", tool_calls=None)
+                chunk3.tool_call_chunks = [
+                    {'index': 0, 'id': None, 'name': None, 'args': '"}'}
+                ]
+                yield chunk3
+
+            mock_llm.astream = mock_astream
+
+            # Mock tool registry to have a matching tool
+            with patch('src.services.llm_service.get_enabled_tools') as mock_get_tools, \
+                 patch('src.services.llm_service.get_langchain_tools') as mock_lc_tools:
+
+                # Create mock tool
+                mock_tool = Mock()
+                mock_tool.id = 'duckduckgo-search'
+                mock_tool.name = 'Web Search'
+
+                mock_lc_tool = Mock()
+                mock_lc_tool.name = 'web_search'
+
+                mock_get_tools.return_value = [mock_tool]
+                mock_lc_tools.return_value = [mock_lc_tool]
+
+                events = []
+                async for event in stream_ai_response_with_tools("Search for test"):
+                    events.append(event)
+                    # Stop after first tool call event to verify args were parsed
+                    if isinstance(event, ToolCallEvent):
+                        break
+
+                # Verify we got a ToolCallEvent with properly parsed args
+                tool_events = [e for e in events if isinstance(e, ToolCallEvent)]
+                assert len(tool_events) == 1
+                assert tool_events[0].args == {"query": "test"}, \
+                    f"Args should be properly accumulated and parsed, got: {tool_events[0].args}"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_tool_call_chunks_with_none_values():
+    """
+    BUG FIX TEST: Verify None values in tool_call_chunks are handled.
+
+    This test catches the bug where dict.get('key', default) returns None
+    when the key exists but has None value. This caused AttributeError
+    when calling .strip() on None.
+    """
+    from src.services.llm_service import stream_ai_response_with_tools
+    from src.schemas import ToolCallEvent
+
+    with patch.dict('os.environ', {
+        'OPENAI_API_KEY': 'test-key',
+        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5", "description": "Test"}]',
+        'DEFAULT_MODEL': 'gpt-3.5-turbo'
+    }, clear=True):
+        with patch('src.services.providers.openai.ChatOpenAI') as mock_chat:
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+            mock_llm.bind_tools = Mock(return_value=mock_llm)
+
+            # Simulate chunks with explicit None values (not missing keys)
+            async def mock_astream(messages):
+                # Chunk with explicit None values (this is what LangChain does)
+                chunk1 = Mock(content="", tool_calls=None)
+                chunk1.tool_call_chunks = [
+                    {'index': 0, 'id': 'call_123', 'name': 'web_search', 'args': '{"query":'}
+                ]
+                yield chunk1
+
+                # Chunk with name=None (explicitly set, not missing)
+                chunk2 = Mock(content="", tool_calls=None)
+                chunk2.tool_call_chunks = [
+                    {'index': 0, 'id': None, 'name': None, 'args': ' "test"}'}
+                ]
+                yield chunk2
+
+            mock_llm.astream = mock_astream
+
+            with patch('src.services.llm_service.get_enabled_tools') as mock_get_tools, \
+                 patch('src.services.llm_service.get_langchain_tools') as mock_lc_tools:
+
+                mock_tool = Mock()
+                mock_tool.id = 'duckduckgo-search'
+                mock_tool.name = 'Web Search'
+
+                mock_lc_tool = Mock()
+                mock_lc_tool.name = 'web_search'
+
+                mock_get_tools.return_value = [mock_tool]
+                mock_lc_tools.return_value = [mock_lc_tool]
+
+                # This should NOT raise AttributeError: 'NoneType' object has no attribute 'strip'
+                events = []
+                try:
+                    async for event in stream_ai_response_with_tools("Search for test"):
+                        events.append(event)
+                        if isinstance(event, ToolCallEvent):
+                            break
+                except AttributeError as e:
+                    if "'NoneType' object has no attribute 'strip'" in str(e):
+                        pytest.fail("None value handling bug: " + str(e))
+                    raise
+
+                # Should successfully parse the tool call
+                tool_events = [e for e in events if isinstance(e, ToolCallEvent)]
+                assert len(tool_events) == 1
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_tool_call_chunks_prioritized_over_tool_calls():
+    """
+    BUG FIX TEST: Verify tool_call_chunks are processed before tool_calls.
+
+    This test catches the bug where if/elif caused tool_calls to be processed
+    first, skipping tool_call_chunks that contain the actual streaming data.
+    This led to incomplete args (missing opening '{').
+    """
+    from src.services.llm_service import stream_ai_response_with_tools
+    from src.schemas import ToolCallEvent
+
+    with patch.dict('os.environ', {
+        'OPENAI_API_KEY': 'test-key',
+        'OPENAI_MODELS': '[{"id": "gpt-3.5-turbo", "name": "GPT-3.5", "description": "Test"}]',
+        'DEFAULT_MODEL': 'gpt-3.5-turbo'
+    }, clear=True):
+        with patch('src.services.providers.openai.ChatOpenAI') as mock_chat:
+            mock_llm = Mock()
+            mock_chat.return_value = mock_llm
+            mock_llm.bind_tools = Mock(return_value=mock_llm)
+
+            # Simulate chunks that have BOTH tool_calls AND tool_call_chunks
+            # (this is what OpenAI does - partial tool_calls alongside chunks)
+            async def mock_astream(messages):
+                # Chunk with both - tool_call_chunks should be used
+                chunk = Mock(content="")
+                # Partial tool_calls (incomplete - missing args)
+                chunk.tool_calls = [{'id': 'call_123', 'name': '', 'args': {}}]
+                # Complete tool_call_chunks (has full args)
+                chunk.tool_call_chunks = [
+                    {'index': 0, 'id': 'call_123', 'name': 'web_search', 'args': '{"query": "test"}'}
+                ]
+                yield chunk
+
+            mock_llm.astream = mock_astream
+
+            with patch('src.services.llm_service.get_enabled_tools') as mock_get_tools, \
+                 patch('src.services.llm_service.get_langchain_tools') as mock_lc_tools:
+
+                mock_tool = Mock()
+                mock_tool.id = 'duckduckgo-search'
+                mock_tool.name = 'Web Search'
+
+                mock_lc_tool = Mock()
+                mock_lc_tool.name = 'web_search'
+
+                mock_get_tools.return_value = [mock_tool]
+                mock_lc_tools.return_value = [mock_lc_tool]
+
+                events = []
+                async for event in stream_ai_response_with_tools("Search"):
+                    events.append(event)
+                    if isinstance(event, ToolCallEvent):
+                        break
+
+                tool_events = [e for e in events if isinstance(e, ToolCallEvent)]
+                assert len(tool_events) == 1
+                # Args should come from tool_call_chunks, not partial tool_calls
+                assert tool_events[0].args == {"query": "test"}, \
+                    f"Should use args from tool_call_chunks, got: {tool_events[0].args}"

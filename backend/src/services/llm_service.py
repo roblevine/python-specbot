@@ -471,7 +471,21 @@ async def stream_ai_response(
 
         async for chunk in llm.astream(langchain_messages):
             # Extract content from chunk
+            # Handle different content formats from providers:
+            # - OpenAI: chunk.content is a string
+            # - Anthropic: chunk.content may be a list of content blocks
             content = chunk.content
+            if isinstance(content, list):
+                # Extract text from content blocks (Anthropic format)
+                text_parts = []
+                for block in content:
+                    if isinstance(block, dict) and block.get('type') == 'text':
+                        text_parts.append(block.get('text', ''))
+                    elif isinstance(block, str):
+                        text_parts.append(block)
+                    elif hasattr(block, 'text'):
+                        text_parts.append(block.text)
+                content = ''.join(text_parts)
 
             # Skip empty chunks
             if content:
@@ -670,8 +684,25 @@ async def stream_ai_response_with_tools(
 
                 # Stream content tokens
                 if chunk.content:
-                    response_content += chunk.content
-                    yield TokenEvent(content=chunk.content)
+                    # Handle different content formats from providers:
+                    # - OpenAI: chunk.content is a string
+                    # - Anthropic: chunk.content may be a list of content blocks
+                    content = chunk.content
+                    if isinstance(content, list):
+                        # Extract text from content blocks (Anthropic format)
+                        text_parts = []
+                        for block in content:
+                            if isinstance(block, dict) and block.get('type') == 'text':
+                                text_parts.append(block.get('text', ''))
+                            elif isinstance(block, str):
+                                text_parts.append(block)
+                            elif hasattr(block, 'text'):
+                                text_parts.append(block.text)
+                        content = ''.join(text_parts)
+
+                    if content:
+                        response_content += content
+                        yield TokenEvent(content=content)
 
             # After streaming, convert accumulated chunks to tool_calls
             if tool_call_chunks_by_index:
