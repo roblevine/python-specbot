@@ -2,7 +2,10 @@
   <div class="input-area">
     <!-- Feature 015: ModelSelector positioned above chat input within input pane -->
     <!-- Feature 021: Pass disabled state to lock model selector after conversation starts -->
-    <ModelSelector class="model-selector-container" :disabled="modelSelectorDisabled" />
+    <ModelSelector
+      class="model-selector-container"
+      :disabled="modelSelectorDisabled"
+    />
     <div class="input-container">
       <textarea
         ref="inputRef"

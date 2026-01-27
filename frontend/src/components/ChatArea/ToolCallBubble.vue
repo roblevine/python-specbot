@@ -20,26 +20,44 @@
       <span class="tool-name">{{ toolCall.toolName }}</span>
 
       <!-- Status indicator -->
-      <span class="status-indicator" :class="statusClass">
-        <span v-if="toolCall.status === 'pending'" class="status-pending">
-          <span class="spinner"></span>
+      <span
+        class="status-indicator"
+        :class="statusClass"
+      >
+        <span
+          v-if="toolCall.status === 'pending'"
+          class="status-pending"
+        >
+          <span class="spinner" />
           Running...
         </span>
-        <span v-else-if="toolCall.status === 'success'" class="status-success">
+        <span
+          v-else-if="toolCall.status === 'success'"
+          class="status-success"
+        >
           ✓ Completed
         </span>
-        <span v-else-if="toolCall.status === 'error'" class="status-error">
+        <span
+          v-else-if="toolCall.status === 'error'"
+          class="status-error"
+        >
           ✗ Failed
         </span>
       </span>
 
       <!-- Duration (if available) -->
-      <span v-if="toolCall.durationMs" class="tool-duration">
+      <span
+        v-if="toolCall.durationMs"
+        class="tool-duration"
+      >
         {{ formatDuration(toolCall.durationMs) }}
       </span>
 
       <!-- Expand/collapse arrow -->
-      <span class="expand-arrow" :class="{ expanded: isExpanded }">
+      <span
+        class="expand-arrow"
+        :class="{ expanded: isExpanded }"
+      >
         ▼
       </span>
     </button>
@@ -52,39 +70,80 @@
         class="tool-details"
       >
         <!-- Arguments section -->
-        <div v-if="hasArgs" class="tool-section">
-          <div class="section-label">Arguments:</div>
+        <div
+          v-if="hasArgs"
+          class="tool-section"
+        >
+          <div class="section-label">
+            Arguments:
+          </div>
           <pre class="tool-args">{{ formatArgs }}</pre>
         </div>
 
         <!-- Result section (success) -->
-        <div v-if="toolCall.status === 'success' && toolCall.result" class="tool-section">
-          <div class="section-label">Result:</div>
-          <div class="tool-result">{{ truncatedResult }}</div>
+        <div
+          v-if="toolCall.status === 'success' && toolCall.result"
+          class="tool-section"
+        >
+          <div class="section-label">
+            Result:
+          </div>
+          <div class="tool-result">
+            {{ truncatedResult }}
+          </div>
         </div>
 
         <!-- Links section (if available) -->
-        <div v-if="hasLinks" class="tool-section">
-          <div class="section-label">Sources:</div>
+        <div
+          v-if="hasLinks"
+          class="tool-section"
+        >
+          <div class="section-label">
+            Sources:
+          </div>
           <ul class="tool-links">
-            <li v-for="(link, idx) in toolCall.resultLinks" :key="idx" class="link-item">
-              <a :href="link.url" target="_blank" rel="noopener noreferrer" class="link-title">
+            <li
+              v-for="(link, idx) in toolCall.resultLinks"
+              :key="idx"
+              class="link-item"
+            >
+              <a
+                :href="link.url"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="link-title"
+              >
                 {{ link.title }}
               </a>
-              <span v-if="link.snippet" class="link-snippet">{{ truncateText(link.snippet, 100) }}</span>
+              <span
+                v-if="link.snippet"
+                class="link-snippet"
+              >{{ truncateText(link.snippet, 100) }}</span>
             </li>
           </ul>
         </div>
 
         <!-- Error section -->
-        <div v-if="toolCall.status === 'error' && toolCall.error" class="tool-section error-section">
-          <div class="section-label">Error:</div>
-          <div class="tool-error">{{ toolCall.error }}</div>
+        <div
+          v-if="toolCall.status === 'error' && toolCall.error"
+          class="tool-section error-section"
+        >
+          <div class="section-label">
+            Error:
+          </div>
+          <div class="tool-error">
+            {{ toolCall.error }}
+          </div>
         </div>
 
         <!-- Debug info section (if available) -->
-        <div v-if="toolCall.debugInfo" class="tool-section debug-section">
-          <div class="section-label">Debug Information:</div>
+        <div
+          v-if="toolCall.debugInfo"
+          class="tool-section debug-section"
+        >
+          <div class="section-label">
+            Debug Information:
+          </div>
           <pre class="debug-info">{{ formatDebugInfo }}</pre>
         </div>
       </div>

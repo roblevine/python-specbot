@@ -370,14 +370,16 @@ export function streamMessage(messageText, onToken, onComplete, onError = null, 
       const decoder = new TextDecoder('utf-8')
       let buffer = '' // Buffer for partial SSE events
 
-      // Read stream chunks
-      while (true) {
+      // Read stream chunks until done
+      let streamDone = false
+      while (!streamDone) {
         const { done, value } = await reader.read()
 
         if (done) {
           logger.debug('Stream completed')
           clearTimeout(streamTimeout)
-          break
+          streamDone = true
+          continue
         }
 
         // Decode chunk and add to buffer

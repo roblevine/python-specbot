@@ -1,24 +1,41 @@
 <template>
-  <div class="model-selector" role="group" aria-label="AI Model Selection">
-    <label for="model-select" class="model-selector__label">
+  <div
+    class="model-selector"
+    role="group"
+    aria-label="AI Model Selection"
+  >
+    <label
+      for="model-select"
+      class="model-selector__label"
+    >
       Model:
     </label>
     <select
       id="model-select"
       v-model="selectedModelId"
       class="model-selector__select"
-      @change="handleModelChange"
       :disabled="disabled || isLoading || availableModels.length === 0"
       :aria-label="isLoading ? 'Loading available models' : 'Select AI model for conversation'"
       :aria-busy="isLoading"
       :aria-invalid="error ? 'true' : 'false'"
       :aria-describedby="error ? 'model-error' : undefined"
+      @change="handleModelChange"
     >
-      <option v-if="isLoading" value="">Loading models...</option>
-      <option v-else-if="error" value="">Error loading models</option>
       <option
-        v-else
+        v-if="isLoading"
+        value=""
+      >
+        Loading models...
+      </option>
+      <option
+        v-else-if="error"
+        value=""
+      >
+        Error loading models
+      </option>
+      <option
         v-for="model in availableModels"
+        v-else
         :key="model.id"
         :value="model.id"
         class="model-selector__option"
