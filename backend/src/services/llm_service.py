@@ -825,6 +825,7 @@ async def stream_ai_response_with_tools(
                 # Execute the tool
                 start_time = datetime.utcnow()
                 try:
+                    logger.debug(f"Executing tool {tool.id} with args: {repr(tool_args)}")
                     result = await tool.execute(**tool_args)
                     end_time = datetime.utcnow()
                     duration_ms = int((end_time - start_time).total_seconds() * 1000)

@@ -168,6 +168,8 @@ class DuckDuckGoSearchTool(BaseTool):
         def _sync_search():
             try:
                 with DDGS() as ddgs:
+                    # Log exact query for debugging
+                    logger.debug(f"DuckDuckGo exact query: repr={repr(query)}")
                     # Use region parameter for better results
                     # wt-wt = worldwide, us-en = US English, uk-en = UK English
                     results = list(ddgs.text(
