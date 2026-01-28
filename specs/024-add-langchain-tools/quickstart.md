@@ -17,15 +17,18 @@
 ```bash
 # Backend
 cd backend
-pip install duckduckgo-search beautifulsoup4 lxml
+pip install ddgs beautifulsoup4 lxml
 ```
 
 Or add to `requirements.txt`:
 ```text
-duckduckgo-search>=6.0.0
+ddgs>=7.0.0
 beautifulsoup4>=4.12.0
 lxml>=5.0.0
 ```
+
+> **Note**: The `ddgs` package replaces the deprecated `duckduckgo-search` package.
+> If you have `duckduckgo-search` installed, uninstall it first: `pip uninstall duckduckgo-search`
 
 ---
 
@@ -204,9 +207,12 @@ Error events will include debug info:
 
 ### Search returns no results
 
-1. DuckDuckGo may rate-limit aggressive queries
-2. Try a different search term
-3. Check network connectivity
+1. **Check you're using `ddgs` package** (not `duckduckgo-search`)
+   - The old `duckduckgo-search` package is deprecated and returns 0 results
+   - Run: `pip uninstall duckduckgo-search && pip install ddgs`
+2. DuckDuckGo may rate-limit aggressive queries
+3. Try a different search term
+4. Check network connectivity
 
 ### Web browser times out
 

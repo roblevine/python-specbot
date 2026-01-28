@@ -39,7 +39,10 @@ search_tool = DuckDuckGoSearchResults(
 )
 ```
 
-**Package Dependency**: `duckduckgo-search` (add to requirements.txt)
+**Package Dependency**: `ddgs>=7.0.0` (add to requirements.txt)
+
+> **Note**: The original `duckduckgo-search` package has been deprecated and renamed to `ddgs`.
+> Using the old package will result in 0 search results.
 
 ---
 
@@ -298,10 +301,13 @@ When `DEBUG=true`, tool errors include:
 
 ```text
 # backend/requirements.txt additions
-duckduckgo-search>=6.0.0
+ddgs>=7.0.0              # DuckDuckGo search (replaces deprecated duckduckgo-search)
 beautifulsoup4>=4.12.0
-lxml>=5.0.0  # Optional, for faster HTML parsing
+lxml>=5.0.0              # Optional, for faster HTML parsing
 ```
+
+> **Important**: Do NOT use `duckduckgo-search` - it has been deprecated and returns 0 results.
+> Always use `ddgs` which is the renamed/updated package.
 
 ---
 

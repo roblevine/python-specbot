@@ -17,7 +17,7 @@
 
 **Purpose**: Project initialization and dependency setup
 
-- [X] T001 Add `duckduckgo-search>=6.0.0` to backend/requirements.txt
+- [X] T001 Add `ddgs>=7.0.0` to backend/requirements.txt (replaces deprecated `duckduckgo-search`)
 - [X] T002 [P] Add `beautifulsoup4>=4.12.0` to backend/requirements.txt
 - [X] T003 [P] Add `lxml>=5.0.0` to backend/requirements.txt
 - [X] T004 Run `pip install -r requirements.txt` to install new dependencies

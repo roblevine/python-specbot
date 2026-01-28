@@ -168,8 +168,6 @@ class DuckDuckGoSearchTool(BaseTool):
         def _sync_search():
             try:
                 with DDGS() as ddgs:
-                    # Log exact query for debugging
-                    logger.debug(f"DuckDuckGo exact query: repr={repr(query)}")
                     # Use region parameter for better results
                     # wt-wt = worldwide, us-en = US English, uk-en = UK English
                     results = list(ddgs.text(
@@ -177,9 +175,7 @@ class DuckDuckGoSearchTool(BaseTool):
                         max_results=max_results,
                         region="wt-wt"  # Worldwide results
                     ))
-                    logger.debug(f"DuckDuckGo raw results count: {len(results)}")
-                    if results:
-                        logger.debug(f"First result keys: {results[0].keys() if results else 'N/A'}")
+                    logger.debug(f"DuckDuckGo search returned {len(results)} results")
                     return results
             except DDGSException as e:
                 error_str = str(e).lower()
