@@ -31,6 +31,8 @@ def mock_test_env_vars(monkeypatch):
     # Clear any existing model configuration (including legacy MODELS env var)
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.delenv("ANTHROPIC_MODELS", raising=False)
+    monkeypatch.delenv("OLLAMA_MODELS", raising=False)
+    monkeypatch.delenv("OLLAMA_BASE_URL", raising=False)
     monkeypatch.delenv("MODELS", raising=False)  # Legacy - silently ignored
 
     # Set predictable test values BEFORE any imports that load config

@@ -98,10 +98,8 @@ export function renderMarkdown(text) {
 
     // Sanitize to prevent XSS (FR-002, SC-006)
     const cleanHtml = DOMPurify.sanitize(rawHtml, {
-      // Allow highlight.js classes
-      ADD_ATTR: ['class'],
-      // Keep target="_blank" for links
-      ADD_ATTR: ['target', 'rel'],
+      // Allow highlight.js classes and link attributes
+      ADD_ATTR: ['class', 'target', 'rel'],
     })
 
     return cleanHtml

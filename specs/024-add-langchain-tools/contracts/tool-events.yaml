@@ -1,0 +1,362 @@
+openapi: 3.1.0
+info:
+  title: LangChain Tool Events SSE Contract
+  version: 1.0.0
+  description: |
+    Server-Sent Events (SSE) contract for tool call events during message streaming.
+    These events are emitted alongside existing TokenEvent and CompleteEvent types.
+
+paths:
+  /api/v1/messages:
+    post:
+      summary: Send message with optional tool execution
+      description: |
+        Streams response tokens and tool call events via SSE.
+        Tool events are interleaved with token events during streaming.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageRequest'
+      responses:
+        '200':
+          description: SSE stream of events
+          content:
+            text/event-stream:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/TokenEvent'
+                  - $ref: '#/components/schemas/ToolCallEvent'
+                  - $ref: '#/components/schemas/ToolResultEvent'
+                  - $ref: '#/components/schemas/ToolErrorEvent'
+                  - $ref: '#/components/schemas/CompleteEvent'
+                  - $ref: '#/components/schemas/ErrorEvent'
+
+components:
+  schemas:
+    # Existing schemas (for reference)
+    MessageRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 10000
+          description: User message text
+        history:
+          type: array
+          items:
+            $ref: '#/components/schemas/HistoryMessage'
+          description: Conversation history
+        model:
+          type: string
+          description: Model ID to use
+
+    HistoryMessage:
+      type: object
+      required:
+        - sender
+        - text
+      properties:
+        sender:
+          type: string
+          enum: [user, system]
+        text:
+          type: string
+
+    TokenEvent:
+      type: object
+      required:
+        - type
+        - content
+      properties:
+        type:
+          type: string
+          const: token
+        content:
+          type: string
+          description: Token/chunk of response text
+      example:
+        type: token
+        content: "Here's what I found"
+
+    CompleteEvent:
+      type: object
+      required:
+        - type
+        - model
+      properties:
+        type:
+          type: string
+          const: complete
+        model:
+          type: string
+          description: Model ID used for response
+        totalTokens:
+          type: integer
+          description: Total tokens in response
+        toolCalls:
+          type: array
+          items:
+            $ref: '#/components/schemas/ToolCallSummary'
+          description: Summary of all tool calls made
+      example:
+        type: complete
+        model: gpt-4
+        totalTokens: 150
+        toolCalls:
+          - id: tool-550e8400-e29b-41d4-a716-446655440000
+            toolId: duckduckgo-search
+            status: success
+            durationMs: 2500
+
+    ErrorEvent:
+      type: object
+      required:
+        - type
+        - error
+        - code
+      properties:
+        type:
+          type: string
+          const: error
+        error:
+          type: string
+          description: Human-readable error message
+        code:
+          type: string
+          enum: [TIMEOUT, RATE_LIMIT, LLM_ERROR, AUTH_ERROR, CONNECTION_ERROR, UNKNOWN]
+        debug_info:
+          type: object
+          description: Debug details (only when DEBUG=true)
+
+    # NEW: Tool-specific event schemas
+    ToolCallEvent:
+      type: object
+      required:
+        - type
+        - id
+        - toolId
+        - toolName
+        - args
+      properties:
+        type:
+          type: string
+          const: tool_call
+          description: Event type identifier
+        id:
+          type: string
+          pattern: '^tool-[a-f0-9-]{36}$'
+          description: Unique tool call identifier
+        toolId:
+          type: string
+          description: Tool configuration ID
+        toolName:
+          type: string
+          description: Human-readable tool name
+        args:
+          type: object
+          description: Arguments passed to the tool
+          additionalProperties: true
+      description: |
+        Emitted when the LLM decides to call a tool.
+        Frontend should display tool call UI in "pending" state.
+      example:
+        type: tool_call
+        id: tool-550e8400-e29b-41d4-a716-446655440000
+        toolId: duckduckgo-search
+        toolName: Web Search
+        args:
+          query: latest climate change news
+
+    ToolResultEvent:
+      type: object
+      required:
+        - type
+        - id
+        - status
+      properties:
+        type:
+          type: string
+          const: tool_result
+          description: Event type identifier
+        id:
+          type: string
+          pattern: '^tool-[a-f0-9-]{36}$'
+          description: Tool call ID (matches ToolCallEvent.id)
+        status:
+          type: string
+          const: success
+        result:
+          type: string
+          description: Tool output text (may be truncated)
+        resultLinks:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResultLink'
+          description: Extracted links (for search results)
+        durationMs:
+          type: integer
+          minimum: 0
+          description: Execution time in milliseconds
+      description: |
+        Emitted when a tool completes successfully.
+        Frontend should update tool call UI to "success" state.
+      example:
+        type: tool_result
+        id: tool-550e8400-e29b-41d4-a716-446655440000
+        status: success
+        result: "Found 5 results for 'latest climate change news'..."
+        resultLinks:
+          - title: Climate Report 2026
+            url: https://example.com/climate
+            snippet: The latest findings show...
+        durationMs: 2500
+
+    ToolErrorEvent:
+      type: object
+      required:
+        - type
+        - id
+        - status
+        - error
+        - errorCode
+      properties:
+        type:
+          type: string
+          const: tool_error
+          description: Event type identifier
+        id:
+          type: string
+          pattern: '^tool-[a-f0-9-]{36}$'
+          description: Tool call ID (matches ToolCallEvent.id)
+        status:
+          type: string
+          const: error
+        error:
+          type: string
+          description: Human-readable error message
+        errorCode:
+          type: string
+          enum:
+            - TIMEOUT
+            - CONNECTION_ERROR
+            - TOOL_NOT_FOUND
+            - EXECUTION_ERROR
+            - INVALID_ARGS
+          description: Error category for frontend handling
+        debugInfo:
+          type: object
+          description: Debug details (only when DEBUG=true)
+          properties:
+            exception:
+              type: string
+            message:
+              type: string
+            stackTrace:
+              type: string
+            requestDetails:
+              type: object
+        durationMs:
+          type: integer
+          minimum: 0
+          description: Time until error in milliseconds
+      description: |
+        Emitted when a tool execution fails.
+        Frontend should update tool call UI to "error" state with message.
+      example:
+        type: tool_error
+        id: tool-550e8400-e29b-41d4-a716-446655440001
+        status: error
+        error: Unable to connect to the website. The server may be down.
+        errorCode: CONNECTION_ERROR
+        durationMs: 30000
+        debugInfo:
+          exception: ConnectionError
+          message: Failed to establish connection
+          stackTrace: "Traceback (most recent call last):\n  File..."
+
+    ResultLink:
+      type: object
+      required:
+        - title
+        - url
+      properties:
+        title:
+          type: string
+          maxLength: 200
+          description: Link title or page heading
+        url:
+          type: string
+          format: uri
+          description: Full URL to the resource
+        snippet:
+          type: string
+          maxLength: 500
+          description: Text excerpt from the page
+      example:
+        title: Climate Report 2026
+        url: https://example.com/climate
+        snippet: The latest findings show unprecedented changes...
+
+    ToolCallSummary:
+      type: object
+      required:
+        - id
+        - toolId
+        - status
+      properties:
+        id:
+          type: string
+          description: Tool call ID
+        toolId:
+          type: string
+          description: Tool configuration ID
+        status:
+          type: string
+          enum: [success, error]
+        durationMs:
+          type: integer
+          description: Execution time in milliseconds
+      description: Summary included in CompleteEvent for persistence
+
+# SSE Format Examples
+x-sse-examples:
+  tool_call_flow:
+    description: Complete flow with tool call
+    events:
+      - |
+        data: {"type":"token","content":"I'll search for that information."}
+
+      - |
+        data: {"type":"tool_call","id":"tool-550e8400-e29b-41d4-a716-446655440000","toolId":"duckduckgo-search","toolName":"Web Search","args":{"query":"latest news"}}
+
+      - |
+        data: {"type":"tool_result","id":"tool-550e8400-e29b-41d4-a716-446655440000","status":"success","result":"Found 5 results...","resultLinks":[{"title":"News Today","url":"https://example.com"}],"durationMs":2500}
+
+      - |
+        data: {"type":"token","content":"Based on my search, here's what I found..."}
+
+      - |
+        data: {"type":"complete","model":"gpt-4","totalTokens":150,"toolCalls":[{"id":"tool-550e8400-e29b-41d4-a716-446655440000","toolId":"duckduckgo-search","status":"success","durationMs":2500}]}
+
+  tool_error_flow:
+    description: Flow with tool error
+    events:
+      - |
+        data: {"type":"token","content":"Let me check that website."}
+
+      - |
+        data: {"type":"tool_call","id":"tool-xxx","toolId":"web-browser","toolName":"Browse URL","args":{"url":"https://unreachable.example"}}
+
+      - |
+        data: {"type":"tool_error","id":"tool-xxx","status":"error","error":"Unable to connect to the website.","errorCode":"CONNECTION_ERROR","durationMs":30000}
+
+      - |
+        data: {"type":"token","content":"I wasn't able to access that website. Let me try another approach..."}
+
+      - |
+        data: {"type":"complete","model":"gpt-4","totalTokens":80,"toolCalls":[{"id":"tool-xxx","toolId":"web-browser","status":"error","durationMs":30000}]}

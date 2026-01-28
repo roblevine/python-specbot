@@ -50,6 +50,12 @@ const streamingMessage = ref(null)
 const isStreaming = ref(false)
 let cleanupFunction = null
 
+/**
+ * T024: Tool call state management
+ * Feature: 024-add-langchain-tools User Story 2
+ */
+const currentToolCalls = ref([])
+
 export function useMessages() {
   const { activeConversation, addMessage, saveToStorage, generateAndSetTitle } = useConversations()
   const { setProcessing, setStatus, setError } = useAppState()
@@ -129,6 +135,9 @@ export function useMessages() {
         userMessage.status = 'sent'
         saveToStorage()
 
+        // T024: Clear tool calls at start of message
+        currentToolCalls.value = []
+
         // Set up streaming callbacks
         cleanupFunction = apiStreamMessage(
           text.trim(),
@@ -138,7 +147,8 @@ export function useMessages() {
           },
           // onComplete callback
           (metadata) => {
-            completeStreaming()
+            // T024: Attach tool calls to the completed message
+            completeStreaming(currentToolCalls.value)
 
             // T021: Trigger title generation after streaming completes
             // Run asynchronously - don't block the completion
@@ -152,7 +162,8 @@ export function useMessages() {
             setStatus('Message sent', 'ready')
             logger.info('Streaming completed', {
               messageId: streamMessageId,
-              model: metadata.model
+              model: metadata.model,
+              toolCalls: currentToolCalls.value.length
             })
 
             // Feature 022: Resolve Promise when streaming completes
@@ -171,7 +182,15 @@ export function useMessages() {
           // history
           conversationHistory,
           // model
-          selectedModelId.value
+          selectedModelId.value,
+          // T024: onToolCall callback
+          (toolCallEvent) => {
+            addToolCall(toolCallEvent)
+          },
+          // T024: onToolResult callback
+          (resultEvent) => {
+            updateToolCall(resultEvent)
+          }
         )
       } catch (error) {
         // Handle errors
@@ -265,8 +284,10 @@ export function useMessages() {
 
   /**
    * T018: Complete streaming and move message to conversation
+   * T024: Updated to include tool calls in the completed message
+   * @param {Array} toolCalls - Optional array of tool calls to attach to the message
    */
-  function completeStreaming() {
+  function completeStreaming(toolCalls = null) {
     if (!streamingMessage.value || !activeConversation.value) {
       logger.warn('Cannot complete streaming: no active streaming message or conversation')
       return
@@ -278,6 +299,11 @@ export function useMessages() {
       status: 'sent',
     }
 
+    // T024: Attach tool calls if any
+    if (toolCalls && toolCalls.length > 0) {
+      completedMessage.toolCalls = [...toolCalls]
+    }
+
     // Add to conversation messages
     addMessage(activeConversation.value.id, completedMessage)
 
@@ -287,6 +313,7 @@ export function useMessages() {
     // Clean up streaming state
     streamingMessage.value = null
     isStreaming.value = false
+    currentToolCalls.value = []
 
     if (cleanupFunction) {
       cleanupFunction()
@@ -294,6 +321,62 @@ export function useMessages() {
     }
 
     logger.logStreamComplete(0, completedMessage.text.length, completedMessage.model)
+  }
+
+  /**
+   * T024: Add a tool call record when LLM initiates a tool call
+   * @param {Object} toolCallEvent - Tool call event from SSE stream
+   */
+  function addToolCall(toolCallEvent) {
+    const toolCall = {
+      id: toolCallEvent.id,
+      toolId: toolCallEvent.toolId,
+      toolName: toolCallEvent.toolName,
+      args: toolCallEvent.args || {},
+      status: 'pending',
+      startedAt: new Date().toISOString(),
+    }
+
+    currentToolCalls.value = [...currentToolCalls.value, toolCall]
+    logger.info('Tool call started', { toolId: toolCall.toolId, toolName: toolCall.toolName })
+  }
+
+  /**
+   * T024: Update a tool call record when tool completes (success or error)
+   * @param {Object} resultEvent - Tool result or error event from SSE stream
+   */
+  function updateToolCall(resultEvent) {
+    const index = currentToolCalls.value.findIndex(tc => tc.id === resultEvent.id)
+
+    if (index === -1) {
+      logger.warn('Cannot update tool call: not found', { id: resultEvent.id })
+      return
+    }
+
+    const updated = { ...currentToolCalls.value[index] }
+
+    if (resultEvent.status === 'success' || resultEvent.type === 'tool_result') {
+      updated.status = 'success'
+      updated.result = resultEvent.result
+      updated.resultLinks = resultEvent.resultLinks
+      updated.durationMs = resultEvent.durationMs
+      updated.completedAt = new Date().toISOString()
+      logger.info('Tool call completed', { toolId: updated.toolId, durationMs: updated.durationMs })
+    } else {
+      // Error case
+      updated.status = 'error'
+      updated.error = resultEvent.error
+      updated.errorCode = resultEvent.errorCode
+      updated.debugInfo = resultEvent.debugInfo
+      updated.durationMs = resultEvent.durationMs
+      updated.completedAt = new Date().toISOString()
+      logger.warn('Tool call failed', { toolId: updated.toolId, error: resultEvent.error })
+    }
+
+    // Update the array immutably
+    const newToolCalls = [...currentToolCalls.value]
+    newToolCalls[index] = updated
+    currentToolCalls.value = newToolCalls
   }
 
   /**
@@ -382,5 +465,9 @@ export function useMessages() {
     abortStreaming,
     errorStreaming,
     __resetStreamingState, // For testing
+    // T024: Tool call state and functions
+    currentToolCalls,
+    addToolCall,
+    updateToolCall,
   }
 }
