@@ -1,7 +1,7 @@
 """
 DuckDuckGo Search Tool
 
-Web search tool using DuckDuckGo via langchain_community.
+Web search tool using DuckDuckGo via the ddgs package.
 Returns structured results with links for display.
 
 Feature: 024-add-langchain-tools
@@ -64,7 +64,7 @@ class DuckDuckGoSearchTool(BaseTool):
 
         try:
             # Import here to handle missing dependency gracefully
-            from duckduckgo_search import DDGS
+            from ddgs import DDGS
 
             # Run search with timeout
             results = await asyncio.wait_for(
@@ -161,8 +161,8 @@ class DuckDuckGoSearchTool(BaseTool):
             ConnectionError: If unable to connect to DuckDuckGo
             Exception: For other search errors
         """
-        from duckduckgo_search import DDGS
-        from duckduckgo_search.exceptions import DuckDuckGoSearchException
+        from ddgs import DDGS
+        from ddgs.exceptions import DDGSException
 
         # Run sync operation in thread pool
         def _sync_search():
@@ -181,7 +181,7 @@ class DuckDuckGoSearchTool(BaseTool):
                     if results:
                         logger.debug(f"First result keys: {results[0].keys() if results else 'N/A'}")
                     return results
-            except DuckDuckGoSearchException as e:
+            except DDGSException as e:
                 error_str = str(e).lower()
                 # Detect network/proxy/connection errors
                 if any(x in error_str for x in ["connect", "tunnel", "network", "timeout", "refused", "unreachable"]):
