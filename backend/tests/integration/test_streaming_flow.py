@@ -31,7 +31,7 @@ async def test_end_to_end_streaming_flow(client: TestClient):
 
     Feature: 009-message-streaming User Story 1
     """
-    with patch('src.api.routes.messages.stream_ai_response') as mock_stream:
+    with patch('src.api.routes.messages.stream_ai_response_with_tools') as mock_stream:
         # Mock streaming response
         async def mock_generator():
             from src.schemas import TokenEvent, CompleteEvent
@@ -89,7 +89,7 @@ async def test_streaming_with_conversation_history(client: TestClient):
 
     Feature: 009-message-streaming User Story 1
     """
-    with patch('src.api.routes.messages.stream_ai_response') as mock_stream:
+    with patch('src.api.routes.messages.stream_ai_response_with_tools') as mock_stream:
         # Track arguments passed to stream_ai_response
         captured_args = {}
 
@@ -145,7 +145,7 @@ async def test_streaming_with_custom_model(client: TestClient):
 
     Feature: 009-message-streaming + 008-openai-model-selector
     """
-    with patch('src.api.routes.messages.stream_ai_response') as mock_stream:
+    with patch('src.api.routes.messages.stream_ai_response_with_tools') as mock_stream:
         # Track arguments
         captured_args = {}
 
@@ -196,7 +196,7 @@ async def test_concurrent_streaming_requests(client: TestClient):
     Feature: 009-message-streaming User Story 1
     Success Criteria: Support at least 10 concurrent streams
     """
-    with patch('src.api.routes.messages.stream_ai_response') as mock_stream:
+    with patch('src.api.routes.messages.stream_ai_response_with_tools') as mock_stream:
         request_count = 0
 
         async def mock_generator(**kwargs):
@@ -260,7 +260,7 @@ async def test_streaming_performance_first_token_latency(client: TestClient):
     Feature: 009-message-streaming User Story 1
     Success Criteria: First token visible within 1 second
     """
-    with patch('src.api.routes.messages.stream_ai_response') as mock_stream:
+    with patch('src.api.routes.messages.stream_ai_response_with_tools') as mock_stream:
         async def mock_generator():
             from src.schemas import TokenEvent, CompleteEvent
             # Simulate realistic LLM streaming with small delays
@@ -312,7 +312,7 @@ async def test_streaming_error_handling_in_pipeline(client: TestClient):
 
     Feature: 009-message-streaming User Story 3
     """
-    with patch('src.api.routes.messages.stream_ai_response') as mock_stream:
+    with patch('src.api.routes.messages.stream_ai_response_with_tools') as mock_stream:
         async def mock_generator():
             from src.schemas import TokenEvent, ErrorEvent
             # Stream some tokens, then error
@@ -384,7 +384,7 @@ async def test_streaming_backward_compatibility(client: TestClient):
         mock_get_ai.assert_called_once()
 
     # Test 2: Request with Accept: text/event-stream (streaming)
-    with patch('src.api.routes.messages.stream_ai_response') as mock_stream:
+    with patch('src.api.routes.messages.stream_ai_response_with_tools') as mock_stream:
         async def mock_generator():
             from src.schemas import TokenEvent, CompleteEvent
             yield TokenEvent(content="Streaming")
@@ -437,7 +437,7 @@ async def test_streaming_special_characters_preservation(client: TestClient):
 
     Feature: 009-message-streaming User Story 1
     """
-    with patch('src.api.routes.messages.stream_ai_response') as mock_stream:
+    with patch('src.api.routes.messages.stream_ai_response_with_tools') as mock_stream:
         async def mock_generator():
             from src.schemas import TokenEvent, CompleteEvent
             # Stream tokens with special characters

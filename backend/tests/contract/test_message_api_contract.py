@@ -736,7 +736,7 @@ def test_streaming_request_with_sse_accept_header(
     from unittest.mock import patch, AsyncMock, Mock
 
     # Mock the LLM streaming service
-    with patch('src.api.routes.messages.stream_ai_response') as mock_stream_ai:
+    with patch('src.api.routes.messages.stream_ai_response_with_tools') as mock_stream_ai:
         # Mock streaming response with async generator
         async def mock_generator():
             from src.schemas import TokenEvent, CompleteEvent
@@ -782,7 +782,7 @@ def test_streaming_response_sse_format(
     import json
 
     # Mock the LLM streaming service
-    with patch('src.api.routes.messages.stream_ai_response') as mock_stream_ai:
+    with patch('src.api.routes.messages.stream_ai_response_with_tools') as mock_stream_ai:
         # Mock streaming response
         async def mock_generator():
             from src.schemas import TokenEvent, CompleteEvent
@@ -847,8 +847,8 @@ def test_streaming_event_sequence(
     from unittest.mock import patch
     import json
 
-    # Mock the LLM streaming service
-    with patch('src.api.routes.messages.stream_ai_response') as mock_stream_ai:
+    # Mock the LLM streaming service (now uses tool-enabled streaming)
+    with patch('src.api.routes.messages.stream_ai_response_with_tools') as mock_stream_ai:
         # Mock streaming response with multiple tokens
         async def mock_generator():
             from src.schemas import TokenEvent, CompleteEvent
@@ -960,7 +960,7 @@ def test_streaming_with_conversation_history(
     from unittest.mock import patch
 
     # Mock the LLM streaming service
-    with patch('src.api.routes.messages.stream_ai_response') as mock_stream_ai:
+    with patch('src.api.routes.messages.stream_ai_response_with_tools') as mock_stream_ai:
         # Mock streaming response
         async def mock_generator():
             from src.schemas import TokenEvent, CompleteEvent
@@ -1013,7 +1013,7 @@ def test_streaming_with_custom_model(
     import json
 
     # Mock the LLM streaming service
-    with patch('src.api.routes.messages.stream_ai_response') as mock_stream_ai:
+    with patch('src.api.routes.messages.stream_ai_response_with_tools') as mock_stream_ai:
         # Mock streaming response with custom model
         async def mock_generator():
             from src.schemas import TokenEvent, CompleteEvent
@@ -1070,7 +1070,7 @@ def test_streaming_error_event_format(
     import json
 
     # Mock the LLM streaming service to yield error
-    with patch('src.api.routes.messages.stream_ai_response') as mock_stream_ai:
+    with patch('src.api.routes.messages.stream_ai_response_with_tools') as mock_stream_ai:
         # Mock streaming response with error
         async def mock_generator():
             from src.schemas import ErrorEvent
@@ -1124,7 +1124,7 @@ def test_streaming_sse_headers(
     from unittest.mock import patch
 
     # Mock the LLM streaming service
-    with patch('src.api.routes.messages.stream_ai_response') as mock_stream_ai:
+    with patch('src.api.routes.messages.stream_ai_response_with_tools') as mock_stream_ai:
         # Mock streaming response
         async def mock_generator():
             from src.schemas import TokenEvent, CompleteEvent
