@@ -121,15 +121,22 @@ class DuckDuckGoSearchTool(BaseTool):
                 error="Search service is not available.",
                 error_code="EXECUTION_ERROR"
             )
+        except ConnectionError as e:
+            logger.error(f"Connection error during search: {e}")
+            return ToolResult(
+                success=False,
+                error="Unable to connect to search service. This may be due to network restrictions or firewall settings.",
+                error_code="CONNECTION_ERROR"
+            )
         except Exception as e:
             logger.error(f"Search failed: {type(e).__name__}: {e}")
 
             # Check for network-related errors
             error_str = str(e).lower()
-            if any(x in error_str for x in ["connection", "network", "timeout", "refused"]):
+            if any(x in error_str for x in ["connection", "network", "timeout", "refused", "tunnel", "unreachable"]):
                 return ToolResult(
                     success=False,
-                    error="Unable to connect to search service. Check your internet connection.",
+                    error="Unable to connect to search service. This may be due to network restrictions or firewall settings.",
                     error_code="CONNECTION_ERROR"
                 )
 
@@ -149,8 +156,13 @@ class DuckDuckGoSearchTool(BaseTool):
 
         Returns:
             List of search result dictionaries
+
+        Raises:
+            ConnectionError: If unable to connect to DuckDuckGo
+            Exception: For other search errors
         """
         from duckduckgo_search import DDGS
+        from duckduckgo_search.exceptions import DuckDuckGoSearchException
 
         # Run sync operation in thread pool
         def _sync_search():
@@ -167,6 +179,14 @@ class DuckDuckGoSearchTool(BaseTool):
                     if results:
                         logger.debug(f"First result keys: {results[0].keys() if results else 'N/A'}")
                     return results
+            except DuckDuckGoSearchException as e:
+                error_str = str(e).lower()
+                # Detect network/proxy/connection errors
+                if any(x in error_str for x in ["connect", "tunnel", "network", "timeout", "refused", "unreachable"]):
+                    logger.error(f"DuckDuckGo connection error: {e}")
+                    raise ConnectionError(f"Unable to connect to search service: {e}")
+                logger.error(f"DuckDuckGo search error: {type(e).__name__}: {e}")
+                raise
             except Exception as e:
                 logger.error(f"DuckDuckGo search error in sync: {type(e).__name__}: {e}")
                 raise

@@ -132,6 +132,33 @@ class TestDuckDuckGoToolExecution:
             assert result.success is False
             assert result.error_code == "EXECUTION_ERROR"
 
+    @pytest.mark.asyncio
+    async def test_handles_connection_error(self):
+        """Should handle network/proxy connection errors gracefully."""
+        tool = DuckDuckGoSearchTool()
+
+        with patch.object(tool, "_search", new_callable=AsyncMock) as mock_search:
+            mock_search.side_effect = ConnectionError("Unable to connect to search service: tunnel error")
+
+            result = await tool.execute(query="test query")
+
+            assert result.success is False
+            assert result.error_code == "CONNECTION_ERROR"
+            assert "network restrictions" in result.error.lower() or "connect" in result.error.lower()
+
+    @pytest.mark.asyncio
+    async def test_handles_network_related_exception(self):
+        """Should detect network errors from exception message."""
+        tool = DuckDuckGoSearchTool()
+
+        with patch.object(tool, "_search", new_callable=AsyncMock) as mock_search:
+            mock_search.side_effect = Exception("unsuccessful tunnel connection refused")
+
+            result = await tool.execute(query="test query")
+
+            assert result.success is False
+            assert result.error_code == "CONNECTION_ERROR"
+
 
 class TestDuckDuckGoToolLangChain:
     """Test suite for LangChain integration."""
