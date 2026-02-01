@@ -36,14 +36,14 @@ DEBUG = os.getenv("DEBUG", "false").lower() in ("true", "1", "yes")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler"""
+    from src.utils.error_handling import validate_environment_security
+    
     logger.info("Starting SpecBot Backend API Server")
     logger.info(f"Server configuration: host={API_HOST}, port={API_PORT}")
     logger.info(f"CORS allowed origins: {FRONTEND_URL}")
-    if DEBUG:
-        logger.warning("⚠️  DEBUG MODE ENABLED - Detailed error messages will be exposed in API responses")
-        logger.warning("⚠️  Never use DEBUG mode in production!")
-    else:
-        logger.info("DEBUG mode disabled - Error details will be hidden in API responses")
+    
+    # Validate security configuration
+    validate_environment_security()
 
     # T032: Load tool configuration at startup
     try:
