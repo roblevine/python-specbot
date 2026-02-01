@@ -72,18 +72,61 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Configure CORS middleware
+# Configure CORS middleware with security best practices
+# Only allow specific HTTP methods and headers needed for the API
+from urllib.parse import urlparse
+
+def validate_frontend_url(url: str) -> str:
+    """
+    Validate FRONTEND_URL format for security.
+    
+    Args:
+        url: Frontend URL to validate
+        
+    Returns:
+        Validated URL
+        
+    Raises:
+        ValueError: If URL is invalid
+    """
+    try:
+        parsed = urlparse(url)
+        if not parsed.scheme or not parsed.netloc:
+            raise ValueError(f"Invalid FRONTEND_URL format: {url}")
+        if parsed.scheme not in ("http", "https"):
+            raise ValueError(f"FRONTEND_URL must use http or https: {url}")
+        return url
+    except Exception as e:
+        raise ValueError(f"Invalid FRONTEND_URL: {url}") from e
+
+# Validate FRONTEND_URL
+try:
+    validated_frontend_url = validate_frontend_url(FRONTEND_URL)
+    logger.info(f"FRONTEND_URL validated: {validated_frontend_url}")
+except ValueError as e:
+    logger.error(f"Invalid FRONTEND_URL configuration: {e}")
+    logger.warning("Falling back to default localhost origins only")
+    validated_frontend_url = None
+
+# Build allowed origins list
+allowed_origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://0.0.0.0:5173",
+]
+if validated_frontend_url and validated_frontend_url not in allowed_origins:
+    allowed_origins.append(validated_frontend_url)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://0.0.0.0:5173",
-        FRONTEND_URL
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    # Only allow specific HTTP methods needed by the API
+    # Avoid wildcard "*" which allows all methods including dangerous ones
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    # Only allow specific headers needed by the API
+    # Avoid wildcard "*" which allows any custom headers
+    allow_headers=["Content-Type", "Authorization", "Accept", "X-Requested-With"],
 )
 
 # Add logging middleware
