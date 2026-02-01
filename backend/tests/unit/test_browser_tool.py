@@ -89,14 +89,17 @@ class TestWebBrowserToolInputValidation:
         """T043: Should add https:// scheme when missing."""
         tool = WebBrowserTool()
 
-        # Mock the fetch to verify the URL was corrected
-        with patch.object(tool, "_fetch_page", new_callable=AsyncMock) as mock_fetch:
-            mock_fetch.return_value = "Test content"
+        # Mock both SSRF validation and fetch to verify the URL was corrected
+        with patch("src.services.tools.browser.validate_url_for_ssrf") as mock_ssrf:
+            mock_ssrf.return_value = ("example.com", "93.184.216.34")  # example.com's IP
+            
+            with patch.object(tool, "_fetch_page", new_callable=AsyncMock) as mock_fetch:
+                mock_fetch.return_value = "Test content"
 
-            result = await tool.execute(url="example.com")
+                result = await tool.execute(url="example.com")
 
-            # Should have succeeded because the URL was corrected
-            assert result.success is True
+                # Should have succeeded because the URL was corrected
+                assert result.success is True
 
 
 class TestWebBrowserToolExecution:
@@ -107,16 +110,19 @@ class TestWebBrowserToolExecution:
         """T043: Should return page content on success."""
         tool = WebBrowserTool()
 
-        with patch.object(tool, "_fetch_page", new_callable=AsyncMock) as mock_fetch:
-            mock_fetch.return_value = "This is the page content."
+        with patch("src.services.tools.browser.validate_url_for_ssrf") as mock_ssrf:
+            mock_ssrf.return_value = ("example.com", "93.184.216.34")
+            
+            with patch.object(tool, "_fetch_page", new_callable=AsyncMock) as mock_fetch:
+                mock_fetch.return_value = "This is the page content."
 
-            result = await tool.execute(url="https://example.com")
+                result = await tool.execute(url="https://example.com")
 
-            assert result.success is True
-            assert "This is the page content." in result.result
-            assert result.links is not None
-            assert len(result.links) == 1
-            assert result.links[0]["url"] == "https://example.com"
+                assert result.success is True
+                assert "This is the page content." in result.result
+                assert result.links is not None
+                assert len(result.links) == 1
+                assert result.links[0]["url"] == "https://example.com"
 
     @pytest.mark.asyncio
     async def test_truncates_long_content(self):
@@ -125,54 +131,66 @@ class TestWebBrowserToolExecution:
 
         long_content = "x" * 10000  # Much longer than MAX_CONTENT_LENGTH (4000)
 
-        with patch.object(tool, "_fetch_page", new_callable=AsyncMock) as mock_fetch:
-            mock_fetch.return_value = long_content
+        with patch("src.services.tools.browser.validate_url_for_ssrf") as mock_ssrf:
+            mock_ssrf.return_value = ("example.com", "93.184.216.34")
+            
+            with patch.object(tool, "_fetch_page", new_callable=AsyncMock) as mock_fetch:
+                mock_fetch.return_value = long_content
 
-            result = await tool.execute(url="https://example.com")
+                result = await tool.execute(url="https://example.com")
 
-            assert result.success is True
-            assert len(result.result) < len(long_content)
-            assert "[Content truncated...]" in result.result
+                assert result.success is True
+                assert len(result.result) < len(long_content)
+                assert "[Content truncated...]" in result.result
 
     @pytest.mark.asyncio
     async def test_handles_empty_page(self):
         """T043: Should handle empty page content gracefully."""
         tool = WebBrowserTool()
 
-        with patch.object(tool, "_fetch_page", new_callable=AsyncMock) as mock_fetch:
-            mock_fetch.return_value = ""
+        with patch("src.services.tools.browser.validate_url_for_ssrf") as mock_ssrf:
+            mock_ssrf.return_value = ("example.com", "93.184.216.34")
+            
+            with patch.object(tool, "_fetch_page", new_callable=AsyncMock) as mock_fetch:
+                mock_fetch.return_value = ""
 
-            result = await tool.execute(url="https://example.com")
+                result = await tool.execute(url="https://example.com")
 
-            assert result.success is True
-            assert "empty" in result.result.lower()
+                assert result.success is True
+                assert "empty" in result.result.lower()
 
     @pytest.mark.asyncio
     async def test_handles_timeout_error(self):
         """T043: Should handle timeout gracefully."""
         tool = WebBrowserTool()
 
-        with patch.object(tool, "_fetch_page", new_callable=AsyncMock) as mock_fetch:
-            mock_fetch.side_effect = asyncio.TimeoutError()
+        with patch("src.services.tools.browser.validate_url_for_ssrf") as mock_ssrf:
+            mock_ssrf.return_value = ("example.com", "93.184.216.34")
+            
+            with patch.object(tool, "_fetch_page", new_callable=AsyncMock) as mock_fetch:
+                mock_fetch.side_effect = asyncio.TimeoutError()
 
-            result = await tool.execute(url="https://example.com")
+                result = await tool.execute(url="https://example.com")
 
-            assert result.success is False
-            assert result.error_code == "TIMEOUT"
-            assert "timed out" in result.error.lower()
+                assert result.success is False
+                assert result.error_code == "TIMEOUT"
+                assert "timed out" in result.error.lower()
 
     @pytest.mark.asyncio
     async def test_handles_connection_error(self):
         """T043: Should handle connection errors gracefully."""
         tool = WebBrowserTool()
 
-        with patch.object(tool, "_fetch_page", new_callable=AsyncMock) as mock_fetch:
-            mock_fetch.side_effect = Exception("Connection refused")
+        with patch("src.services.tools.browser.validate_url_for_ssrf") as mock_ssrf:
+            mock_ssrf.return_value = ("example.com", "93.184.216.34")
+            
+            with patch.object(tool, "_fetch_page", new_callable=AsyncMock) as mock_fetch:
+                mock_fetch.side_effect = Exception("Connection refused")
 
-            result = await tool.execute(url="https://example.com")
+                result = await tool.execute(url="https://example.com")
 
-            assert result.success is False
-            assert result.error_code == "CONNECTION_ERROR"
+                assert result.success is False
+                assert result.error_code == "CONNECTION_ERROR"
 
 
 class TestWebBrowserToolLangChain:

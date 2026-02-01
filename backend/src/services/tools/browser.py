@@ -15,6 +15,7 @@ from urllib.parse import urlparse
 from src.services.tools.base import BaseTool, ToolResult
 from src.services.tools import register_tool
 from src.utils.logger import get_logger
+from src.utils.ssrf_protection import validate_url_for_ssrf, SSRFProtectionError
 
 logger = get_logger(__name__)
 
@@ -65,25 +66,25 @@ class WebBrowserTool(BaseTool):
 
         url = url.strip()
 
-        # Validate URL format
-        try:
+        # Add https:// if no scheme provided
+        parsed = urlparse(url)
+        if not parsed.scheme:
+            url = "https://" + url
             parsed = urlparse(url)
-            if not parsed.scheme:
-                url = "https://" + url
-                parsed = urlparse(url)
-            if parsed.scheme not in ("http", "https"):
-                return ToolResult(
-                    success=False,
-                    error="Invalid URL scheme. Only http and https are supported.",
-                    error_code="INVALID_ARGS"
-                )
-            if not parsed.netloc:
-                return ToolResult(
-                    success=False,
-                    error="Invalid URL format.",
-                    error_code="INVALID_ARGS"
-                )
-        except Exception:
+
+        # Validate URL format and check for SSRF vulnerabilities
+        try:
+            hostname, resolved_ip = validate_url_for_ssrf(url)
+            logger.info(f"URL validated: {hostname} -> {resolved_ip}")
+        except SSRFProtectionError as e:
+            logger.warning(f"URL blocked by SSRF protection: {e}")
+            return ToolResult(
+                success=False,
+                error=f"URL access denied: {str(e)}",
+                error_code="INVALID_ARGS"
+            )
+        except Exception as e:
+            logger.error(f"URL validation failed: {e}")
             return ToolResult(
                 success=False,
                 error="Invalid URL format.",

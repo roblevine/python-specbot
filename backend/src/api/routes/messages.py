@@ -31,6 +31,7 @@ from src.services.llm_service import (
     LLMBadRequestError
 )
 from src.utils.logger import get_logger, llm_request_start, llm_request_complete, llm_request_error
+from src.utils.error_handling import get_safe_error_response
 
 logger = get_logger(__name__)
 
@@ -38,6 +39,7 @@ logger = get_logger(__name__)
 router = APIRouter(tags=["messages"])
 
 
+# Deprecated: Use get_safe_error_response from src.utils.error_handling instead
 def is_debug_mode() -> bool:
     """Check if DEBUG mode is enabled (checked at runtime, not import time)."""
     return os.getenv("DEBUG", "false").lower() in ("true", "1", "yes")
@@ -265,22 +267,13 @@ async def send_message(http_request: Request, request: MessageRequest) -> Union[
     except LLMTimeoutError as e:
         # T039: Handle LLM timeout errors (504 Gateway Timeout)
         logger.warning(f"LLM timeout: {e.message}")
-
-        error_content = {
-            "status": "error",
-            "error": e.message,
-            "timestamp": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
-        }
-
-        # In debug mode, include detailed error information
-        if is_debug_mode():
-            error_content["debug_info"] = {
-                "error_type": type(e).__name__,
-                "error_message": str(e),
-                "original_error": getattr(e, 'original_error', None),
-                "traceback": traceback.format_exc()
-            }
-            logger.warning("DEBUG mode enabled - exposing detailed error information in API response")
+        
+        # Use secure error response
+        error_content = get_safe_error_response(
+            error=e,
+            user_message=e.message,
+            error_code="TIMEOUT"
+        )
 
         return JSONResponse(
             status_code=status.HTTP_504_GATEWAY_TIMEOUT,
@@ -291,21 +284,12 @@ async def send_message(http_request: Request, request: MessageRequest) -> Union[
         # T039: Handle LLM bad request errors (400 Bad Request)
         logger.warning(f"LLM bad request: {e.message}")
 
-        error_content = {
-            "status": "error",
-            "error": e.message,
-            "timestamp": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
-        }
-
-        # In debug mode, include detailed error information
-        if is_debug_mode():
-            error_content["debug_info"] = {
-                "error_type": type(e).__name__,
-                "error_message": str(e),
-                "original_error": getattr(e, 'original_error', None),
-                "traceback": traceback.format_exc()
-            }
-            logger.warning("DEBUG mode enabled - exposing detailed error information in API response")
+        # Use secure error response
+        error_content = get_safe_error_response(
+            error=e,
+            user_message=e.message,
+            error_code="BAD_REQUEST"
+        )
 
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -316,21 +300,12 @@ async def send_message(http_request: Request, request: MessageRequest) -> Union[
         # T039: Handle LLM service errors (503 Service Unavailable)
         logger.warning(f"LLM service error: {e.message}")
 
-        error_content = {
-            "status": "error",
-            "error": e.message,
-            "timestamp": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
-        }
-
-        # In debug mode, include detailed error information
-        if is_debug_mode():
-            error_content["debug_info"] = {
-                "error_type": type(e).__name__,
-                "error_message": str(e),
-                "original_error": str(getattr(e, 'original_error', None)),
-                "traceback": traceback.format_exc()
-            }
-            logger.warning("DEBUG mode enabled - exposing detailed error information in API response")
+        # Use secure error response
+        error_content = get_safe_error_response(
+            error=e,
+            user_message=e.message,
+            error_code="SERVICE_ERROR"
+        )
 
         return JSONResponse(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -345,21 +320,12 @@ async def send_message(http_request: Request, request: MessageRequest) -> Union[
         # T036: Handle unexpected errors (500 Internal Server Error)
         logger.error(f"Unexpected error processing message: {e}", exc_info=True)
 
-        # Build error detail based on debug mode
-        error_detail = {
-            "status": "error",
-            "error": "Internal server error occurred",
-            "timestamp": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
-        }
-
-        # In debug mode, include detailed error information
-        if is_debug_mode():
-            error_detail["debug_info"] = {
-                "error_type": type(e).__name__,
-                "error_message": str(e),
-                "traceback": traceback.format_exc()
-            }
-            logger.warning("DEBUG mode enabled - exposing detailed error information in API response")
+        # Use secure error response
+        error_detail = get_safe_error_response(
+            error=e,
+            user_message="Internal server error occurred",
+            error_code="INTERNAL_ERROR"
+        )
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
